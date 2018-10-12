@@ -30,6 +30,7 @@ setup(
             'clilabs = clilabs:cli',
         ],
     },
+    install_requires=['tabulate'],
     classifiers=[
         'Development Status :: 1 - Planning',
         'Environment :: Web Environment',

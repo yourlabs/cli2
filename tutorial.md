@@ -1,4 +1,3 @@
-
 Try with your own command first, put this in example.py:
 
 ```
@@ -46,7 +45,7 @@ $ clilabs your.module --noinput -c=2
 Or fiddle around with the debug builtin command:
 
 ```
-$ clilabs debug :help -a --b=2 c=3 d
+$ clilabs debug help -a --b=2 c=3 d
 Callable: <function help at 0x7f888647ef28>
 Callable path: /home/jpic/src/clilabs/clilabs/builtins.py
 Args: ('d',)
@@ -71,15 +70,14 @@ When it finds only a `-` alone then it will read stdin for a value:
 $ echo bar | clilabs example -
 ```
 
-Use the clilabs.builtins:help, or just `:help:` because
-clilabs.builtins is the default module:
+Help is based on docstrings:
 
 ```
 # docstring of function
-$ clilabs clilabs:help your.mod:main
+$ clilabs clilabs.builtins:help your.mod:main
 
-# docstring of module, : required to avoid confusion with module name:main
-$ clilabs :help clilabs.django
+# since help is clilabs.builtins, no need to prefix with clilabs:
+$ clilabs help clilabs.django
 ```
 
 Pycli also bundles a nice bunch of functions for Django, for now it has a
@@ -94,22 +92,31 @@ $ export DJANGO_SETTINGS_MODULE=your.settings
 # you will probably run this from your directory parent to manage.py:
 $ clilabs clilabs.django:create auth.user username=pony is_superuser=1
 
+# django is a builtin module, you can use + instead of clilabs.:
+$ clilabs +django:create auth.user username=pony is_superuser=1
+
+# for idempotent create, add field names to use as reference
+$ clilabs +django:create auth.user username=pony is_superuser=1 username
+
 # i just checked and chpasswd command in django supports only interactive
-$ clilabs clilabs.django:chpasswd /path/to/password username=pony
+$ clilabs +django:chpasswd yourpassword username=pony
 
 # supports stdin too with -
-$ echo yourpassword | clilabs.django:chpasswd - username=pony
+$ echo yourpassword | +django:chpasswd - username=pony
 
 # find stuff:
-$ clilabs clilabs.django:list auth.user username is_superuser
+$ clilabs +django:ls auth.user username is_superuser
 | pk | username | is_superuser |
 | 1  | pony     |     True     |
 | 2  | ninja    |     False    |
 
-# and filter
-$ clilabs clilabs.django:list auth.user username is_superuser=true
+# kwargs are passed to filter
+$ clilabs +django:ls auth.user username is_superuser=true
 | pk | username | is_superuser |
 | 1  | ninja    |     True     |
+
+# you can also delete
+$ clilabs +django:delete auth.user username=lol123
 
 # count supports filters too
 $ clilabs clilabs.django:count is_superuser=true
@@ -120,9 +127,9 @@ $ clilabs clilabs.django:delete auth.user username=pony --noinput
 1
 
 # you can use other models
-$ clilabs clilabs.django:create sites.site name='awesome site' domain=awesome.com
-$ clilabs clilabs.django:list admin.logentry
-$ clilabs clilabs.django:detail auth.groups pk=1
+$ clilabs +django:create sites.site name='awesome site' domain=awesome.com
+$ clilabs +django:list admin.logentry
+$ clilabs +django:detail auth.groups pk=1
 
 # and of course your own apps:
 $ clilabs yourapp.cli:dosomething with_that_arg with_that_kwarg=1 --noinput --othercontextarg=1

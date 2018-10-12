@@ -13,6 +13,7 @@ def cli(*argv):
         clilabs help your.mod:funcname to get its docstring.
         clilabs debug your.mod -a --b --something='to see' how it=parses
         clilabs your.mod:funcname with your=args
+        clilabs help clilabs.django
     '''
     argv = argv if argv else sys.argv
     if len(argv) < 2:
@@ -34,6 +35,9 @@ def callables(mod):
 def funcexpand(callback):
     import clilabs.builtins
     builtins = callables(clilabs.builtins)
+
+    if callback.startswith('+'):
+        callback = f'clilabs.{callback[1:]}'
 
     if callback in builtins:
         funcname = callback
@@ -74,7 +78,7 @@ def expand(*argvs):
 
     for argv in argvs:
         if argv == '-':
-            args.append(sys.stdin.read())
+            args.append(sys.stdin.read().strip())
             continue
 
         if argv.startswith('-'):
@@ -83,7 +87,7 @@ def expand(*argvs):
         if '=' in argv:
             name, value = argv.split('=')
             if value == '-':
-                value = sys.stdin.read()
+                value = sys.stdin.read().strip()
             kwargs[name] = value
         else:
             args.append(argv)
@@ -105,7 +109,7 @@ class Context:
                 continue
 
             if argv == '--':
-                context.args.append(sys.stdin.read())
+                context.args.append(sys.stdin.read().strip())
                 continue
 
             argv = argv.lstrip('-')
@@ -113,7 +117,7 @@ class Context:
             if '=' in argv:
                 key, value = argv.split('=')
                 if value == '-':
-                    value = sys.stdin.read()
+                    value = sys.stdin.read().strip()
                 context.kwargs[key] = value
 
             else:

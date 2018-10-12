@@ -15,7 +15,10 @@ Things starting with - will arrive in clilabs.context.
 
 Examples:
 
-    clilabs help your.mod:funcname to get its docstring.
+    clilabs help your.mod:main
     clilabs debug your.mod -a --b --something='to see' how it=parses
     clilabs your.mod:funcname with your=args
+    clilabs help clilabs.django
+    clilabs clilabs.django:list auth.user
+    clilabs +django:list auth.user  # also works
 ```
