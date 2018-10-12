@@ -1,25 +1,51 @@
+import inspect
 import importlib
 import sys
 
 
 def cli(*argv):
+    '''clilabs automates python callables parametered calls.
+
+    Things starting with - will arrive in clilabs.context.
+
+    Examples:
+
+        clilabs help your.mod:funcname to get its docstring.
+        clilabs debug your.mod -a --b --something='to see' how it=parses
+        clilabs your.mod:funcname with your=args
+    '''
     argv = argv if argv else sys.argv
     if len(argv) < 2:
-        print('Dotted path to callable required.')
-        sys.exit(1)
+        argv.append('help')
 
     cb = funcimp(argv[1])
     args, kwargs = expand(*argv[2:])
     return cb(*args, **kwargs)
 
 
-def funcimp(callback):
-    if ':' not in callback:
+def funcexpand(callback):
+    import clilabs.builtins
+    builtins = [
+        a[0]
+        for a in inspect.getmembers(clilabs.builtins)
+        if callable(getattr(clilabs.builtins, a[0]))
+    ]
+
+    if callback in builtins:
+        funcname = callback
+        modname = 'clilabs.builtins'
+    elif ':' not in callback:
         funcname = 'main'
         modname = callback
     else:
         modname, funcname = callback.split(':')
+        if not modname:
+            modname = 'clilabs.builtins'
 
+    return modname, funcname
+
+
+def modfuncimp(modname, funcname):
     ret = importlib.import_module(modname)
     for part in funcname.split('.'):
         if isinstance(ret, dict) and part in ret:
@@ -30,6 +56,10 @@ def funcimp(callback):
             ret = getattr(ret, part)
 
     return ret
+
+
+def funcimp(callback):
+    return modfuncimp(*funcexpand(callback))
 
 
 def expand(*argvs):

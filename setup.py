@@ -30,7 +30,6 @@ setup(
             'clilabs = clilabs:cli',
         ],
     },
-    install_requires=['glom'],
     classifiers=[
         'Development Status :: 1 - Planning',
         'Environment :: Web Environment',
