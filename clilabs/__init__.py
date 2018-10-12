@@ -29,6 +29,7 @@ def callables(mod):
         i[0]
         for i in inspect.getmembers(mod)
         if callable(getattr(mod, i[0]))
+        and not i[0].startswith('_')
     ]
 
 

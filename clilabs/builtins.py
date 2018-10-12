@@ -8,6 +8,30 @@ import clilabs
 __all__ = ['debug', 'help']
 
 
+def _modhelp(modname):
+    filename = importlib.find_loader(modname).get_filename()
+    moddoc = filedoc(filename)
+
+    if moddoc:
+        print('Module docstring:', moddoc)
+
+    try:
+        mod = importlib.import_module(modname)
+    except ImportError:
+        traceback.print_exc()
+        print(f'Could not import module: {modname}')
+    else:
+        callables = clilabs.callables(mod)
+        if callables:
+            print(f'Callables found in: {filename}')
+            print("\n".join(callables))
+        else:
+            print(f'No callable found in {filename}')
+
+    if not moddoc and not callables:
+        print('No help found')
+
+
 def filedoc(filepath):
     co = compile(open(filepath).read(), filepath, 'exec')
     if co.co_consts and isinstance(co.co_consts[0], str):
@@ -28,34 +52,14 @@ def help(cb=None):
         cb = clilabs.modfuncimp(modname, funcname)
     except ImportError:
         if ':' not in cb:
-            filename = importlib.find_loader(modname).get_filename()
-            moddoc = filedoc(filename)
-
-            if moddoc:
-                print('Module docstring:', moddoc)
-
-            try:
-                mod = importlib.import_module(modname)
-            except ImportError:
-                traceback.print_exc()
-                print(f'Could not import module: {modname}')
-            else:
-                callables = clilabs.callables(mod)
-                if callables:
-                    print(f'Callables found in: {filename}')
-                    print("\n".join(callables))
-                else:
-                    print(f'No callable found in {filename}')
-
-            if not moddoc and not callables:
-                print('No help found')
+            _modhelp(modname)
     else:
         funcdoc = inspect.getdoc(cb)
         if funcdoc:
             print(funcdoc)
         else:
             print(f'No docstring found for {modname}:{funcname}')
-            print(f'More luck with clilabs help {modname} ?')
+            _modhelp(modname)
 
 
 def debug(*args, **kwargs):
