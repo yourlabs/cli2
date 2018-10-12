@@ -22,3 +22,5 @@ Examples:
     clilabs clilabs.django:list auth.user
     clilabs +django:list auth.user  # also works
 ```
+
+Moar in tutorial.md
