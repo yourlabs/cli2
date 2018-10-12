@@ -1,3 +1,4 @@
+import importlib
 import inspect
 import clilabs
 
@@ -6,10 +7,20 @@ __all__ = ['debug', 'help']
 
 
 def help(cb=None):
+    """Get help for a callable, or list callables for a module."""
     if not cb:
         cb = 'clilabs:cli'
-    cb = clilabs.funcimp(cb)
-    print(inspect.getdoc(cb))
+
+    try:
+        cb = clilabs.funcimp(cb)
+    except ImportError:
+        if ':' not in cb:
+            mod = importlib.import_module(cb)
+            print('Module docstring:', inspect.getdoc(mod))
+            print('Callables:')
+            print("\n".join(clilabs.callables(mod)))
+    else:
+        print(inspect.getdoc(cb))
 
 
 def debug(*args, **kwargs):
@@ -17,7 +28,7 @@ def debug(*args, **kwargs):
         cb = clilabs.funcimp(args[0])
     except ImportError:
         cb = args[0]
-        print(f'Could not import: {cb}')
+        print(f'Could not import {cb}')
     else:
         print(f'Callable: {cb}')
         print(f'Callable path: {cb.__code__.co_filename}')

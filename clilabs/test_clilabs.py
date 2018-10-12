@@ -1,5 +1,6 @@
 import io
 import clilabs
+import clilabs.builtins
 
 
 class Foo:
@@ -23,3 +24,18 @@ def test_expand(monkeypatch):
 def test_cli():
     result = clilabs.cli('clilabs', CB_NAME, '1')
     assert result == 'test'
+
+
+def test_help(capsys):
+    clilabs.builtins.help()
+    assert 'clilabs' in capsys.readouterr().out
+
+
+def test_help_builtin(capsys):
+    clilabs.builtins.help('help')
+    assert 'help' in capsys.readouterr().out
+
+
+def test_help_module(capsys):
+    clilabs.builtins.help('clilabs')
+    assert 'cli' in capsys.readouterr().out

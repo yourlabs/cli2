@@ -23,13 +23,17 @@ def cli(*argv):
     return cb(*args, **kwargs)
 
 
+def callables(mod):
+    return [
+        i[0]
+        for i in inspect.getmembers(mod)
+        if callable(getattr(mod, i[0]))
+    ]
+
+
 def funcexpand(callback):
     import clilabs.builtins
-    builtins = [
-        a[0]
-        for a in inspect.getmembers(clilabs.builtins)
-        if callable(getattr(clilabs.builtins, a[0]))
-    ]
+    builtins = callables(clilabs.builtins)
 
     if callback in builtins:
         funcname = callback
@@ -53,7 +57,10 @@ def modfuncimp(modname, funcname):
         elif isinstance(ret, list) and part.isnumeric():
             ret = ret[int(part)]
         else:
-            ret = getattr(ret, part)
+            ret = getattr(ret, part, None)
+
+        if ret is None:
+            raise ImportError(f'{part} is None')
 
     return ret
 
