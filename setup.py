@@ -22,7 +22,7 @@ setup(
     url='https://yourlabs.io/oss/clilabs',
     packages=['clilabs'],
     include_package_data=True,
-    long_description=read('README.md'),
+    long_description=read('README.rst'),
     license='MIT',
     keywords='django cli',
     entry_points={
