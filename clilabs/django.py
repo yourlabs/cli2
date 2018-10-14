@@ -89,7 +89,7 @@ def ls(modelname, *args, **kwargs):
 
     Show username and email for superusers:
 
-    clilabs +django ls auth.user is_superuser=1 username email
+    clilabs +django:ls auth.user is_superuser=1 username email
     """
 
     model = apps.get_model(modelname)
@@ -134,6 +134,11 @@ def chpasswd(password, **kwargs):
 
     It takes the password as argument, that you can use `-` for stdin.
     All kwargs will be passed to get()
+
+    Example:
+
+        clilabs +django:chpasswd username=... thepassword
+        echo thepassword | clilabs +django:chpasswd username=... -
     """
 
     from django.conf import settings
