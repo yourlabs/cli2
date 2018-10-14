@@ -106,6 +106,12 @@ def delete(modelname, **kwargs):
 
 
 def detail(modelname, *args, **kwargs):
+    """Print detail for a model.
+
+    kwargs are passed to filter()
+
+    clilabs +django:detail pk=123
+    """
     model = apps.get_model(modelname)
     obj = model.objects.get(**kwargs)
     print(tabulate([
@@ -115,7 +121,13 @@ def detail(modelname, *args, **kwargs):
     ]))
 
 
-def chpasswd(modelname, password, **kwargs):
+def chpasswd(password, **kwargs):
+    """Change the password for user.
+
+    It takes the password as argument, that you can use `-` for stdin.
+    All kwargs will be passed to get()
+    """
+
     from django.conf import settings
     model = apps.get_model(settings.AUTH_USER_MODEL)
     user = model.objects.get(**kwargs)

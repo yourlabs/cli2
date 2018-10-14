@@ -42,7 +42,17 @@ def filedoc(filepath):
 
 
 def help(cb=None):
-    """Get help for a callable, or list callables for a module."""
+    """
+    Get help for a callable, or list callables for a module.
+
+    Examples:
+
+    # Print module docstring and list of callables:
+    clilabs help your.mod
+
+    # Print callable docstring
+    clilabs help your.mod:func
+    """
     if not cb:
         cb = 'clilabs:cli'
 
@@ -63,6 +73,16 @@ def help(cb=None):
 
 
 def debug(*args, **kwargs):
+    """Print debug output for a command line.
+
+    The debug function is made to dump the result of the clilabs parser.
+    It will show what callable and arguments it will use.
+    You will see that the following are not the same, as stated in the
+    tutorial.
+
+    clilabs debug your:func -x 12
+    clilabs debug your:func -x=12
+    """
     try:
         cb = clilabs.funcimp(args[0])
     except ImportError:

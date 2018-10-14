@@ -8,6 +8,7 @@ Get started:
 
 ```
 $ pip install clilabs
+
 $ clilabs
 clilabs automates python callables parametered calls.
 
@@ -21,6 +22,13 @@ Examples:
     clilabs help clilabs.django
     clilabs clilabs.django:list auth.user
     clilabs +django:list auth.user  # also works
+
+$ clilabs debug your.mod -a --b --something='to see' how it=parses
+Could not import your.mod
+Args: ('how',)
+Kwargs: {'it': 'parses'}
+Context args: ['a', 'b']
+Context kwagrs: {'something': 'to see'}
 ```
 
 Moar in tutorial.md
