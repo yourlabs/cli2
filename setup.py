@@ -10,12 +10,12 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
-VERSION = os.getenv('VERSION', '@VERSION')
+VERSION = '@VERSION'
 
 
 setup(
     name='clilabs',
-    version=VERSION,
+    version=VERSION if '@' not in VERSION else 'dev',
     description='Cheap CLI framework, gives rich commands for Django',
     author='James Pic',
     author_email='jamespic@gmail.com',
