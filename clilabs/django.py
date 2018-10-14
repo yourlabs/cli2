@@ -18,8 +18,10 @@ try:
     django.setup()
 except Exception:
     print('Setting up django has failed !')
-    print(f'DJANGO_SETTINGS_MODULE={os.getenv("DJANGO_SETTINGS_MODULE")}')
-    traceback.print_exc()
+    print('DJANGO_SETTINGS_MODULE env var not set !')
+    if 'DJANGO_SETTINGS_MODULE' in os.environ:
+        print(f'DJANGO_SETTINGS_MODULE={os.getenv("DJANGO_SETTINGS_MODULE")}')
+        traceback.print_exc()
 
 
 def _modeldata(obj, keys=None):
