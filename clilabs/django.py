@@ -52,11 +52,17 @@ def create(modelname, *args, **kwargs):
     instead of kwarg.
 
     # Create a user, not idempotent
-    playlabs +django create auth.user username=foo email=joe@example.com
+    playlabs +django:create auth.user username=foo email=joe@example.com
 
     # Create or update a user based on email, idempotent yay !
-    playlabs +django create auth.user email username=foo email=joe@example.com
+    playlabs +django:create auth.user email username=foo email=joe@example.com
+
+    # oh, and with settings.* support for your model swapping fun hacks ;)
+    playlabs +django:create settings.AUTH_USER_MODEL ...
     """
+    if modelname.startswith('settings.'):
+        from django.conf import settings
+        modelname = getattr(settings, modelname.split('.')[1])
     model = apps.get_model(modelname)
 
     if not args:
