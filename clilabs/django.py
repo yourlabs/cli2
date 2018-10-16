@@ -6,6 +6,7 @@ available and adding to INSTALLED_APPS is a manual step.
 """
 import glob
 import os
+import pprint
 import re
 import sys
 import traceback
@@ -165,9 +166,24 @@ def chpasswd(password, **kwargs):
     print('Password updated !')
 
 
-def main(*args, **kwargs):
-    if not args:
-        print('For help, run clilabs help +django')
+def settings(*names):
+    """Show settings from django.
 
-    cb = clilabs.funcimp(args[0])
-    return cb(*args[1:], **kwargs)
+    How many times have you done the following ?
+
+        python manage.py shell
+        from django.conf import settings
+        settings.DATABASES # or something
+
+    Well it's over now ! Try this instead:
+
+        clilabs +django:settings DATABASES INSTALLED_APPS # etc
+    """
+    from django.conf import settings
+
+    for name in names:
+        print(f'{name}={pprint.pformat(getattr(settings, name))}')
+
+
+def main(*args, **kwargs):
+    print('For help, run clilabs help +django')
