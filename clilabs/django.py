@@ -14,7 +14,6 @@ import traceback
 import django
 from django.apps import apps
 
-import clilabs
 from tabulate import tabulate
 
 
@@ -26,7 +25,7 @@ if found and 'DJANGO_SETTINGS_MODULE' not in os.environ:
             if m:
                 mod = m.group(1)
                 print(f'Auto-detected DJANGO_SETTINGS_MODULE={mod}')
-                print('If incorrect, please set DJANGO_SETTINGS_MODULE env var')
+                print('If incorrect, set DJANGO_SETTINGS_MODULE env var')
                 os.environ['DJANGO_SETTINGS_MODULE'] = mod
                 break
 
