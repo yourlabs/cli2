@@ -4,15 +4,31 @@ It requires DJANGO_SETTINGS_MODULE env var, and does not require to be in
 INSTALLED_APPS because automation software should be made automatically
 available and adding to INSTALLED_APPS is a manual step.
 """
+import glob
 import os
-import traceback
+import re
 import sys
+import traceback
 
 import django
 from django.apps import apps
 
 import clilabs
 from tabulate import tabulate
+
+
+found = glob.glob('**/manage.py', recursive=True)
+if found and 'DJANGO_SETTINGS_MODULE' not in os.environ:
+    with open(found[0], 'r') as f:
+        for line in f.readlines():
+            m = re.match('.*[\'"]([^\'"]*.settings[^\'"]*)[\'"]', line)
+            if m:
+                mod = m.group(1)
+                print(f'Auto-detected DJANGO_SETTINGS_MODULE={mod}')
+                print('If incorrect, please set DJANGO_SETTINGS_MODULE env var')
+                os.environ['DJANGO_SETTINGS_MODULE'] = mod
+                break
+
 
 try:
     django.setup()
