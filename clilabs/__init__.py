@@ -37,19 +37,23 @@ def funcexpand(callback):
     import clilabs.builtins
     builtins = callables(clilabs.builtins)
 
-    if callback.startswith('+'):
-        callback = f'clilabs.{callback[1:]}'
-
     if callback in builtins:
-        funcname = callback
         modname = 'clilabs.builtins'
-    elif ':' not in callback:
-        funcname = 'main'
-        modname = callback
+        funcname = callback
     else:
-        modname, funcname = callback.split(':')
-        if not modname:
-            modname = 'clilabs.builtins'
+        if not callback.startswith('clilabs'):
+            if not callback.startswith('~'):
+                callback = f'clilabs.{callback}'
+            else:
+                callback = callback[1:]
+
+        if ':' not in callback:
+            funcname = 'main'
+            modname = callback
+        else:
+            modname, funcname = callback.split(':')
+            if not modname:
+                modname = 'clilabs.builtins'
 
     return modname, funcname
 
