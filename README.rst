@@ -18,16 +18,17 @@ Help::
 
     Examples:
 
-        clilabs help your.mod:main
-        clilabs debug your.mod -a --b --something='to see' how it=parses
-        clilabs your.mod:funcname with your=args
+        clilabs help ~your.mod:main
+        clilabs debug ~your.mod -a --b --something='to see' how it=parses
+        clilabs ~your.mod:funcname with your=args
         clilabs help clilabs.django
+        clilabs help django
         clilabs clilabs.django:list auth.user
-        clilabs +django:list auth.user  # also works
+        clilabs django:list auth.user  # also works
 
 Demo::
 
-    $ clilabs debug your.mod:yourfunc -a --b --something='to see' how it=parses
+    $ clilabs debug ~your.mod:yourfunc -a --b --something='to see' how it=parses
     Could not import your.mod
     Args: ('how',)
     Kwargs: {'it': 'parses'}

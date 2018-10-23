@@ -10,10 +10,11 @@ def cli(*argv):
 
     Examples:
 
-        clilabs help your.mod:funcname to get its docstring.
-        clilabs debug your.mod -a --b --something='to see' how it=parses
-        clilabs your.mod:funcname with your=args
+        clilabs help ~your.mod:funcname to get its docstring.
+        clilabs debug ~your.mod -a --b --something='to see' how it=parses
+        clilabs ~your.mod:funcname with your=args
         clilabs help clilabs.django
+        clilabs help django
     '''
     argv = argv if argv else sys.argv
     if len(argv) < 2:
