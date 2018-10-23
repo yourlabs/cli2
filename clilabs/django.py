@@ -68,13 +68,13 @@ def create(modelname, *args, **kwargs):
     instead of kwarg.
 
     # Create a user, not idempotent
-    playlabs +django:create auth.user username=foo email=joe@example.com
+    playlabs django:create auth.user username=foo email=joe@example.com
 
     # Create or update a user based on email, idempotent yay !
-    playlabs +django:create auth.user email username=foo email=joe@example.com
+    playlabs django:create auth.user email username=foo email=joe@example.com
 
     # oh, and with settings.* support for your model swapping fun hacks ;)
-    playlabs +django:create settings.AUTH_USER_MODEL ...
+    playlabs django:create settings.AUTH_USER_MODEL ...
     """
     if modelname.startswith('settings.'):
         from django.conf import settings
@@ -105,7 +105,7 @@ def ls(modelname, *args, **kwargs):
 
     Show username and email for superusers:
 
-    clilabs +django:ls auth.user is_superuser=1 username email
+    clilabs django:ls auth.user is_superuser=1 username email
     """
 
     model = apps.get_model(modelname)
@@ -134,7 +134,7 @@ def detail(modelname, *args, **kwargs):
 
     kwargs are passed to filter()
 
-    clilabs +django:detail pk=123
+    clilabs django:detail pk=123
     """
     model = apps.get_model(modelname)
     obj = model.objects.get(**kwargs)
@@ -153,8 +153,8 @@ def chpasswd(password, **kwargs):
 
     Example:
 
-        clilabs +django:chpasswd username=... thepassword
-        echo thepassword | clilabs +django:chpasswd username=... -
+        clilabs django:chpasswd username=... thepassword
+        echo thepassword | clilabs django:chpasswd username=... -
     """
 
     from django.conf import settings
@@ -176,7 +176,7 @@ def settings(*names):
 
     Well it's over now ! Try this instead:
 
-        clilabs +django:settings DATABASES INSTALLED_APPS # etc
+        clilabs django:settings DATABASES INSTALLED_APPS # etc
     """
     from django.conf import settings
 
@@ -185,4 +185,4 @@ def settings(*names):
 
 
 def main(*args, **kwargs):
-    print('For help, run clilabs help +django')
+    print('For help, run clilabs help django')

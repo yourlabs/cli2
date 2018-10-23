@@ -48,10 +48,14 @@ def help(cb=None):
     Examples:
 
     # Print module docstring and list of callables:
-    clilabs help your.mod
+    clilabs help clilabs.mod
+    clilabs help mod (same as above)
+    clilabs help ~your.mod
 
     # Print callable docstring
-    clilabs help your.mod:func
+    clilabs help clilabs.mod:func
+    clilabs help mod:func (same as above)
+    clilabs help ~external.mod:func
     """
     if not cb:
         cb = 'clilabs:cli'
@@ -80,8 +84,8 @@ def debug(*args, **kwargs):
     You will see that the following are not the same, as stated in the
     tutorial.
 
-    clilabs debug your:func -x 12
-    clilabs debug your:func -x=12
+    clilabs debug ~your:func -x 12
+    clilabs debug ~your:func -x=12
     """
     try:
         cb = clilabs.funcimp(args[0])

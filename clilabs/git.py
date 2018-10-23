@@ -41,8 +41,8 @@ def clone(repo, dest=None):
 
     Examples:
 
-    clilabs +git:clone git@yourlabs.io:oss/clilabs.git
-    clilabs +git:clone git@yourlabs.io:oss/playlabs.git ~/yourlabs/playlabs
+    clilabs git:clone git@yourlabs.io:oss/clilabs.git
+    clilabs git:clone git@yourlabs.io:oss/playlabs.git ~/yourlabs/playlabs
     """
     cmd = ['clone', repo]
     if dest:
@@ -64,7 +64,7 @@ def apply():
 
     Example:
 
-    clilabs +git:apply
+    clilabs git:apply
     """
     commands = [
         ['fetch', 'origin'],
@@ -92,7 +92,7 @@ def push(msg):
 
     Example:
 
-    clilabs +git:push commit_message
+    clilabs git:push commit_message
     """
     commands = [
         ['commit', '-am', msg],
