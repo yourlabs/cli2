@@ -91,7 +91,7 @@ def expand(*argvs):
             continue
 
         if '=' in argv:
-            name, value = argv.split('=')
+            name, value = argv.split('=', 1)
             if value == '-':
                 value = sys.stdin.read().strip()
             kwargs[name] = value
@@ -121,7 +121,7 @@ class Context:
             argv = argv.lstrip('-')
 
             if '=' in argv:
-                key, value = argv.split('=')
+                key, value = argv.split('=', 1)
                 if value == '-':
                     value = sys.stdin.read().strip()
                 context.kwargs[key] = value

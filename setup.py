@@ -30,7 +30,7 @@ setup(
             'clilabs = clilabs:cli',
         ],
     },
-    install_requires=['tabulate'],
+    install_requires=['tabulate', 'processcontroller'],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
