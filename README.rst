@@ -38,3 +38,28 @@ Demo::
     Context kwargs: {'something': 'to see'}
 
 Moar in tutorial.md
+
+Making your own command
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Add to your setup.py::
+
+    entry_points={
+        'console_scripts': [
+            'yourcmd = yourpkg.cli:cli',
+        ],
+    },
+
+
+Add in yourpkg/cli.py::
+
+    import clilabs
+
+    def cli(*argv):
+        argv = list(argv)
+        argv.insert(0, 'yourpkg.cli:main')
+        return clilabs.cli(*argv)
+
+    def main(...):
+        '''Put your help text, that will show when the
+        user runs the command without argument.'''
