@@ -213,3 +213,6 @@ def debug(jobs=None, **kwargs):
     """
     _execute.debug = True
     return _execute(jobs, kwargs)
+
+
+main = debug
