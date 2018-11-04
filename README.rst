@@ -35,6 +35,6 @@ Demo::
     Args: ('how',)
     Kwargs: {'it': 'parses'}
     Context args: ['a', 'b']
-    Context kwagrs: {'something': 'to see'}
+    Context kwargs: {'something': 'to see'}
 
 Moar in tutorial.md

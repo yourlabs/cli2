@@ -102,4 +102,4 @@ def debug(*args, **kwargs):
     print(f'Args: {args[1:]}')
     print(f'Kwargs: {kwargs}')
     print(f'Context args: {clilabs.context.args}')
-    print(f'Context kwagrs: {clilabs.context.kwargs}')
+    print(f'Context kwargs: {clilabs.context.kwargs}')
