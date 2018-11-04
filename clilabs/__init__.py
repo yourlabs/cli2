@@ -10,11 +10,12 @@ def cli(*argv):
 
     Examples:
 
-        clilabs help ~your.mod:funcname to get its docstring.
-        clilabs debug ~your.mod -a --b --something='to see' how it=parses
-        clilabs ~your.mod:funcname with your=args
+        clilabs help your.mod:funcname to get its docstring.
+        clilabs debug your.mod -a --b --something='to see' how it=parses
+        clilabs your.mod:funcname with your=args
         clilabs help clilabs.django
         clilabs help django
+        clilabs ~django.db.models:somefunc # to run actual django package func
     '''
     argv = argv if argv else sys.argv
     if len(argv) < 2:
@@ -36,25 +37,27 @@ def callables(mod):
 
 def funcexpand(callback):
     import clilabs.builtins
-    builtins = callables(clilabs.builtins)
+    if callback in callables(clilabs.builtins):
+        return 'clilabs.builtins', callback
 
-    if callback in builtins:
-        modname = 'clilabs.builtins'
-        funcname = callback
+    if ':' not in callback:
+        funcname = 'main'
+        modname = callback
     else:
-        if not callback.startswith('clilabs'):
-            if not callback.startswith('~'):
-                callback = f'clilabs.{callback}'
-            else:
-                callback = callback[1:]
+        modname, funcname = callback.split(':')
+        if not modname:
+            modname = 'builtins'
 
-        if ':' not in callback:
-            funcname = 'main'
-            modname = callback
+    if modname.startswith('~'):
+        modname = modname[1:]
+    else:
+        default = f'clilabs.{modname}'
+        try:
+            __import__(default)
+        except ImportError:
+            pass
         else:
-            modname, funcname = callback.split(':')
-            if not modname:
-                modname = 'clilabs.builtins'
+            modname = default
 
     return modname, funcname
 

@@ -18,13 +18,15 @@ Help::
 
     Examples:
 
-        clilabs help ~your.mod:main
-        clilabs debug ~your.mod -a --b --something='to see' how it=parses
-        clilabs ~your.mod:funcname with your=args
+        clilabs help your.mod:main
+        clilabs debug your.mod -a --b --something='to see' how it=parses
+        clilabs your.mod:funcname with your=args
         clilabs help clilabs.django
         clilabs help django
         clilabs clilabs.django:list auth.user
         clilabs django:list auth.user  # also works
+        # refer to the root one
+        clilabs ~django.db.models:somefunc somearg some=kwarg
 
 Demo::
 

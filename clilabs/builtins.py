@@ -84,9 +84,12 @@ def debug(*args, **kwargs):
     You will see that the following are not the same, as stated in the
     tutorial.
 
-    clilabs debug ~your:func -x 12
-    clilabs debug ~your:func -x=12
+    clilabs debug your:func -x 12
+    clilabs debug your:func -x=12
     """
+    if not args:
+        return print('func:arg argument required ie. clilabs debug your:func')
+
     try:
         cb = clilabs.funcimp(args[0])
     except ImportError:
