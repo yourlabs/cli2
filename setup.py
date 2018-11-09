@@ -1,28 +1,15 @@
 from setuptools import setup
-import os
-
-
-# Utility function to read the README file.
-# Used for the long_description. It's nice, because now 1) we have a top level
-# README file and 2) it's easier to type in the README file than to put a raw
-# string in below ...
-def read(fname):
-    return open(os.path.join(os.path.dirname(__file__), fname)).read()
-
-
-VERSION = '@VERSION'
 
 
 setup(
     name='clilabs',
-    version=VERSION if '@' not in VERSION else 'dev',
-    description='Cheap CLI framework, gives rich commands for Django',
+    versioning='distance',
+    setup_requires='setupmeta',
     author='James Pic',
     author_email='jamespic@gmail.com',
     url='https://yourlabs.io/oss/clilabs',
     packages=['clilabs'],
     include_package_data=True,
-    long_description=read('README.rst'),
     license='MIT',
     keywords='django cli',
     entry_points={

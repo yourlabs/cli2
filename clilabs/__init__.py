@@ -35,10 +35,11 @@ def callables(mod):
     ]
 
 
-def funcexpand(callback):
-    import clilabs.builtins
-    if callback in callables(clilabs.builtins):
-        return 'clilabs.builtins', callback
+def funcexpand(callback, builtin_module_name=None):
+    builtin_module_name = builtin_module_name or 'clilabs.builtins'
+    builtin_module = __import__(builtin_module_name)
+    if callback in callables(builtin_module):
+        return builtin_module_name, callback
 
     if ':' not in callback:
         funcname = 'main'

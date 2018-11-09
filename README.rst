@@ -53,12 +53,17 @@ Add to your setup.py::
 
 Add in yourpkg/cli.py::
 
+    '''Your documentation that shows by default:
+
+        yourcmd somefunc ...
+    '''
     import clilabs
 
     def cli(*argv):
-        argv = list(argv)
-        argv.insert(0, 'yourpkg.cli:main')
-        return clilabs.cli(*argv)
+        argv = list(argv) if argv else ['help', 'yourpkg.cli']
+        cb = clilabs.modfuncimp(*clilabs.funcexpand(argv[0], 'yourpkg.cli'))
+        args, kwargs = clilabs.expand(*argv[1:])
+        return cb(*args, **kwargs)
 
     def main(...):
         '''Put your help text, that will show when the
