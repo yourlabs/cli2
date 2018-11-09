@@ -12,6 +12,6 @@ pypi:
   stage: deploy
   only:
   - /^\d+\./
-  image: yourlabs/python
+  image: yourlabs/python:autoplay
   script:
-  - VERSION=$CI_COMMIT_REF_NAME release
+  - autoplay run twine
