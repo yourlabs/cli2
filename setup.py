@@ -3,12 +3,11 @@ from setuptools import setup
 
 setup(
     name='clilabs',
-    versioning='distance',
+    versioning='dev',
     setup_requires='setupmeta',
     author='James Pic',
     author_email='jamespic@gmail.com',
     url='https://yourlabs.io/oss/clilabs',
-    packages=['clilabs'],
     include_package_data=True,
     license='MIT',
     keywords='django cli',
