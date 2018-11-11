@@ -37,7 +37,7 @@ def callables(mod):
 
 def funcexpand(callback, builtin_module_name=None):
     builtin_module_name = builtin_module_name or 'clilabs.builtins'
-    builtin_module = __import__(builtin_module_name)
+    builtin_module = importlib.import_module(builtin_module_name)
     if callback in callables(builtin_module):
         return builtin_module_name, callback
 
@@ -109,6 +109,7 @@ class Context:
     def __init__(self, *args, **kwargs):
         self.args = list(args)
         self.kwargs = kwargs
+        self.argv = []
 
     @classmethod
     def factory(cls, argvs):
@@ -122,6 +123,7 @@ class Context:
                 context.args.append(sys.stdin.read().strip())
                 continue
 
+            context.argv.append(argv)
             argv = argv.lstrip('-')
 
             if '=' in argv:

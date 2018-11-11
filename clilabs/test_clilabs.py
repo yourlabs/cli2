@@ -10,6 +10,12 @@ class Foo:
 CB_NAME = 'clilabs.test_clilabs:Foo.bar.baz.0'
 
 
+def test_funcexpand():
+    expected = ('clilabs.builtins', 'help')
+    assert clilabs.funcexpand('help') == expected
+    assert clilabs.funcexpand('clilabs.builtins:help') == expected
+
+
 def test_funcimp():
     result = clilabs.funcimp(CB_NAME)
     assert result == Foo.bar['baz'][0]
