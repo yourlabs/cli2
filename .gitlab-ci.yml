@@ -10,6 +10,5 @@ pytest:
 
 pypi:
   stage: deploy
-  image: yourlabs/python:autoplay
-  script:
-  - autoplay run twine
+  image: yourlabs/python
+  script: pypi-release
