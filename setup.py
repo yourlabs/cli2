@@ -2,21 +2,20 @@ from setuptools import setup
 
 
 setup(
-    name='clilabs',
+    name='clitoo',
     versioning='dev',
     setup_requires='setupmeta',
     author='James Pic',
     author_email='jamespic@gmail.com',
-    url='https://yourlabs.io/oss/clilabs',
+    url='https://yourlabs.io/oss/clitoo',
     include_package_data=True,
     license='MIT',
-    keywords='django cli',
+    keywords='cli',
     entry_points={
         'console_scripts': [
-            'clilabs = clilabs:cli',
+            'clitoo = clitoo:main',
         ],
     },
-    install_requires=['tabulate', 'processcontroller'],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Environment :: Console',

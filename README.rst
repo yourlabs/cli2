@@ -1,13 +1,16 @@
-clilabs: the python CLI that gets things done.
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+clitoo: execute python callables from CLI too !
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Sometimes I want to execute a python callback with some args on the command
 line, but i get frustrated that it always requires to wrap my command in a
-wrapper of some sort. Clilabs unfrustrates me.
+wrapper of some sort or do something more than, just call a parameterized
+callback from the CLI.
+
+Clitoo unfrustrates me.
 
 Install::
 
-$ pip install clilabs
+$ pip install clitoo
 
 Help::
 
