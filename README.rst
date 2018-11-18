@@ -70,4 +70,9 @@ Making your own command
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 See the djcli repository for an example of command that is packaged as
-standalone.
+standalone, but it looks like::
+
+	# Declare the following as CLI entry_point
+	def cli():
+	    clitoo.context.default_module = __name__
+	    return clitoo.main()

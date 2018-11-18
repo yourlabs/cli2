@@ -1,3 +1,38 @@
+'''Clitoo makes your python callbacks work on CLI too !
+
+This CLI can execute python callbacks with parameters.
+
+Clitoo recognizes 4 types of command line arguments:
+
+- lone arguments are passed as args
+- arguments with = are passed as kwargs
+- dashed arguments like -f arrive in context.args
+- dashed arguments like -foo=bar arrive in context.kwargs
+
+It doesn't matter how many dashes you put in the front, they are all
+removed.
+
+To use the context in your callback just import the clitoo context::
+
+    from clitoo import context
+    print(context.args, context.kwargs)
+
+Clitoo provides 2 builtin commands: help and debug. Any other first
+argument will be considered as the dotted path to the callback to import
+and execute.
+
+Examples:
+
+clitoo help your.mod.funcname
+    Print out the function docstring.
+
+clitoo debug your.func -a --b --something='to see' how it=parses
+    Dry run of your.mod with arguments, dump out actual calls.
+
+clitoo your.mod.funcname with your=args
+    Call your.mod.funcname('with', your='args').
+'''
+
 import inspect
 import importlib
 import traceback
@@ -11,6 +46,7 @@ class Context:
         self.args = list(args)
         self.kwargs = kwargs
         self.argv = []
+        self.default_module = __name__
 
     @classmethod
     def factory(cls, argvs):
@@ -51,13 +87,13 @@ class Callback:
         self.parts = None
         self.cb = None
         self.callables = None
-        self.default_module = None
 
     @classmethod
-    def factory(cls, path):
+    def factory(cls, path, try_default=True):
         self = cls()
         self.path = path
         self.parts = self.path.split('.')
+
         for i, part in enumerate(self.parts):
             self.modname = '.'.join(self.parts[:i + 1])
             if not self.modname:
@@ -87,19 +123,11 @@ class Callback:
             and not i[0].startswith('_')
         ]
 
-        return self
-
-    @classmethod
-    def select_cb(cls, path, default_module=None):
-        self = cls.factory(path)
-
-        if not self.cb and default_module:
-            self = cls.factory(f'{default_module}.{path}')
-            self.default_module = default_module
-
-        if not self.cb:
-            self = cls.factory(f'clitoo.{path}')
-            self.default_module = 'clitoo'
+        if try_default and not self.cb:
+            other_path = f'{context.default_module}.{path}'
+            other = cls.factory(other_path, False)
+            if other.cb:
+                return other
 
         return self
 
@@ -158,10 +186,12 @@ def filedoc(filepath):
 def help(cb=None):
     """
     Get help for a callable, or list callables for a module.
-    """
-    cb = cb or 'clitoo.main'
 
-    cb = Callback.select_cb(cb)
+    Example::
+
+        $ clitoo help foo.bar
+    """
+    cb = Callback.factory(cb or context.default_module)
 
     def _modhelp():
         """Return the help fr a module."""
@@ -212,7 +242,7 @@ def debug(*args, **kwargs):
     if not args:
         return print('Argument argument required ie. clilabs debug your.func')
 
-    cb = Callback.select_cb(args[0])
+    cb = Callback.factory(args[0])
     if not cb.cb:
         print(f'Could not import {args[0]} nor {cb.path}')
     else:
@@ -225,46 +255,16 @@ def debug(*args, **kwargs):
     print(f'Context kwargs: {context.kwargs}')
 
 
-def main(argv=None, default_module=None):
-    '''Clitoo makes your python callbacks work on CLI too !
-
-    This CLI can execute python callbacks with parameters.
-
-    Clitoo recognizes 4 types of command line arguments:
-
-    - lone arguments are passed as args
-    - arguments with = are passed as kwargs
-    - dashed arguments like -f arrive in context.args
-    - dashed arguments like -foo=bar arrive in context.kwargs
-
-    It doesn't matter how many dashes you put in the front, they are all
-    removed.
-
-    To use the context in your callback just import the clitoo context::
-
-        from clitoo import context
-        print(context.args, context.kwargs)
-
-    Clitoo provides 2 builtin commands: help and debug. Any other first
-    argument will be considered as the dotted path to the callback to import
-    and execute.
-
-    Examples:
-
-    clitoo help your.mod.funcname
-        Print out the function docstring.
-
-    clitoo debug your.func -a --b --something='to see' how it=parses
-        Dry run of your.mod with arguments, dump out actual calls.
-
-    clitoo your.mod.funcname with your=args
-        Call your.mod.funcname('with', your='args').
-    '''
-    default_module = default_module or 'clitoo'
-
+def main(argv=None):
     argv = argv if argv else sys.argv
     path = argv[1] if len(argv) > 1 else 'help'
 
-    context.callback = Callback.select_cb(path, default_module)
+    if path == 'help':
+        path = 'clitoo.help'
+
+    callback = Callback.factory(path)
     args, kwargs = expand(*argv[2:])
-    return context.callback.cb(*args, **kwargs)
+    if not callback.cb:
+        print(f'Could not find callback {callback.path}')
+        sys.exit(1)
+    return callback.cb(*args, **kwargs)
