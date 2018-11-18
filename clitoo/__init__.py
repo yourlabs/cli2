@@ -38,7 +38,7 @@ import importlib
 import traceback
 import sys
 
-from colored import fg, attr
+import colored
 
 
 class Context:
@@ -139,6 +139,16 @@ class Callback:
             return importlib.find_loader(self.modname).get_filename()
         return False
 
+    def __call__(self, *args, **kwargs):
+        setup = getattr(self.module, '_clitoo_setup', None)
+        if setup:
+            setup()
+        result = self.cb(*args, **kwargs)
+        clean = getattr(self.module, '_clitoo_clean', None)
+        if clean:
+            clean()
+        return result
+
 
 def expand(*argv):
     """
@@ -202,7 +212,9 @@ def help(cb=None):
         if moddoc:
             print(moddoc)
         else:
-            print(f'{fg(208)}No module docstring found for {cb.path}{attr(0)}')
+            print(f'{colored.fg(208)}'
+                  f'No module docstring found for {cb.path}'
+                  f'{colored.attr(0)}')
 
         try:
             importlib.import_module(cb.modname)
@@ -211,12 +223,15 @@ def help(cb=None):
             print(f'Could not import module: {cb.modname}')
         else:
             if cb.callables:
-                print(f'{fg(208)}[Callables in {cb.filename}]{attr(0)}\n')
-                for i in cb.callables:
-                    print(f'{fg(2)}- {i}{attr(0)}')
+                print(f'{colored.fg(208)}'
+                      f'[Callables in {cb.filename}]'
+                      f'{colored.attr(0)}\n')
 
-                print(f'\n{fg(208)}Try {sys.argv[0].split("/")[-1]}'
-                      f' help callable_name{attr(0)}')
+                for i in cb.callables:
+                    print(f'{colored.fg(2)}- {i}{colored.attr(0)}')
+
+                print(f'\n{colored.fg(208)}Try {sys.argv[0].split("/")[-1]}'
+                      f' help callable_name{colored.attr(0)}')
             else:
                 print(f'No callable found in {cb.filename}')
 
@@ -274,4 +289,4 @@ def main(argv=None):
     if not callback.cb:
         print(f'Could not find callback {callback.path}')
         sys.exit(1)
-    return callback.cb(*args, **kwargs)
+    return callback(*args, **kwargs)
