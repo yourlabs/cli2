@@ -14,60 +14,52 @@ $ pip install clitoo
 
 Help::
 
-    $ clilabs
-    clilabs automates python callables parametered calls.
+    Clitoo makes your python callbacks work on CLI too !
 
-    Things starting with - will arrive in clilabs.context.
+    This CLI can execute python callbacks with parameters.
+
+    Clitoo recognizes 4 types of command line arguments:
+
+    - lone arguments are passed as args
+    - arguments with = are passed as kwargs
+    - dashed arguments like -f arrive in context.args
+    - dashed arguments like -foo=bar arrive in context.kwargs
+
+    It doesn't matter how many dashes you put in the front, they are all
+    removed.
+
+    To use the context in your callback just import the clitoo context::
+
+        from clitoo import context
+        print(context.args, context.kwargs)
+
+    Clitoo provides 2 builtin commands: help and debug. Any other first
+    argument will be considered as the dotted path to the callback to import
+    and execute.
 
     Examples:
 
-        clilabs help your.mod:main
-        clilabs debug your.mod -a --b --something='to see' how it=parses
-        clilabs your.mod:funcname with your=args
-        clilabs help clilabs.django
-        clilabs help django
-        clilabs clilabs.django:list auth.user
-        clilabs django:list auth.user  # also works
-        # refer to the root one
-        clilabs ~django.db.models:somefunc somearg some=kwarg
+    clitoo help your.mod.funcname
+        Print out the function docstring.
+
+    clitoo debug your.func -a --b --something='to see' how it=parses
+        Dry run of your.mod with arguments, dump out actual calls.
+
+    clitoo your.mod.funcname with your=args
+        Call your.mod.funcname('with', your='args').
+
 
 Demo::
 
-    $ clilabs debug ~your.mod:yourfunc -a --b --something='to see' how it=parses
-    Could not import your.mod
+    $ clitoo debug your.func -a --b --something='to see' how it=parses
+    Could not import your.func nor clitoo.your.func
     Args: ('how',)
     Kwargs: {'it': 'parses'}
     Context args: ['a', 'b']
     Context kwargs: {'something': 'to see'}
 
-Moar in tutorial.md
-
 Making your own command
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Add to your setup.py::
-
-    entry_points={
-        'console_scripts': [
-            'yourcmd = yourpkg.cli:cli',
-        ],
-    },
-
-
-Add in yourpkg/cli.py::
-
-    '''Your documentation that shows by default:
-
-        yourcmd somefunc ...
-    '''
-    import clilabs
-
-    def cli(*argv):
-        argv = list(argv) if argv else ['help', 'yourpkg.cli']
-        cb = clilabs.modfuncimp(*clilabs.funcexpand(argv[0], 'yourpkg.cli'))
-        args, kwargs = clilabs.expand(*argv[1:])
-        return cb(*args, **kwargs)
-
-    def main(...):
-        '''Put your help text, that will show when the
-        user runs the command without argument.'''
+See the djcli repository for an example of command that is packaged as
+standalone.

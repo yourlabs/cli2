@@ -248,13 +248,13 @@ def main(argv=None, default_module=None):
 
     Examples:
 
-    clitoo help your.mod:funcname
+    clitoo help your.mod.funcname
         Print out the function docstring.
 
-    clitoo debug your.mod -a --b --something='to see' how it=parses
+    clitoo debug your.func -a --b --something='to see' how it=parses
         Dry run of your.mod with arguments, dump out actual calls.
 
-    clitoo your.mod:funcname with your=args
+    clitoo your.mod.funcname with your=args
         Call your.mod.funcname('with', your='args').
     '''
     default_module = default_module or 'clitoo'
