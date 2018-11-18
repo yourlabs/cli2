@@ -38,6 +38,8 @@ import importlib
 import traceback
 import sys
 
+from colored import fg, attr
+
 
 class Context:
     """Args/kwargs starting with dash go in context."""
@@ -194,12 +196,13 @@ def help(cb=None):
     cb = Callback.factory(cb or context.default_module)
 
     def _modhelp():
-        """Return the help fr a module."""
         if cb.filename:
             moddoc = filedoc(cb.filename)
 
         if moddoc:
-            print('Module docstring:', moddoc)
+            print(moddoc)
+        else:
+            print(f'{fg(208)}No module docstring found for {cb.path}{attr(0)}')
 
         try:
             importlib.import_module(cb.modname)
@@ -208,8 +211,12 @@ def help(cb=None):
             print(f'Could not import module: {cb.modname}')
         else:
             if cb.callables:
-                print(f'Callables found in: {cb.filename}')
-                print("\n".join(cb.callables))
+                print(f'{fg(208)}[Callables in {cb.filename}]{attr(0)}\n')
+                for i in cb.callables:
+                    print(f'{fg(2)}- {i}{attr(0)}')
+
+                print(f'\n{fg(208)}Try {sys.argv[0].split("/")[-1]}'
+                      f' help callable_name{attr(0)}')
             else:
                 print(f'No callable found in {cb.filename}')
 

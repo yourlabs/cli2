@@ -11,6 +11,7 @@ setup(
     include_package_data=True,
     license='MIT',
     keywords='cli',
+    install_requires=['colored'],
     entry_points={
         'console_scripts': [
             'clitoo = clitoo:main',
