@@ -105,7 +105,9 @@ class Callback:
 
     @property
     def filename(self):
-        return importlib.find_loader(self.modname).get_filename()
+        if self.modname:
+            return importlib.find_loader(self.modname).get_filename()
+        return False
 
 
 def expand(*argv):
@@ -162,8 +164,9 @@ def help(cb=None):
     cb = Callback.select_cb(cb)
 
     def _modhelp():
-        """Return the help for a module."""
-        moddoc = filedoc(cb.filename)
+        """Return the help fr a module."""
+        if cb.filename:
+            moddoc = filedoc(cb.filename)
 
         if moddoc:
             print('Module docstring:', moddoc)
