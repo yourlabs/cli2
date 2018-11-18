@@ -58,6 +58,14 @@ Demo::
     Context args: ['a', 'b']
     Context kwargs: {'something': 'to see'}
 
+Fallbacks
+~~~~~~~~~
+
+Clitoo will attempt to fallback on packages of its own. If it doesn't find the
+`git.clone` callback from the `git` package, or doesn't find the `git` package
+itself, it will find `clitoo.git.clone` which is a builtin command that we use
+in CI.
+
 Making your own command
 ~~~~~~~~~~~~~~~~~~~~~~~
 
