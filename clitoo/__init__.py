@@ -277,15 +277,16 @@ def debug(*args, **kwargs):
     print(f'Context kwargs: {context.kwargs}')
 
 
-def main(argv=None):
-    argv = argv if argv else sys.argv
-    path = argv[1] if len(argv) > 1 else 'help'
+def main(argv=None, default_path=None):
+    argv = argv if argv is not None else sys.argv[1:]
+    path = argv[0] if argv else default_path or 'help'
 
+    # hack allowing the caller to not define it in their module
     if path == 'help':
         path = 'clitoo.help'
 
     callback = Callback.factory(path)
-    args, kwargs = expand(*argv[2:])
+    args, kwargs = expand(*argv[1:])
     if not callback.cb:
         print(f'Could not find callback {callback.path}')
         sys.exit(1)
