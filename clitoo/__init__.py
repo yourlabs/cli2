@@ -97,14 +97,16 @@ class Callback:
         self.parts = self.path.split('.')
 
         for i, part in enumerate(self.parts):
-            self.modname = '.'.join(self.parts[:i + 1])
-            if not self.modname:
-                return self
+            modname = '.'.join(self.parts[:i + 1])
+            if not modname:
+                return
 
             try:
-                self.module = importlib.import_module(self.modname)
+                self.module = importlib.import_module(modname)
             except ImportError:
                 break
+            else:
+                self.modname = modname
 
         ret = self.module
         for part in self.parts[i:]:
@@ -279,7 +281,8 @@ def debug(*args, **kwargs):
 
 def main(argv=None, default_path=None):
     argv = argv if argv is not None else sys.argv[1:]
-    path = argv[0] if argv else default_path or 'help'
+    path = argv[0] if argv else default_path or 'clitoo.help'
+    default_path = default_path or 'clitoo.help'
 
     # hack allowing the caller to not define it in their module
     if path == 'help':
@@ -288,6 +291,5 @@ def main(argv=None, default_path=None):
     callback = Callback.factory(path)
     args, kwargs = expand(*argv[1:])
     if not callback.cb:
-        print(f'Could not find callback {callback.path}')
-        sys.exit(1)
+        callback = Callback.factory(default_path)
     return callback(*args, **kwargs)
