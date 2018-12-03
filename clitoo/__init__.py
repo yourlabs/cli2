@@ -35,6 +35,7 @@ clitoo your.mod.funcname with your=args
 
 import inspect
 import importlib
+from pkg_resources import iter_entry_points
 import traceback
 import sys
 
@@ -75,6 +76,21 @@ class Context:
                 context.args.append(argv)
 
         return context
+
+    def take(self, *names, **kwargs):
+        """Pop argument or kwarg."""
+        for name in names:
+            if name in self.kwargs:
+                return self.kwargs.pop(name)
+
+            elif name in self.args:
+                i = self.args.index(name)
+                if i >= 0:
+                    self.args.pop(i)
+                    return True
+
+        if 'default' in kwargs:
+            return kwargs['default']
 
 
 context = Context.factory(sys.argv)
@@ -124,6 +140,7 @@ class Callback:
             i[0]
             for i in inspect.getmembers(self.module)
             if callable(getattr(self.module, i[0]))
+            and not isinstance(getattr(self.module, i[0]), type)
             and not i[0].startswith('_')
         ]
 
@@ -289,7 +306,31 @@ def main(argv=None, default_path=None):
         path = 'clitoo.help'
 
     callback = Callback.factory(path)
-    args, kwargs = expand(*argv[1:])
     if not callback.cb:
         callback = Callback.factory(default_path)
+
+    args, kwargs = expand(*argv[1:])
+    return callback(*args, **kwargs)
+
+
+def console_script(*argv):
+    argv = argv or sys.argv
+    entry_point = argv[0].split('/')[-1]
+    callback = None
+    for i in iter_entry_points(entry_point):
+        entry_parts = i.name.split(' ')
+        entry_count = len(entry_parts)
+        if entry_parts == [entry_point] + argv[1:entry_count]:
+            callback = Callback.factory(f'{i.module_name}.{".".join(i.attrs)}')
+            break
+
+    if not callback:
+        for i in iter_entry_points(entry_point):
+            entry_parts = i.name.split(' ')
+            return help(i.module_name)
+
+    if not callback.cb:
+        raise Exception(f'notfound {callback}')
+
+    args, kwargs = expand(*argv[entry_count:])
     return callback(*args, **kwargs)
