@@ -1,16 +1,33 @@
-clitoo: execute python callables from CLI too !
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cli2: python callables from CLI too !
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Sometimes I want to execute a python callback with some args on the command
-line, but i get frustrated that it always requires to wrap my command in a
-wrapper of some sort or do something more than, just call a parameterized
-callback from the CLI.
+Install cli2 ie.::
 
-Clitoo unfrustrates me.
+    $ pip3 install --user cli2
 
-Install::
+Cli2 can be used as a generic command line to execute callbacks and print
+docstrings::
 
-$ pip install clitoo
+    $ cli2 --debug your.callback
+    $ cli2 your.callback arg0 kwarg0=aoeu
+
+, or as a CLI framework: first give it a name in the
+``console_scripts`` entry point like ``yourapp`` and point it to
+``cli2:console_script``, example using `setupmeta
+<https://github.com/zsimic/setupmeta>`_'s ``entry_points.ini``::
+
+    [console_scripts]
+    yourapp = cli2:console_script
+
+Then register your commands easily, ie::
+
+    [yourapp]
+    # bind yourapp help to cli2.help
+    yourapp help = cli2.help
+    # bind yourapp run to yourapp.cli.run
+    yourapp run = yourapp.cli.run
+    # bind yourapp * to callbacks in yourapp.cli
+    yourapp * = yourapp.cli
 
 Help::
 
