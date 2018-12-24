@@ -1,3 +1,7 @@
+import sys
+
+from types import ModuleType
+
 from bunch import Bunch
 
 import cli2
@@ -42,10 +46,29 @@ def test_path_resolve_module():
     assert path.callable == None
 
 
+def test_path_empty_string():
+    path = cli2.Path('')
+    assert path.module is None
+
+
 def test_path_resolve_nested_attribute():
     path = cli2.Path('cli2_example.Foo.bar.baz.0')
     assert path.callable == cli2_example.Foo.bar['baz'][0]
     assert path.module == cli2_example
+
+
+def test_path_resolve_submodule():
+    package = ModuleType('package')
+    package.__file__ = 'package/__init__.py'
+    sys.modules[package.__name__] = package
+    module = ModuleType('module')
+    module.__file__ = 'package/module.py'
+    sys.modules['.'.join((package.__name__, module.__name__))] = module
+    module.foo = lambda: True
+
+    path = cli2.Path('package.module.foo')
+    assert path.module == module
+    assert path.callable == module.foo
 
 
 def test_path_unresolvable():

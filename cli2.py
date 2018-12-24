@@ -67,6 +67,8 @@ class Path:
                 self.module = importlib.import_module(modname)
             except ImportError:
                 continue
+            else:
+                break
 
         if self.module:
             ret = self.module
@@ -77,9 +79,6 @@ class Path:
                     ret = ret[int(part)]
                 else:
                     ret = getattr(ret, part, None)
-
-                if ret.__class__.__name__ == 'module':
-                    self.module = ret
 
             if ret != self.module:
                 self.callable = ret
