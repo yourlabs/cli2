@@ -254,8 +254,8 @@ def help(*args, **kwargs):
             yield f'Docstring for {path}'
             yield path.docstring
         elif path.module:
-            yield f'Docstring for module {path.module_name}'
-            yield path.module_docstring
+            for line in moddoc(path.module_name, console_script.group.name):
+                yield line
         else:
             yield f'Command not found {console_script.command_name} {extra}'
 
