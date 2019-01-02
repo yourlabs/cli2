@@ -17,6 +17,12 @@ import sys
 import colorama
 
 
+GREEN = colorama.Fore.GREEN
+RED = colorama.Fore.RED
+YELLOW = colorama.Fore.YELLOW
+RESET = colorama.Style.RESET_ALL
+
+
 class Cli2Exception(Exception):
     pass
 
@@ -269,20 +275,15 @@ main._cli2_exclude = True  # noqa
 
 def debug(callback, *args, **kwargs):
     """Dump parsed variables"""
-    colorama.init()
     cs = console_script
     parser = console_script.parser
-    green = colorama.Fore.GREEN
-    red = colorama.Fore.RED
-    yellow = colorama.Fore.YELLOW
-    reset = colorama.Style.RESET_ALL
     return textwrap.dedent(f'''
-    Callable: {red}{callback}{reset}
-    Args: {yellow}{args}{reset}
-    Kwargs: {yellow}{kwargs}{reset}
-    console_script.parser.dashargs: {green}{parser.dashargs}{reset}
-    console_script.parser.dashkwargs: {green}{parser.dashkwargs}{reset}
-    console_script.argv_extra: {green}{cs.argv_extra}{reset}
+    Callable: {RED}{callback}{RESET}
+    Args: {YELLOW}{args}{RESET}
+    Kwargs: {YELLOW}{kwargs}{RESET}
+    console_script.parser.dashargs: {GREEN}{parser.dashargs}{RESET}
+    console_script.parser.dashkwargs: {GREEN}{parser.dashkwargs}{RESET}
+    console_script.argv_extra: {GREEN}{cs.argv_extra}{RESET}
     ''').strip()
 
 
@@ -341,6 +342,7 @@ class ConsoleScript:
             pprint.PrettyPrinter(indent=4).pprint(result)
 
     def __call__(self):
+        colorama.init()
         result = self.get_result()
 
         if isinstance(result, (types.GeneratorType, list)):
