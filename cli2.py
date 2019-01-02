@@ -114,11 +114,7 @@ class Path:
 
     @property
     def docstring(self):
-        return (
-            self.callable_docstring
-            if self.callable
-            else self.module_docstring
-        )
+        return self.callable_docstring if self.callable else self.module_docstring
 
     def __str__(self):
         return '.'.join(self.parts)
@@ -150,20 +146,16 @@ class Command:
                 except ImportError:
                     args = entrypoint.attrs
                 else:
-                    target = '.'.join((
-                        entrypoint.module_name,
-                        ' '.join(entrypoint.attrs),
-                    ))
+                    target = ".".join(
+                        (entrypoint.module_name, " ".join(entrypoint.attrs))
+                    )
             yield cls(line, target, args)
 
         else:
             right = line[line.index('*') + 1:].strip()
             path = Path(entrypoint.module_name)
             for name in path.module_callables:
-                yield cls(
-                    ' '.join((name, right)).strip(),
-                    f'{path.module_name}.{name}'
-                )
+                yield cls(' '.join((name, right)).strip(), f'{path.module_name}.{name}')
 
 
 class Group:
@@ -173,8 +165,7 @@ class Group:
 
         self.commands = collections.OrderedDict()
         self.load_entrypoints(
-            entrypoints
-            or pkg_resources.iter_entry_points('cli2_' + self.name)
+            entrypoints or pkg_resources.iter_entry_points('cli2_' + self.name)
         )
 
     def load_entrypoints(self, entrypoints):
@@ -271,6 +262,8 @@ def main(callback=None, *args, **kwargs):
     if not callback:
         return help()
     return run(callback, *args, **kwargs)
+
+
 main._cli2_exclude = True  # noqa
 
 
@@ -336,10 +329,7 @@ class ConsoleScript:
             setup()
 
         self.parser = Parser(self.argv_extra)
-        result = self.command(
-            *self.parser.funcargs,
-            **self.parser.funckwargs,
-        )
+        result = self.command(*self.parser.funcargs, **self.parser.funckwargs)
 
         clean = getattr(self.command.path.module, '_cli2_clean', None)
         if clean:
