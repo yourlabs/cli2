@@ -303,6 +303,8 @@ def run(callback, *args, **kwargs):
 
 
 class ConsoleScript:
+    _cli2_exclude = True
+
     def __init__(self, argv):
         self.argv = argv
         self.group = Group(self.argv[0])
