@@ -220,7 +220,8 @@ def moddoc(module_name, group_name=None):
             if line == console_script.command_name:
                 continue
 
-            line = '  ' + line + (width - len(line)) * ' '
+            color = getattr(cmd.path.callable, '_cli2_color', YELLOW)
+            line = '  ' + color + line + RESET + (width - len(line)) * ' '
             if cmd.path.callable:
                 doc = inspect.getdoc(cmd.path.callable)
 
