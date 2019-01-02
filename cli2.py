@@ -331,11 +331,21 @@ class ConsoleScript:
         if not self.command or not self.command.path.callable:
             return f'No callback found for command {self.command}'
 
+        setup = getattr(self.command.path.module, '_cli2_setup', None)
+        if setup:
+            setup()
+
         self.parser = Parser(self.argv_extra)
-        return self.command(
+        result = self.command(
             *self.parser.funcargs,
             **self.parser.funckwargs,
         )
+
+        clean = getattr(self.command.path.module, '_cli2_clean', None)
+        if clean:
+            clean()
+
+        return result
 
     def handle_result(self, result):
         if isinstance(result, str):
