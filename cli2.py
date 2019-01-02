@@ -320,13 +320,12 @@ class ConsoleScript:
                 break
 
         if not self.command:
-            print(f'No command for {" ".join(self.argv)}')
+            self.command = Command(f'{cmd} = cli2.help:{cmd}', 'cli2.help', [cmd])
 
-        else:
-            offset = 1
-            if command.line != self.command_name:
-                offset += 1
-            self.argv_extra = self.argv[self.command.line.count(' ') + offset:]
+        offset = 1
+        if self.command.line != self.command_name:
+            offset += 1
+        self.argv_extra = self.argv[self.command.line.count(' ') + offset:]
 
     def get_result(self):
         if not self.command or not self.command.path.callable:
