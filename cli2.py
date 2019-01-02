@@ -152,7 +152,7 @@ class Command:
                 else:
                     target = '.'.join((
                         entrypoint.module_name,
-                        " ".join(entrypoint.attrs),
+                        ' '.join(entrypoint.attrs),
                     ))
             yield cls(line, target, args)
 
