@@ -210,11 +210,6 @@ class Group:
 
     @property
     def doc(self):
-        try:
-            termwidth = shutil.get_terminal_size().columns
-        except Exception:
-            termwidth = 80
-
         max_length = 0
         for line, cmd in self.commands.items():
             if line == self.name:
@@ -234,7 +229,7 @@ class Group:
                 doc = inspect.getdoc(cmd.path.callable)
 
                 if doc:
-                    line += doc.split('\n')[0][:termwidth - len(line)]
+                    line += doc.split('\n')[0]
                 else:
                     line += 'Docstring not found'
             else:
@@ -355,36 +350,12 @@ def help(*args):
         $ cli2 help help
     """
     console_script = guess_console_script()
+
     if not args:
         yield console_script.doc
+        yield from console_script.group.doc
     else:
         yield console_script.group.commands[' '.join(args)].path.docstring
-
-    yield from console_script.group.doc
-
-
-def old():
-    if args:
-        extra = ' '.join(args)
-        try:
-            path = console_script.group.commands[extra].path
-        except KeyError:
-            path = Path(args[0])
-
-        if path.callable:
-            yield f'Docstring for {path}'
-            yield path.docstring
-        elif path.module:
-            yield from docmod(path.module_name, console_script.group.name)
-        else:
-            yield f'Command not found {console_script.command_name} {extra}'
-
-    else:
-        # fuzzy workaround for when you have not bount cli2.help:yourmodule but
-        # only have cli2.help or cli2:help on the main ep for some reason.
-        default_module_name = console_script.command_name.replace('-', '_')
-        for line in docmod(default_module_name, console_script.group.name):
-            yield line
 
 
 def main(callback=None, *args, **kwargs):
@@ -413,7 +384,7 @@ def debug(callback, *args, **kwargs):
         cli2 debug test to=see --how -it=parses
     """
     cs = console_script
-    parser = console_script.parser
+    parser = cli2_console_script.parser
     return textwrap.dedent(f'''
     Callable: {RED}{callback}{RESET}
     Args: {YELLOW}{args}{RESET}
@@ -425,7 +396,25 @@ def debug(callback, *args, **kwargs):
 
 
 def run(callback, *args, **kwargs):
-    """Execute a parameterized python callback."""
+    """
+    Execute a python callback on the command line.
+
+    To call your.module.callback('arg1', 'argN', kwarg1='foo'):
+
+        cli2 your.module.callback arg1 argN kwarg1=foo
+
+    You can also prefix arguments with a dash, those that contain equal sign
+    will end in dict your_console_script.parser.dashkwargs, those without equal
+    sign will end up in a list in your_console_script.parser.dashargs.
+
+    If you're using the default cli2.console_script then you can import it. If
+    you don't know what console_script instance, use
+    cli2.guess_console_script() which will inspect the call stack and return
+    what it believes is the ConsoleScript instance currently in use.
+
+    For examples, try `cli2 debug`.
+    For other commands, try `cli2 help`.
+    """
     path = Path(callback)
 
     if not path.callable:
@@ -459,7 +448,9 @@ class ConsoleScript:
         self.argv = argv
         self.group = Group(self.argv[0])
         self.argv_extra = []
+        self.doc = doc
 
+    def prepare(self):
         cmd = self.command_name = self.argv[0].split('/')[-1]
         args = ' '.join(self.argv[1:])
 
@@ -472,19 +463,18 @@ class ConsoleScript:
         if not self.command:
             self.command = self.group.commands[self.default_command]
 
-        if doc:
-            self.doc = doc
-        elif self.default_command != 'help':
-            # Default documentation is docstring for default command
-            self.doc = self.group.commands[self.default_command].path.callable_docstring
-        else:
-            # Default documentation is module docstring for first command
-            self.doc = [*self.group.commands.values()][0].path.module_docstring
+        if not self.doc:
+            if self.default_command != 'help':
+                # Default documentation is docstring for default command
+                self.doc = self.group.commands[self.default_command].path.callable_docstring
+            else:
+                # Default documentation is module docstring for default command
+                self.doc = [*self.group.commands.values()][0].path.module_docstring
 
         offset = 1
         if self.command.line != self.command_name:
             offset += 1
-        self.argv_extra = self.argv[self.command.line.count(' ') + offset:]
+        self.argv_extra = self.argv[self.command.line.split('=')[0].strip().count(' ') + offset:]
 
     def get_result(self):
         if not self.command or not self.command.path.callable:
@@ -517,6 +507,7 @@ class ConsoleScript:
 
     def __call__(self):
         colorama.init()
+        self.prepare()
         result = self.get_result()
 
         if isinstance(result, (types.GeneratorType, list)):
@@ -530,3 +521,4 @@ class ConsoleScript:
 
 
 console_script = ConsoleScript(sys.argv)
+cli2_console_script = ConsoleScript(sys.argv, default_command='run')
