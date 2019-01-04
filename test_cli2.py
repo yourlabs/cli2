@@ -2,6 +2,8 @@ import sys
 
 from types import ModuleType
 
+from unittest.mock import Mock
+
 from bunch import Bunch
 
 import cli2
@@ -17,8 +19,20 @@ def test_command_factory_cli2_example():
         'dead',
         'run',
         'cli2-example',
+        'help',
     ]
     assert group.commands['run'].target == 'cli2_example.run'
+
+
+def test_command_call():
+    cmd = cli2.Command(
+        '* = cli2.help:cli2_example',
+        'cli2.help',
+        ['cli2-example']
+    )
+    cmd.path.callable = Mock()
+    cmd()
+    cmd.path.callable.assert_called_once_with('cli2-example')
 
 
 def test_group_command_alias():
@@ -29,9 +43,19 @@ def test_group_command_alias():
             attrs=None
         )
     ])
-    assert len(list(group.commands.keys())) == 1
+    assert len(list(group.commands.keys())) == 2
     assert group.commands['a b'].line == 'a b'
     assert group.commands['a b'].target == 'cli2.run'
+
+
+def test_group_doc():
+    group = cli2.Group('cli2-example')
+    #assert group.doc_short == 'Example cli2 compatible module.'
+    assert group.doc == '''
+Example cli2 compatible module.
+
+Dummy script used for demonstration and testing purposes.
+'''.lstrip()
 
 
 def test_path_resolve_callable():
@@ -43,7 +67,7 @@ def test_path_resolve_callable():
 def test_path_resolve_module():
     path = cli2.Path('cli2')
     assert path.module == cli2
-    assert path.callable == None
+    assert path.callable is None
 
 
 def test_path_empty_string():
@@ -74,7 +98,7 @@ def test_path_resolve_submodule():
 def test_path_unresolvable():
     path = cli2.Path('cli2.aoeuaoeuaoeu')
     assert path.module == cli2
-    assert path.callable == None
+    assert path.callable is None
 
 
 @pytest.mark.parametrize('fixture', ['cli2', 'cli2.run', 'cli2.MISSING'])
@@ -87,6 +111,23 @@ def test_path_module_callables():
     path = cli2.Path('cli2.run')
     assert 'console_script' not in path.module_callables
     assert 'run' in path.module_callables
+
+
+def test_path_module_docstring():
+    assert 'Example' in cli2.Path('cli2_example').module_docstring
+
+
+def test_path_callable_docstring():
+    assert 'Test' in cli2.Path('cli2_example.test').callable_docstring
+
+
+def test_path_docstring():
+    assert 'Example' in cli2.Path('cli2_example').docstring
+    assert 'Test' in cli2.Path('cli2_example.test').docstring
+
+
+def test_path_str():
+    assert 'cli2_example.test' == str(cli2.Path('cli2_example.test'))
 
 
 def test_consolescript_valid_command_with_args():
@@ -123,3 +164,25 @@ def test_console_script_resolve():
 def test_console_script_resolve_alias():
     cs = cli2.ConsoleScript(['cli2-example', 'alias'])
     assert str(cs.command.target) == f'cli2_example.test'
+
+
+def test_docfile():
+    assert 'callback' in cli2.docfile('cli2.py')
+
+
+def test_docfile_none():
+    assert cli2.docfile('test_cli2.py') is None
+
+
+def test_help_callable():
+    assert 'Docstring for cli2.help' in list(cli2.help('cli2.help'))
+
+
+def test_help_module():
+    return
+    assert ' '.join(list(cli2.help('cli2'))) == '''
+cli2 makes your python callbacks work on CLI too !
+
+cli2 provides sub-commands to introspect python modules or callables docstrings
+or to execute callables or help working with cli2 itself.
+'''.lstrip()

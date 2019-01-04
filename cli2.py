@@ -7,6 +7,7 @@ or to execute callables or help working with cli2 itself.
 import collections
 import inspect
 import importlib
+import os
 import pkg_resources
 import pprint
 import textwrap
@@ -25,6 +26,23 @@ RESET = colorama.Style.RESET_ALL
 
 class Cli2Exception(Exception):
     pass
+
+
+class Cli2ArgsException(Cli2Exception):
+    def __init__(self, command, passed_args):
+        msg = ['Got arguments:'] if len(passed_args) else []
+
+        for arg, i in enumerate(passed_args, start=0):
+            msg.append('='.join(command.required_args[i], arg))
+
+        msg.append(
+            'Missing arguments: ' + ', '.join([*map(
+                lambda i: f'{RED}{i}{RESET}',
+                command.required_args[len(passed_args):],
+            )])
+        )
+
+        super().__init__('\n'.join(msg))
 
 
 class Parser:
@@ -106,15 +124,18 @@ class Path:
 
     @property
     def module_docstring(self):
-        return filedoc(self.module.__file__)
+        return docfile(self.module.__file__)
 
     @property
     def callable_docstring(self):
-        return inspect.getdoc(self.callable)
+        docstring = inspect.getdoc(self.callable)
+        return docstring
 
     @property
     def docstring(self):
-        return self.callable_docstring if self.callable else self.module_docstring
+        return str(
+            self.callable_docstring if self.callable else self.module_docstring
+        )
 
     def __str__(self):
         return '.'.join(self.parts)
@@ -131,7 +152,14 @@ class Command:
         return self.target
 
     def __call__(self, *args, **kwargs):
-        return self.path.callable(*(self.args or args), **kwargs)
+        args = self.args or args
+        if len(args) < len(self.required_args):
+            raise Cli2ArgsException(self, args)
+        return self.path.callable(*args, **kwargs)
+
+    @property
+    def required_args(self):
+        return inspect.getargspec(self.path.callable).args
 
     @classmethod
     def factory(cls, entrypoint):
@@ -146,8 +174,8 @@ class Command:
                 except ImportError:
                     args = entrypoint.attrs
                 else:
-                    target = ".".join(
-                        (entrypoint.module_name, " ".join(entrypoint.attrs))
+                    target = '.'.join(
+                        (entrypoint.module_name, ' '.join(entrypoint.attrs))
                     )
             yield cls(line, target, args)
 
@@ -174,8 +202,48 @@ class Group:
                 if command.line not in self.commands:
                     self.commands[command.line] = command
 
+        if 'help' not in self.commands:
+            self.commands['help'] = Command(
+                f'help = cli2.help',
+                'cli2.help',
+            )
 
-def filedoc(filepath):
+    @property
+    def doc(self):
+        try:
+            termwidth = shutil.get_terminal_size().columns
+        except Exception:
+            termwidth = 80
+
+        max_length = 0
+        for line, cmd in self.commands.items():
+            if line == self.name:
+                continue
+
+            if len(line) > max_length:
+                max_length = len(line)
+
+        width = max_length + 2
+        for line, cmd in self.commands.items():
+            if line == guess_console_script().command_name:
+                continue
+
+            color = getattr(cmd.path.callable, '_cli2_color', YELLOW)
+            line = '  ' + color + line + RESET + (width - len(line)) * ' '
+            if cmd.path.callable:
+                doc = inspect.getdoc(cmd.path.callable)
+
+                if doc:
+                    line += doc.split('\n')[0][:termwidth - len(line)]
+                else:
+                    line += 'Docstring not found'
+            else:
+                line += 'Callback not found'
+
+            yield line
+
+
+def docfile(filepath):
     """Docstring for a file path."""
     co = compile(open(filepath).read(), filepath, 'exec')
     if co.co_consts and isinstance(co.co_consts[0], str):
@@ -185,10 +253,10 @@ def filedoc(filepath):
     return docstring
 
 
-def moddoc(module_name, group_name=None):
+def docmod(module_name, group_name=None):
     """Docstring for a module name."""
     path = Path(module_name)
-    yield filedoc(path.module.__file__).strip() + '\n'
+    yield docfile(path.module.__file__).strip() + '\n'
 
     if group_name:
         group = Group(group_name)
@@ -226,14 +294,76 @@ def moddoc(module_name, group_name=None):
             yield line
 
 
-def help(*args, **kwargs):
+def doc(*args):
     """
-    Get help for a callable, or list callables for a module.
+    Return documentation for a file, module or callback.
 
     Example::
 
-        $ cli2 help foo.bar
+        $ cli2 doc foo.py
+        $ cli2 doc foo.bar
+        $ cli2 doc foo
     """
+
+    if len(args) == 1 and os.path.exists(args[0]):
+        yield docfile(args[0])
+
+    elif args:
+        extra = ' '.join(args)
+        try:
+            path = console_script.group.commands[extra].path
+        except KeyError:
+            path = Path(args[0])
+
+        if path.callable:
+            yield f'Docstring for {path}'
+            yield path.docstring
+        elif path.module:
+            yield from docmod(path.module_name, console_script.group.name)
+        else:
+            yield f'Command not found {console_script.command_name} {extra}'
+
+    else:
+        # fuzzy workaround for when you have not bount cli2.help:yourmodule but
+        # only have cli2.help or cli2:help on the main ep for some reason.
+        default_module_name = console_script.command_name.replace('-', '_')
+        for line in docmod(default_module_name, console_script.group.name):
+            yield line
+
+
+def guess_console_script():
+    """Guess the ConsoleScript instance from stack introspection."""
+    for frame_info in inspect.stack():
+        if 'self' not in frame_info.frame.f_locals:
+            continue
+
+        if isinstance(frame_info.frame.f_locals['self'], ConsoleScript):
+            break
+
+    if 'self' not in frame_info.frame.f_locals:
+        return None
+
+    return frame_info.frame.f_locals['self']
+
+
+def help(*args):
+    """
+    Get help for a command.
+
+    Example::
+
+        $ cli2 help help
+    """
+    console_script = guess_console_script()
+    if not args:
+        yield console_script.doc
+    else:
+        yield console_script.group.commands[' '.join(args)].path.docstring
+
+    yield from console_script.group.doc
+
+
+def old():
     if args:
         extra = ' '.join(args)
         try:
@@ -245,8 +375,7 @@ def help(*args, **kwargs):
             yield f'Docstring for {path}'
             yield path.docstring
         elif path.module:
-            for line in moddoc(path.module_name, console_script.group.name):
-                yield line
+            yield from docmod(path.module_name, console_script.group.name)
         else:
             yield f'Command not found {console_script.command_name} {extra}'
 
@@ -254,11 +383,19 @@ def help(*args, **kwargs):
         # fuzzy workaround for when you have not bount cli2.help:yourmodule but
         # only have cli2.help or cli2:help on the main ep for some reason.
         default_module_name = console_script.command_name.replace('-', '_')
-        for line in moddoc(default_module_name, console_script.group.name):
+        for line in docmod(default_module_name, console_script.group.name):
             yield line
 
 
 def main(callback=None, *args, **kwargs):
+    """
+    Execute a python callback on the command line.
+
+    If no callback is given, display help. For this reason, you should prefer
+    cli2 run instead of cli2 alone in automated scripts, as well as cli2 help
+    run for details about parameterized execution. However, using cli2 directly
+    on the command line for interactive use is fine.
+    """
     if not callback:
         return help()
     return run(callback, *args, **kwargs)
@@ -268,7 +405,13 @@ main._cli2_exclude = True  # noqa
 
 
 def debug(callback, *args, **kwargs):
-    """Dump parsed variables"""
+    """
+    Dump parsed variables.
+
+    Example usage::
+
+        cli2 debug test to=see --how -it=parses
+    """
     cs = console_script
     parser = console_script.parser
     return textwrap.dedent(f'''
@@ -286,19 +429,33 @@ def run(callback, *args, **kwargs):
     path = Path(callback)
 
     if not path.callable:
+        if '.' in callback:
+            yield f'{RED}Could not import callback: {callback}{RESET}'
+        else:
+            yield f'{RED}Cannot run a module{RESET}: try {callback}.something'
+
         if path.module:
-            doc = filedoc(path.module.__file__)
+            yield ' '.join([
+                'However we could import module',
+                f'{GREEN}{path.module_name}{RESET}',
+                'Listing callables in module below:',
+            ])
+
+            doc = docfile(path.module.__file__)
             if doc:
                 return doc
             return f'Docstring not found in {path.module_name}'
-        return f'Could not import argument: {callback}'
-    return path.callable(*args, **kwargs)
+        elif callback != callback.split('.')[0]:
+            yield f'{RED}Could not import module: {callback.split(".")[0]}{RESET}'
+    else:
+        return path.callable(*args, **kwargs)
 
 
 class ConsoleScript:
     _cli2_exclude = True
 
-    def __init__(self, argv):
+    def __init__(self, argv, doc=None, default_command='help'):
+        self.default_command = default_command
         self.argv = argv
         self.group = Group(self.argv[0])
         self.argv_extra = []
@@ -313,7 +470,16 @@ class ConsoleScript:
                 break
 
         if not self.command:
-            self.command = Command(f'{cmd} = cli2.help:{cmd}', 'cli2.help', [cmd])
+            self.command = self.group.commands[self.default_command]
+
+        if doc:
+            self.doc = doc
+        elif self.default_command != 'help':
+            # Default documentation is docstring for default command
+            self.doc = self.group.commands[self.default_command].path.callable_docstring
+        else:
+            # Default documentation is module docstring for first command
+            self.doc = [*self.group.commands.values()][0].path.module_docstring
 
         offset = 1
         if self.command.line != self.command_name:
@@ -329,11 +495,17 @@ class ConsoleScript:
             setup()
 
         self.parser = Parser(self.argv_extra)
-        result = self.command(*self.parser.funcargs, **self.parser.funckwargs)
 
-        clean = getattr(self.command.path.module, '_cli2_clean', None)
-        if clean:
-            clean()
+        try:
+            result = self.command(*self.parser.funcargs, **self.parser.funckwargs)
+        except Cli2Exception as e:
+            result = '\n'.join([str(e), '', self.command.path.docstring])
+        except Exception:
+            raise
+        finally:
+            clean = getattr(self.command.path.module, '_cli2_clean', None)
+            if clean:
+                clean()
 
         return result
 
@@ -358,4 +530,3 @@ class ConsoleScript:
 
 
 console_script = ConsoleScript(sys.argv)
-console_script._cli2_exclude = True

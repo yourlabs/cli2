@@ -1,4 +1,4 @@
-Development Status :: 4 - Beta
+Development Status :: 3 - Alpha
 Environment :: Console
 Environment :: Plugins
 Intended Audience :: System Administrators

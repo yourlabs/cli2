@@ -1,4 +1,9 @@
-"""Example cli2 compatible module."""
+"""Example cli2 compatible module.
+
+Dummy script used for demonstration and testing purposes.
+"""
+
+from cli2 import console_script
 
 
 def run(*args, **kwargs):
@@ -22,3 +27,5 @@ class Foo:
 nested = Foo()
 nested.bar = lambda: 'bar'
 nested.lulz = lambda: 'lulz'
+
+console_script.doc = __doc__
