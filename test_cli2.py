@@ -18,7 +18,6 @@ def test_command_factory_cli2_example():
         'alias',
         'dead',
         'run',
-        'cli2-example',
         'help',
     ]
     assert group.commands['run'].target == 'cli2_example.run'
@@ -50,12 +49,10 @@ def test_group_command_alias():
 
 def test_group_doc():
     group = cli2.Group('cli2-example')
-    #assert group.doc_short == 'Example cli2 compatible module.'
-    assert group.doc == '''
-Example cli2 compatible module.
-
-Dummy script used for demonstration and testing purposes.
-'''.lstrip()
+    result = '\n'.join([*group.doc])
+    assert 'Dummy script' in result
+    assert 'dead' in result
+    assert 'alias' in result
 
 
 def test_path_resolve_callable():
@@ -172,10 +169,6 @@ def test_docfile():
 
 def test_docfile_none():
     assert cli2.docfile('test_cli2.py') is None
-
-
-def test_help_callable():
-    assert 'Docstring for cli2.help' in list(cli2.help('cli2.help'))
 
 
 def test_help_module():

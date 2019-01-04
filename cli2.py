@@ -159,7 +159,8 @@ class Command:
 
     @property
     def required_args(self):
-        return inspect.getargspec(self.path.callable).args
+        argspec = inspect.getfullargspec(self.path.callable)
+        return argspec.args[len(argspec.defaults or []):]
 
     @classmethod
     def factory(cls, entrypoint):
@@ -196,6 +197,8 @@ class Group:
             entrypoints or pkg_resources.iter_entry_points('cli2_' + self.name)
         )
 
+        self.default = 'main' if 'main' in self.commands else 'help'
+
     def load_entrypoints(self, entrypoints):
         for ep in entrypoints:
             for command in Command.factory(ep):
@@ -203,13 +206,24 @@ class Group:
                     self.commands[command.line] = command
 
         if 'help' not in self.commands:
-            self.commands['help'] = Command(
-                f'help = cli2.help',
-                'cli2.help',
-            )
+            self.commands['help'] = Command('help', 'cli2.help')
+
+    def find_command(self, argv):
+        args = ' '.join(argv[1:])
+
+        for line, command in self.commands.items():
+            if args.startswith(command.line):
+                return command, argv[2 + line.count(' '):]
+
+        return self.commands[self.default], argv[1:]
 
     @property
     def doc(self):
+        if self.default == 'help':
+            yield [*self.commands.values()][0].path.module_docstring
+        else:
+            yield self.commands[self.default].path.callable_docstring
+
         max_length = 0
         for line, cmd in self.commands.items():
             if line == self.name:
@@ -220,7 +234,7 @@ class Group:
 
         width = max_length + 2
         for line, cmd in self.commands.items():
-            if line == guess_console_script().command_name:
+            if line == 'main':
                 continue
 
             color = getattr(cmd.path.callable, '_cli2_color', YELLOW)
@@ -336,7 +350,7 @@ def guess_console_script():
             break
 
     if 'self' not in frame_info.frame.f_locals:
-        return None
+        return console_script
 
     return frame_info.frame.f_locals['self']
 
@@ -352,7 +366,6 @@ def help(*args):
     console_script = guess_console_script()
 
     if not args:
-        yield console_script.doc
         yield from console_script.group.doc
     else:
         yield console_script.group.commands[' '.join(args)].path.docstring
@@ -367,12 +380,14 @@ def main(callback=None, *args, **kwargs):
     run for details about parameterized execution. However, using cli2 directly
     on the command line for interactive use is fine.
     """
-    if not callback:
+    if callback:
+        try:
+            yield from run(callback, *args, **kwargs)
+        except Exception as e:
+            yield from debug(callback, *args, **kwargs)
+            raise
+    else:
         return help()
-    return run(callback, *args, **kwargs)
-
-
-main._cli2_exclude = True  # noqa
 
 
 def debug(callback, *args, **kwargs):
@@ -384,8 +399,8 @@ def debug(callback, *args, **kwargs):
         cli2 debug test to=see --how -it=parses
     """
     cs = console_script
-    parser = cli2_console_script.parser
-    return textwrap.dedent(f'''
+    parser = cs.parser
+    yield textwrap.dedent(f'''
     Callable: {RED}{callback}{RESET}
     Args: {YELLOW}{args}{RESET}
     Kwargs: {YELLOW}{kwargs}{RESET}
@@ -417,7 +432,9 @@ def run(callback, *args, **kwargs):
     """
     path = Path(callback)
 
-    if not path.callable:
+    if path.callable:
+        yield path.callable(*args, **kwargs)
+    else:
         if '.' in callback:
             yield f'{RED}Could not import callback: {callback}{RESET}'
         else:
@@ -436,45 +453,21 @@ def run(callback, *args, **kwargs):
             return f'Docstring not found in {path.module_name}'
         elif callback != callback.split('.')[0]:
             yield f'{RED}Could not import module: {callback.split(".")[0]}{RESET}'
-    else:
-        return path.callable(*args, **kwargs)
 
 
 class ConsoleScript:
     _cli2_exclude = True
 
-    def __init__(self, argv, doc=None, default_command='help'):
-        self.default_command = default_command
+    def __init__(self, argv):
         self.argv = argv
         self.group = Group(self.argv[0])
         self.argv_extra = []
-        self.doc = doc
 
-    def prepare(self):
-        cmd = self.command_name = self.argv[0].split('/')[-1]
-        args = ' '.join(self.argv[1:])
-
-        self.command = None
-        for line, command in self.group.commands.items():
-            if args.startswith(command.line) or command.line == cmd:
-                self.command = command
-                break
-
-        if not self.command:
-            self.command = self.group.commands[self.default_command]
-
-        if not self.doc:
-            if self.default_command != 'help':
-                # Default documentation is docstring for default command
-                self.doc = self.group.commands[self.default_command].path.callable_docstring
-            else:
-                # Default documentation is module docstring for default command
-                self.doc = [*self.group.commands.values()][0].path.module_docstring
-
-        offset = 1
-        if self.command.line != self.command_name:
-            offset += 1
-        self.argv_extra = self.argv[self.command.line.split('=')[0].strip().count(' ') + offset:]
+    @property
+    def command(self):
+        if '_command' not in self.__dict__:
+            self._command, self.argv_extra = self.group.find_command(self.argv)
+        return self._command
 
     def get_result(self):
         if not self.command or not self.command.path.callable:
@@ -506,19 +499,18 @@ class ConsoleScript:
             pprint.PrettyPrinter(indent=4).pprint(result)
 
     def __call__(self):
+        # patch cli2.console_script
+        global console_script
+        console_script = self
+
         colorama.init()
-        self.prepare()
         result = self.get_result()
 
         if isinstance(result, (types.GeneratorType, list)):
             for r in result:
                 self.handle_result(r)
         else:
-            if isinstance(result, int):
-                return result  # exit code ?
-
             self.handle_result(result)
 
 
 console_script = ConsoleScript(sys.argv)
-cli2_console_script = ConsoleScript(sys.argv, default_command='run')
