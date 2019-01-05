@@ -224,6 +224,8 @@ class Group:
         else:
             yield self.commands[self.default].path.callable_docstring
 
+        yield ''
+
         max_length = 0
         for line, cmd in self.commands.items():
             if line == self.name:
@@ -387,7 +389,7 @@ def main(callback=None, *args, **kwargs):
             yield from debug(callback, *args, **kwargs)
             raise
     else:
-        return help()
+        yield from help()
 
 
 def debug(callback, *args, **kwargs):
@@ -433,7 +435,11 @@ def run(callback, *args, **kwargs):
     path = Path(callback)
 
     if path.callable:
-        yield path.callable(*args, **kwargs)
+        result = path.callable(*args, **kwargs)
+        if isinstance(result, types.GeneratorType):
+            yield from result
+        else:
+            return result
     else:
         if '.' in callback:
             yield f'{RED}Could not import callback: {callback}{RESET}'
@@ -449,7 +455,7 @@ def run(callback, *args, **kwargs):
 
             doc = docfile(path.module.__file__)
             if doc:
-                return doc
+                yield from doc
             return f'Docstring not found in {path.module_name}'
         elif callback != callback.split('.')[0]:
             yield f'{RED}Could not import module: {callback.split(".")[0]}{RESET}'
@@ -503,14 +509,34 @@ class ConsoleScript:
         global console_script
         console_script = self
 
-        colorama.init()
-        result = self.get_result()
+        if not self.command or not self.command.path.callable:
+            return f'No callback found for command {self.command}'
 
-        if isinstance(result, (types.GeneratorType, list)):
-            for r in result:
-                self.handle_result(r)
-        else:
-            self.handle_result(result)
+        self.parser = Parser(self.argv_extra)
+
+        colorama.init()
+
+        setup = getattr(self.command.path.module, '_cli2_setup', None)
+        if setup:
+            setup()
+
+        try:
+            result = self.command(*self.parser.funcargs, **self.parser.funckwargs)
+            if isinstance(result, (types.GeneratorType, list)):
+                for r in result:
+                    self.handle_result(r)
+            else:
+                self.handle_result(result)
+        except Cli2Exception as e:
+            print('\n'.join([str(e), '', self.command.path.docstring]))
+        except Exception:
+            raise
+        finally:
+            clean = getattr(self.command.path.module, '_cli2_clean', None)
+            if clean:
+                clean()
+
+        return result if isinstance(result, int) else 0
 
 
 console_script = ConsoleScript(sys.argv)
