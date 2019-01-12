@@ -2,8 +2,7 @@
 
 Dummy script used for demonstration and testing purposes.
 """
-
-from cli2 import console_script
+import cli2
 
 
 def run(*args, **kwargs):
@@ -28,4 +27,4 @@ nested = Foo()
 nested.bar = lambda: 'bar'
 nested.lulz = lambda: 'lulz'
 
-console_script.doc = __doc__
+console_script = cli2.ConsoleScript().add_module('cli2_example')
