@@ -90,7 +90,7 @@ def docfile(filepath):
     else:
         docstring = None
     return docstring
-docfile._cli2_color = RED
+docfile.cli2 = dict(color=RED)
 
 
 def docmod(module_name):
@@ -345,7 +345,15 @@ class Config(dict):
         super().__init__(cfg)
 
     def __get__(self, obj, objtype):
-        return getattr(obj.target, 'cli2', self)
+        config = getattr(obj.target, 'cli2', None)
+        if isinstance(config, dict):
+            return Config(**config)
+        elif config is None:
+            return self
+        return config
+
+    def __getattr__(self, name):
+        return self[name]
 
 
 class Command(Callable):
@@ -369,9 +377,7 @@ class GroupDocDescriptor:
 
         width = max_length + 2
         for line, cmd in obj.items():
-            import ipdb; ipdb.set_trace()
-            color = getattr(cmd.target, '_cli2_color', YELLOW)
-            line = '  ' + color + line + RESET + (width - len(line)) * ' '
+            line = '  ' + cmd.cli2.color + line + RESET + (width - len(line)) * ' '
             if cmd.target:
                 doc = inspect.getdoc(cmd.target)
 
