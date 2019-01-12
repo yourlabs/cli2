@@ -451,9 +451,9 @@ class ConsoleScript(Group):
         # self.args = []
 
     def __call__(self):
-        # patch cli2.console_script
-        # global console_script
-        # console_script = self
+        # update cli2.console_script the singl370n
+        global console_script
+        console_script = self
 
         if len(self.argv) and self.argv[0] in self:
             command = self[self.argv[0]]
