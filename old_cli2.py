@@ -385,7 +385,7 @@ def main(callback=None, *args, **kwargs):
     if callback:
         try:
             yield from run(callback, *args, **kwargs)
-        except Exception as e:
+        except Exception:
             yield from debug(callback, *args, **kwargs)
             raise
     else:
@@ -458,7 +458,10 @@ def run(callback, *args, **kwargs):
                 yield from doc
             return f'Docstring not found in {path.module_name}'
         elif callback != callback.split('.')[0]:
-            yield f'{RED}Could not import module: {callback.split(".")[0]}{RESET}'
+            yield ' '.join([
+                f'{RED}Could not import module:',
+                f'{callback.split(".")[0]}{RESET}'
+            ])
 
 
 class ConsoleScript:
@@ -486,7 +489,10 @@ class ConsoleScript:
         self.parser = Parser(self.argv_extra)
 
         try:
-            result = self.command(*self.parser.funcargs, **self.parser.funckwargs)
+            result = self.command(
+                *self.parser.funcargs,
+                **self.parser.funckwargs
+            )
         except Cli2Exception as e:
             result = '\n'.join([str(e), '', self.command.path.docstring])
         except Exception:
@@ -521,7 +527,10 @@ class ConsoleScript:
             setup()
 
         try:
-            result = self.command(*self.parser.funcargs, **self.parser.funckwargs)
+            result = self.command(
+                *self.parser.funcargs,
+                **self.parser.funckwargs
+            )
             if isinstance(result, (types.GeneratorType, list)):
                 for r in result:
                     self.handle_result(r)

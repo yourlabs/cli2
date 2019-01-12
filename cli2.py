@@ -66,14 +66,18 @@ def help(*args):
             elif importable.module:
                 if not importable.target:
                     yield f'{RED}Cannot import {args[0]}{RESET}'
-                    yield f'{YELLOW}Showing help for {importable.module.__name__}{RESET}'
+                    yield ' '.join(
+                        YELLOW,
+                        'Showing help for',
+                        importable.module.__name__ + RESET
+                    )
                 yield Group.factory(importable.module.__name__).doc
 
 
 def docfile(filepath):
     """
     Docstring for a file path.
-    
+
     Examples:
 
         cli2 docfile foo.py
@@ -82,7 +86,7 @@ def docfile(filepath):
         raise Cli2Exception(f'{RED}{filepath}{RESET} not found')
     try:
         co = compile(open(filepath).read(), filepath, 'exec')
-    except SyntaxError as e:
+    except SyntaxError:
         print(f'{RED}SyntaxError in {filepath}{RESET} shown below:')
         raise
     if co.co_consts and isinstance(co.co_consts[0], str):
@@ -90,6 +94,8 @@ def docfile(filepath):
     else:
         docstring = None
     return docstring
+
+
 docfile.cli2 = dict(color=RED)
 
 
@@ -147,12 +153,14 @@ def run(callback, *args, **kwargs):
             result = None
             console_script.exit_code = 1
         except Exception as e:
+            out = [f'{RED}Running {callback}(']
             if args and kwargs:
-                print(f'{RED}Running {callback}(*{args}, **{kwargs}) raised Exception{RESET}')
+                out.append(f'*{args}, **{kwargs}')
             elif args:
-                print(f'{RED}Running {callback}(*{args}) raised Exception{RESET}')
+                out.append(f'*{args}')
             elif kwargs:
-                print(f'{RED}Running {callback}(**{kwargs}) raised Exception{RESET}')
+                out.append(f'**{kwargs}')
+            out.append(f') raised {type(e)}{RESET}')
 
             e.args = (e.args[0] + '\n' + cb.doc,) + e.args[1:]
             raise
@@ -181,7 +189,12 @@ def run(callback, *args, **kwargs):
             else:
                 return f'Docstring not found in {cb.module.__name__}'
         elif callback != callback.split('.')[0]:
-            yield f'{RED}Could not import module: {callback.split(".")[0]}{RESET}'
+            yield ' '.join(
+                RED,
+                'Could not import module:',
+                callback.split(".")[0],
+                RESET,
+            )
 
 
 class Parser:
@@ -223,7 +236,6 @@ class DocDescriptor:
             ret = []
             if callable(obj.target):
                 # TODO: enhance output of the signature help
-                argspec = inspect.getfullargspec(obj.target)
                 ret.append(''.join([
                     f'Signature: {GREEN}{obj.name}{RESET}',
                     f'{inspect.signature(obj.target)}'
@@ -377,7 +389,13 @@ class GroupDocDescriptor:
 
         width = max_length + 2
         for line, cmd in obj.items():
-            line = '  ' + cmd.cli2.color + line + RESET + (width - len(line)) * ' '
+            line = '  ' + ''.join([
+                cmd.cli2.color,
+                line,
+                RESET,
+                (width - len(line)) * ' '
+            ])
+
             if cmd.target:
                 doc = inspect.getdoc(cmd.target)
 
@@ -408,7 +426,7 @@ class Group(collections.OrderedDict):
         importable = Importable.factory(module_name)
 
         if not importable.module:
-            raise Exception('Module not found' + module)
+            raise Cli2Exception('Module not found' + importable.module)
 
         for cb in importable.get_callables():
             self[cb.name] = Command(cb.name, cb.target)
@@ -444,7 +462,7 @@ class ConsoleScript(Group):
             command = self[self.default_command]
             parse_argv = self.argv
 
-        #if not self.command or not command.path.callable:
+        # if not self.command or not command.path.callable:
         #    return f'No callback found for command {self.command}'
 
         self.parser = Parser(parse_argv)
@@ -474,7 +492,7 @@ class ConsoleScript(Group):
             raise
         finally:
             clean = False
-            #clean = getattr(self.command.path.module, '_cli2_clean', None)
+            # clean = getattr(self.command.path.module, '_cli2_clean', None)
             if clean:
                 clean()
 
@@ -489,4 +507,8 @@ class ConsoleScript(Group):
             pprint.PrettyPrinter(indent=4).pprint(result)
 
 
-console_script = ConsoleScript(sys.argv, __doc__, default_command='run').add_module('cli2')
+console_script = ConsoleScript(
+    sys.argv,
+    __doc__,
+    default_command='run'
+).add_module('cli2')
