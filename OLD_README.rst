@@ -1,5 +1,9 @@
-cli2: python callables from CLI too !
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+README FROM FIFTH REWRITE THAT is in old_cli2.py and old_test_cli2p.py
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Another choice to click and docopts, here lies the docs for old_*.py that was
+the fifth version (fourth rewrite) of the cli extracted from another product
+in development (playlabs, deployment for lone wolves).
 
 Install cli2 ie.::
 
