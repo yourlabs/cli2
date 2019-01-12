@@ -4,13 +4,15 @@ cli2 provides sub-commands to introspect python modules or callables docstrings
 or to execute callables or help working with cli2 itself.
 '''
 
+import copy
 import collections
 import importlib
 import inspect
+import os
 import pprint
+import sys
 import textwrap
 import types
-import sys
 
 import colorama
 
@@ -76,7 +78,13 @@ def docfile(filepath):
 
         cli2 docfile foo.py
     """
-    co = compile(open(filepath).read(), filepath, 'exec')
+    if not os.path.exists(filepath):
+        raise Cli2Exception(f'{RED}{filepath}{RESET} not found')
+    try:
+        co = compile(open(filepath).read(), filepath, 'exec')
+    except SyntaxError as e:
+        print(f'{RED}SyntaxError in {filepath}{RESET} shown below:')
+        raise
     if co.co_consts and isinstance(co.co_consts[0], str):
         docstring = co.co_consts[0]
     else:
@@ -136,7 +144,8 @@ def run(callback, *args, **kwargs):
         except Cli2ArgsException as e:
             print(e)
             print(cb.doc)
-            result = -1
+            result = None
+            console_script.exit_code = 1
         except Exception as e:
             if args and kwargs:
                 print(f'{RED}Running {callback}(*{args}, **{kwargs}) raised Exception{RESET}')
@@ -144,11 +153,14 @@ def run(callback, *args, **kwargs):
                 print(f'{RED}Running {callback}(*{args}) raised Exception{RESET}')
             elif kwargs:
                 print(f'{RED}Running {callback}(**{kwargs}) raised Exception{RESET}')
+
+            e.args = (e.args[0] + '\n' + cb.doc,) + e.args[1:]
             raise
+
         if isinstance(result, types.GeneratorType):
             yield from result
         else:
-            return result
+            yield result
 
     else:
         if '.' in callback:
@@ -292,7 +304,8 @@ class Importable:
             if name.startswith('_'):
                 continue
 
-            if getattr(member, '_cli2_exclude', None):
+            cfg = getattr(member, 'cli2', {})
+            if cfg.get('exclude', False):
                 continue
 
             yield Callable(name, member)
@@ -321,8 +334,22 @@ class Callable(Importable):
             return argspec.args
 
 
+class Config(dict):
+    defaults = dict(
+        color=YELLOW,
+    )
+
+    def __init__(self, **options):
+        cfg = copy.copy(self.defaults)
+        cfg.update(options)
+        super().__init__(cfg)
+
+    def __get__(self, obj, objtype):
+        return getattr(obj.target, 'cli2', self)
+
+
 class Command(Callable):
-    pass
+    cli2 = Config()
 
 
 class GroupDocDescriptor:
@@ -342,9 +369,7 @@ class GroupDocDescriptor:
 
         width = max_length + 2
         for line, cmd in obj.items():
-            if line == 'main':
-                continue
-
+            import ipdb; ipdb.set_trace()
             color = getattr(cmd.target, '_cli2_color', YELLOW)
             line = '  ' + color + line + RESET + (width - len(line)) * ' '
             if cmd.target:
@@ -353,7 +378,7 @@ class GroupDocDescriptor:
                 if doc:
                     line += doc.split('\n')[0]
                 else:
-                    line += 'Docstring not found'
+                    line += cmd.name + str(inspect.signature(cmd.target))
             else:
                 line += 'Callback not found'
 
@@ -391,11 +416,14 @@ class Group(collections.OrderedDict):
 
 
 class ConsoleScript(Group):
+    cli2 = dict(exclude=True)
+
     def __init__(self, argv=None, doc=None, default_command='help'):
         self.default_command = default_command
         argv = argv if argv is not None else sys.argv
         Group.__init__(self, argv[0].split('/')[-1], doc)
         self.argv = argv[1:]
+        self.exit_code = 0
         # self.args = []
 
     def __call__(self):
@@ -421,6 +449,7 @@ class ConsoleScript(Group):
         # if setup:
         #     setup()
 
+        result = None
         try:
             result = command(*self.parser.funcargs, **self.parser.funckwargs)
             if isinstance(result, (types.GeneratorType, list)):
@@ -428,10 +457,14 @@ class ConsoleScript(Group):
                     self.handle_result(r)
             else:
                 self.handle_result(result)
-        except Cli2Exception as e:
-            result = -1
+        except Cli2ArgsException as e:
+            self.exit_code = 1
             print('\n'.join([str(e), '', command.doc]))
+        except Cli2Exception as e:
+            self.exit_code = 1
+            print(str(e))
         except Exception:
+            self.exit_code = 1
             raise
         finally:
             clean = False
@@ -439,11 +472,13 @@ class ConsoleScript(Group):
             if clean:
                 clean()
 
-        return result if isinstance(result, int) else 0
+        return self.exit_code
 
     def handle_result(self, result):
         if isinstance(result, str):
             print(result)
+        elif result is None:
+            pass
         else:
             pprint.PrettyPrinter(indent=4).pprint(result)
 
