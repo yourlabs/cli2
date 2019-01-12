@@ -54,8 +54,18 @@ def help(*args):
         # show console script documentation
         yield console_script.doc
     else:
-        # show command documentation
-        yield console_script[' '.join(args)].doc
+        # show command documentation if possible
+        if args[0] in console_script:
+            yield console_script[args[0]].doc
+        else:
+            importable = Importable.factory(args[0])
+            if importable.target and not importable.is_module:
+                yield importable.doc
+            elif importable.module:
+                if not importable.target:
+                    yield f'{RED}Cannot import {args[0]}{RESET}'
+                    yield f'{YELLOW}Showing help for {importable.module.__name__}{RESET}'
+                yield Group.factory(importable.module.__name__).doc
 
 
 def docfile(filepath):
@@ -76,7 +86,7 @@ docfile._cli2_color = RED
 
 
 def docmod(module_name):
-    return docfile(Importable.factory(module_name).module.__file__).strip()
+    return Group.factory(module_name).doc
 
 
 def debug(callback, *args, **kwargs):
@@ -120,32 +130,44 @@ def run(callback, *args, **kwargs):
     """
     cb = Callable.factory(callback)
 
-    if cb:
-        result = cb(*args, **kwargs)
-
+    if cb.target and not cb.is_module:
+        try:
+            result = cb(*args, **kwargs)
+        except Cli2ArgsException as e:
+            print(e)
+            print(cb.doc)
+            result = -1
+        except Exception as e:
+            if args and kwargs:
+                print(f'{RED}Running {callback}(*{args}, **{kwargs}) raised Exception{RESET}')
+            elif args:
+                print(f'{RED}Running {callback}(*{args}) raised Exception{RESET}')
+            elif kwargs:
+                print(f'{RED}Running {callback}(**{kwargs}) raised Exception{RESET}')
+            raise
         if isinstance(result, types.GeneratorType):
             yield from result
         else:
             return result
 
     else:
-        import ipdb; ipdb.set_trace()
         if '.' in callback:
             yield f'{RED}Could not import callback: {callback}{RESET}'
         else:
             yield f'{RED}Cannot run a module{RESET}: try {callback}.something'
 
-        if path.module:
+        if cb.module:
             yield ' '.join([
                 'However we could import module',
-                f'{GREEN}{path.module_name}{RESET}',
-                'Listing callables in module below:',
+                f'{GREEN}{cb.module.__name__}{RESET}',
             ])
 
-            doc = docfile(path.module.__file__)
+            doc = docmod(cb.module.__name__)
             if doc:
-                yield from doc
-            return f'Docstring not found in {path.module_name}'
+                yield f'Showing help for {GREEN}{cb.module.__name__}{RESET}:'
+                yield doc
+            else:
+                return f'Docstring not found in {cb.module.__name__}'
         elif callback != callback.split('.')[0]:
             yield f'{RED}Could not import module: {callback.split(".")[0]}{RESET}'
 
@@ -182,9 +204,20 @@ class DocDescriptor:
             return self.value
 
         if obj.is_module:
+            # Only show module docstring
             return docfile(obj.module.__file__)
-        else:
-            return inspect.getdoc(obj.target)
+        elif obj.target:
+            # Show callable docstring + signature
+            ret = []
+            if callable(obj.target):
+                # TODO: enhance output of the signature help
+                argspec = inspect.getfullargspec(obj.target)
+                ret.append(''.join([
+                    f'Signature: {GREEN}{obj.name}{RESET}',
+                    f'{inspect.signature(obj.target)}'
+                ]))
+            ret.append(inspect.getdoc(obj.target) or 'No docstring found')
+            return '\n'.join(ret)
 
     def __set__(self, obj, value):
         self.value = value
@@ -193,14 +226,16 @@ class DocDescriptor:
 class Importable:
     doc = DocDescriptor()
 
-    def __init__(self, name, target):
+    def __init__(self, name, target, module=None):
         self.name = name
         self.target = target
 
         if isinstance(target, types.ModuleType):
             self.module = target
-        else:
+        elif target:
             self.module = target.__module__
+        else:
+            self.module = module
 
     def __str__(self):
         return self.name
@@ -235,8 +270,10 @@ class Importable:
                     ret = ret[int(part)]
                 else:
                     ret = getattr(ret, part, None)
+        else:
+            ret = None
 
-        return cls(name, ret)
+        return cls(name, ret, module)
 
     def get_callables(self, whitelist=None, blacklist=None):
         for name, member in inspect.getmembers(self.target):
@@ -275,8 +312,13 @@ class Callable(Importable):
 
     @property
     def required_args(self):
+        if self.is_module:
+            return []
         argspec = inspect.getfullargspec(self.target)
-        return argspec.args[len(argspec.defaults or []):]
+        if argspec.defaults:
+            return argspec.args[:-len(argspec.defaults)]
+        else:
+            return argspec.args
 
 
 class Command(Callable):
@@ -342,6 +384,11 @@ class Group(collections.OrderedDict):
 
         return self
 
+    @classmethod
+    def factory(cls, module_name):
+        doc = Importable.factory(module_name).doc
+        return cls(module_name, doc).add_module(module_name)
+
 
 class ConsoleScript(Group):
     def __init__(self, argv=None, doc=None, default_command='help'):
@@ -356,15 +403,17 @@ class ConsoleScript(Group):
         # global console_script
         # console_script = self
 
-        if len(self.argv):
+        if len(self.argv) and self.argv[0] in self:
             command = self[self.argv[0]]
+            parse_argv = self.argv[1:]
         else:
             command = self[self.default_command]
+            parse_argv = self.argv
 
         #if not self.command or not command.path.callable:
         #    return f'No callback found for command {self.command}'
 
-        self.parser = Parser(self.argv[1:])
+        self.parser = Parser(parse_argv)
 
         colorama.init()
 
@@ -399,4 +448,4 @@ class ConsoleScript(Group):
             pprint.PrettyPrinter(indent=4).pprint(result)
 
 
-console_script = ConsoleScript(sys.argv, __doc__).add_module('cli2')
+console_script = ConsoleScript(sys.argv, __doc__, default_command='run').add_module('cli2')
