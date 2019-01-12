@@ -1,3 +1,9 @@
+'''cli2 makes your python callbacks work on CLI too !
+
+cli2 provides sub-commands to introspect python modules or callables docstrings
+or to execute callables or help working with cli2 itself.
+'''
+
 import collections
 import importlib
 import inspect
@@ -43,22 +49,29 @@ def help(*args):
 
         $ cli2 help help
     """
-    #console_script = guess_console_script()
-
     if not args:
+        # show console script documentation
         yield console_script.doc
     else:
-        yield console_script.commands[' '.join(args)].path.docstring
+        # show command documentation
+        yield console_script[' '.join(args)].doc
 
 
 def docfile(filepath):
-    """Docstring for a file path."""
+    """
+    Docstring for a file path.
+    
+    Examples:
+
+        cli2 docfile foo.py
+    """
     co = compile(open(filepath).read(), filepath, 'exec')
     if co.co_consts and isinstance(co.co_consts[0], str):
         docstring = co.co_consts[0]
     else:
         docstring = None
     return docstring
+docfile._cli2_color = RED
 
 
 def docmod(module_name):
@@ -100,8 +113,7 @@ class DocDescriptor:
         if obj.is_module:
             return docfile(obj.module.__file__)
         else:
-            import ipdb; ipdb.set_trace()
-
+            return inspect.getdoc(obj.target)
 
     def __set__(self, obj, value):
         self.value = value
@@ -175,38 +187,78 @@ class Importable:
             if getattr(member, '_cli2_exclude', None):
                 continue
 
-            yield Callback(name, member)
+            yield Callable(name, member)
 
     @property
     def is_module(self):
         return self.module == self.target
 
 
-class Callback(Importable):
+class Callable(Importable):
     pass
 
 
-class Command(Callback):
+class Command(Callable):
     doc = DocDescriptor()
 
-    def __init__(self, callback, name=None):
-        self.callback = callback
-
-        if name:
-            self._name = name
+    def __call__(self, *args, **kwargs):
+        if len(args) < len(self.required_args):
+            raise Cli2ArgsException(self, args)
+        return self.target(*args, **kwargs)
 
     @property
-    def name(self):
-        if '_name' not in self.__dict__:
-            self._name = 'name'
-        return self._name
+    def required_args(self):
+        argspec = inspect.getfullargspec(self.target)
+        return argspec.args[len(argspec.defaults or []):]
 
 
-class Group:
+class GroupDocDescriptor:
+    def __get__(self, obj, objtype):
+        ret = []
+
+        if 'value' in self.__dict__:
+            ret.append(self.value)
+
+        max_length = 0
+        for line, cmd in obj.items():
+            if line == obj.name:
+                continue
+
+            if len(line) > max_length:
+                max_length = len(line)
+
+        width = max_length + 2
+        for line, cmd in obj.items():
+            if line == 'main':
+                continue
+
+            color = getattr(cmd.target, '_cli2_color', YELLOW)
+            line = '  ' + color + line + RESET + (width - len(line)) * ' '
+            if cmd.target:
+                doc = inspect.getdoc(cmd.target)
+
+                if doc:
+                    line += doc.split('\n')[0]
+                else:
+                    line += 'Docstring not found'
+            else:
+                line += 'Callback not found'
+
+            ret.append(line)
+
+        return '\n'.join(ret)
+
+    def __set__(self, obj, value):
+        self.value = value
+
+
+class Group(collections.OrderedDict):
+    doc = GroupDocDescriptor()
+
     def __init__(self, name, doc=None):
         self.name = name
-        self.children = collections.OrderedDict()
-        self.children['help'] = Callback(help)
+        self.doc = doc or 'Documentation not set'
+        self['help'] = Command('help', help)
 
     def add_module(self, module_name):
         importable = Importable.factory(module_name)
@@ -214,20 +266,17 @@ class Group:
         if not importable.module:
             raise Exception('Module not found' + module)
 
-        for cb in importable.get_callables(whitelist, blacklist):
-            self.children[cb.name] = Command(cb.name, cb.target)
+        for cb in importable.get_callables():
+            self[cb.name] = Command(cb.name, cb.target)
 
         return self
 
 
-class ConsoleScript(Group, Command):
-    def __init__(self, argv=None, default_command='help'):
+class ConsoleScript(Group):
+    def __init__(self, argv=None, doc=None, default_command='help'):
         self.default_command = default_command
         argv = argv if argv is not None else sys.argv
-
-        Group.__init__(self, argv[0].split('/')[-1])
-
-        Command.__init__(self, argv[0].split('/')[-1])
+        Group.__init__(self, argv[0].split('/')[-1], doc)
         self.argv = argv[1:]
         # self.args = []
 
@@ -237,14 +286,14 @@ class ConsoleScript(Group, Command):
         # console_script = self
 
         if len(self.argv):
-            command = self.children[self.argv[1]]
+            command = self[self.argv[0]]
         else:
-            command = self.children[self.default_command]
+            command = self[self.default_command]
 
         #if not self.command or not command.path.callable:
         #    return f'No callback found for command {self.command}'
 
-        self.parser = Parser(self.argv)
+        self.parser = Parser(self.argv[1:])
 
         colorama.init()
 
@@ -278,4 +327,4 @@ class ConsoleScript(Group, Command):
             pprint.PrettyPrinter(indent=4).pprint(result)
 
 
-console_script = ConsoleScript(sys.argv).add_module('cli2')
+console_script = ConsoleScript(sys.argv, __doc__).add_module('cli2')
