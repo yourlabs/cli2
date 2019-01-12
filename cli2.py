@@ -8,6 +8,7 @@ import collections
 import importlib
 import inspect
 import pprint
+import textwrap
 import types
 import sys
 
@@ -75,8 +76,78 @@ docfile._cli2_color = RED
 
 
 def docmod(module_name):
-    import ipdb; ipdb.set_trace()
     return docfile(Importable.factory(module_name).module.__file__).strip()
+
+
+def debug(callback, *args, **kwargs):
+    """
+    Dump parsed variables.
+
+    Example usage::
+
+        cli2 debug test to=see --how -it=parses
+    """
+    cs = console_script
+    parser = cs.parser
+    yield textwrap.dedent(f'''
+    Callable: {RED}{callback}{RESET}
+    Args: {YELLOW}{args}{RESET}
+    Kwargs: {YELLOW}{kwargs}{RESET}
+    console_script.parser.dashargs: {GREEN}{parser.dashargs}{RESET}
+    console_script.parser.dashkwargs: {GREEN}{parser.dashkwargs}{RESET}
+    ''').strip()
+
+
+def run(callback, *args, **kwargs):
+    """
+    Execute a python callback on the command line.
+
+    To call your.module.callback('arg1', 'argN', kwarg1='foo'):
+
+        cli2 your.module.callback arg1 argN kwarg1=foo
+
+    You can also prefix arguments with a dash, those that contain equal sign
+    will end in dict your_console_script.parser.dashkwargs, those without equal
+    sign will end up in a list in your_console_script.parser.dashargs.
+
+    If you're using the default cli2.console_script then you can import it. If
+    you don't know what console_script instance, use
+    cli2.guess_console_script() which will inspect the call stack and return
+    what it believes is the ConsoleScript instance currently in use.
+
+    For examples, try `cli2 debug`.
+    For other commands, try `cli2 help`.
+    """
+    cb = Callable.factory(callback)
+
+    if cb:
+        result = cb(*args, **kwargs)
+
+        if isinstance(result, types.GeneratorType):
+            yield from result
+        else:
+            return result
+
+    else:
+        import ipdb; ipdb.set_trace()
+        if '.' in callback:
+            yield f'{RED}Could not import callback: {callback}{RESET}'
+        else:
+            yield f'{RED}Cannot run a module{RESET}: try {callback}.something'
+
+        if path.module:
+            yield ' '.join([
+                'However we could import module',
+                f'{GREEN}{path.module_name}{RESET}',
+                'Listing callables in module below:',
+            ])
+
+            doc = docfile(path.module.__file__)
+            if doc:
+                yield from doc
+            return f'Docstring not found in {path.module_name}'
+        elif callback != callback.split('.')[0]:
+            yield f'{RED}Could not import module: {callback.split(".")[0]}{RESET}'
 
 
 class Parser:
@@ -195,10 +266,6 @@ class Importable:
 
 
 class Callable(Importable):
-    pass
-
-
-class Command(Callable):
     doc = DocDescriptor()
 
     def __call__(self, *args, **kwargs):
@@ -210,6 +277,10 @@ class Command(Callable):
     def required_args(self):
         argspec = inspect.getfullargspec(self.target)
         return argspec.args[len(argspec.defaults or []):]
+
+
+class Command(Callable):
+    pass
 
 
 class GroupDocDescriptor:
@@ -309,7 +380,8 @@ class ConsoleScript(Group):
             else:
                 self.handle_result(result)
         except Cli2Exception as e:
-            print('\n'.join([str(e), '', self.command.path.docstring]))
+            result = -1
+            print('\n'.join([str(e), '', command.doc]))
         except Exception:
             raise
         finally:
