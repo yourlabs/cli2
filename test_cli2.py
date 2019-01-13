@@ -1,7 +1,27 @@
 import cli2
 
+import pytest
 
-def test_help():
+
+@pytest.mark.parametrize('name,command', [
+    ('cli2', ''),
+    ('help', 'help'),
+    ('help_debug', 'help debug'),
+    ('run_help', 'run cli2.help'),
+    ('run_help_debug', 'run cli2.help debug'),
+    ('run_help_implicit', 'cli2.help'),
+    ('docmod', 'docmod cli2'),
+    ('docfile', 'docfile cli2.py'),
+    ('debug', 'debug cli2.run to see=how -it --parses=me'),
+])
+def test_djcli(name, command):
+    cli2.autotest(
+        f'tests/{name}.txt',
+        'cli2 ' + command,
+    )
+
+
+def test_autotest():
     cli2.autotest('tests/cli2_help.txt', 'cli2 help')
 
 

@@ -1,0 +1,8 @@
+command: cli2 debug cli2.run to see=how -it --parses=me
+retcode: 1
+stdout:
+Callable: cli2.run
+Args: ('to',)
+Kwargs: {'see': 'how'}
+console_script.parser.dashargs: ['it']
+console_script.parser.dashkwargs: {'parses': 'me'}

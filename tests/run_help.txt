@@ -1,4 +1,4 @@
-command: cli2 help
+command: cli2 run cli2.help
 retcode: 1
 stdout:
 cli2 makes your python callbacks work on CLI too !

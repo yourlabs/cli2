@@ -1,0 +1,8 @@
+command: cli2 docfile cli2.py
+retcode: 1
+stdout:
+cli2 makes your python callbacks work on CLI too !
+
+cli2 provides sub-commands to introspect python modules or callables docstrings
+or to execute callables or help working with cli2 itself.
+

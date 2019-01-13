@@ -8,13 +8,17 @@ import copy
 import collections
 import importlib
 import inspect
+import io
 import os
+import pkg_resources
 import pprint
 import re
+import shlex
 import sys
 import textwrap
 import types
 import subprocess
+from unittest import mock
 
 import colorama
 
@@ -80,39 +84,58 @@ def autotest(path, cmd, ignore=None):
             'auth.User'
         )
     """
-    proc = subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    test_out, test_err = proc.communicate()
+    name = cmd.split(' ')[0]
+    for ep in pkg_resources.iter_entry_points('console_scripts'):
+        if ep.name == name:
+            break
 
-    fixture = b'\n'.join([
-        b'command: ' + cmd.encode('utf8'),
-        b'retcode: ' + str(proc.returncode).encode('utf8'),
-        b'stdout:',
+    if ep.name != name:
+        raise Exception('Could not find entrypoint {name}')
+
+    console_script = ep.load()
+    console_script.argv = shlex.split(cmd)[1:]
+
+    @mock.patch('sys.stderr', new_callable=io.StringIO)
+    @mock.patch('sys.stdout', new_callable=io.StringIO)
+    def test(mock_stdout, mock_stderr):
+        console_script()
+        return mock_stdout, mock_stderr
+
+    out, err = test()
+
+    out.seek(0)
+    test_out = out.read()
+
+    err.seek(0)
+    test_err = err.read()
+
+    fixture = '\n'.join([
+        'command: ' + cmd,
+        'retcode: ' + str(console_script.exit_code),
+        'stdout:',
         test_out,
     ])
     if test_err:
-        fixture += b'\n'.join([
-            b'stderr:',
+        fixture += '\n'.join([
+            'stderr:',
             test_err,
         ])
 
-    fixture = fixture.decode('utf8')
     for r in ignore or []:
         fixture = re.compile(r).sub(f'redacted', fixture)
-    fixture = fixture.encode('utf8')
 
     if not os.path.exists(path):
         dirname = '/'.join(path.split('/')[:-1])
         if not os.path.exists(dirname):
             os.makedirs(dirname)
 
-        with open(path, 'wb+') as f:
+        with open(path, 'w+') as f:
             f.write(fixture)
 
         raise type('FixtureCreated', (Exception,), {})(
             f'''
 {path} was not in workding and was created with:
-{fixture.decode("utf-8")}
+{fixture}
             '''.strip(),
         )
 
@@ -125,7 +148,7 @@ def autotest(path, cmd, ignore=None):
         shell=True
     )
 
-    diff_out, diff_err = proc.communicate(input=fixture)
+    diff_out, diff_err = proc.communicate(input=fixture.encode('utf8'))
     if diff_out:
         raise type(f'''
 DiffFound
