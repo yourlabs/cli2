@@ -8,14 +8,12 @@ import copy
 import collections
 import importlib
 import inspect
-import io
 import os
 import pprint
 import re
 import sys
 import textwrap
 import types
-import shlex
 import subprocess
 
 import colorama
@@ -82,8 +80,8 @@ def autotest(path, cmd, ignore=None):
             'auth.User'
         )
     """
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE, shell=True)
+    proc = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     test_out, test_err = proc.communicate()
 
     fixture = b'\n'.join([
