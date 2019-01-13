@@ -538,19 +538,19 @@ class Group(collections.OrderedDict):
 class ConsoleScript(Group):
     cli2 = dict(exclude=True)
 
-    def __init__(self, argv=None, doc=None, default_command='help'):
+    def __init__(self, doc=None, argv=None, default_command='help'):
+        # update cli2.console_script the singl370n in __1n17__ so it works
+        # in tests too :D for runtime only it can be in __call__
+        global console_script
+        console_script = self
+
         self.default_command = default_command
         argv = argv if argv is not None else sys.argv
         Group.__init__(self, argv[0].split('/')[-1], doc)
         self.argv = argv[1:]
         self.exit_code = 0
-        # self.args = []
 
-    def __call__(self):
-        # update cli2.console_script the singl370n
-        global console_script
-        console_script = self
-
+    def parse(self):
         if len(self.argv) and self.argv[0] in self:
             command = self[self.argv[0]]
             parse_argv = self.argv[1:]
@@ -562,21 +562,20 @@ class ConsoleScript(Group):
         #    return f'No callback found for command {self.command}'
 
         self.parser = Parser(parse_argv)
+        return command
 
+    def __call__(self):
         colorama.init()
-
-        # setup = getattr(self.command.path.module, '_cli2_setup', None)
-        # if setup:
-        #     setup()
+        command = self.parse()
 
         result = None
         try:
-            result = command(*self.parser.funcargs, **self.parser.funckwargs)
+            result = self.call(command)
             if isinstance(result, (types.GeneratorType, list)):
                 for r in result:
-                    self.handle_result(r)
+                    self.result_handler(r)
             else:
-                self.handle_result(result)
+                self.result_handler(result)
         except Cli2ArgsException as e:
             self.exit_code = 1
             print('\n'.join([str(e), '', command.doc]))
@@ -586,15 +585,13 @@ class ConsoleScript(Group):
         except Exception:
             self.exit_code = 1
             raise
-        finally:
-            clean = False
-            # clean = getattr(self.command.path.module, '_cli2_clean', None)
-            if clean:
-                clean()
 
         return self.exit_code
 
-    def handle_result(self, result):
+    def call(self, command):
+        return command(*self.parser.funcargs, **self.parser.funckwargs)
+
+    def result_handler(self, result):
         if isinstance(result, str):
             print(result)
         elif result is None:
@@ -602,9 +599,11 @@ class ConsoleScript(Group):
         else:
             pprint.PrettyPrinter(indent=4).pprint(result)
 
+    def result_handler_set(self, result_handler):
+        self.result_handler = result_handler.__get__(self, type(self))
+
 
 console_script = ConsoleScript(
-    sys.argv,
     __doc__,
     default_command='run'
 ).add_module('cli2')
