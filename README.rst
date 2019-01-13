@@ -11,6 +11,7 @@ Sometimes I just want to define a new command and expose all callables in a
 module and I can't just do it with a one-liner. cli2 unfrustrates me::
 
    console_script = cli2.ConsoleScript(__doc__).add_module('mymodule')
+   # then i add console_script entrypoint as such: mycmd = mycmd.console_script
 
 I also like when readonly commands are in green, writing commands in yellow and
 destructive commands in red, I find the commands list in the help output more
@@ -51,3 +52,7 @@ has changed.
 
 You should be able tho pip install cli2 and start using the cli2 command, or
 cli2.ConsoleScript to make your own commands.
+
+Projects using cli2 so far:
+
+- `djcli<https://yourlabs.io/oss/djcli>`_,
