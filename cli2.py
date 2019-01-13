@@ -8,11 +8,13 @@ import copy
 import collections
 import importlib
 import inspect
+import io
 import os
 import pprint
 import sys
 import textwrap
 import types
+import subprocess
 
 import colorama
 
@@ -21,6 +23,84 @@ GREEN = colorama.Fore.GREEN
 RED = colorama.Fore.RED
 YELLOW = colorama.Fore.YELLOW
 RESET = colorama.Style.RESET_ALL
+
+
+class Config(dict):
+    defaults = dict(
+        color=YELLOW,
+    )
+
+    def __init__(self, **options):
+        cfg = copy.copy(self.defaults)
+        cfg.update(options)
+        super().__init__(cfg)
+
+    def __get__(self, obj, objtype):
+        config = getattr(obj.target, 'cli2', None)
+        if isinstance(config, dict):
+            return Config(**config)
+        elif config is None:
+            return self
+        return config
+
+    def __getattr__(self, name):
+        return self[name]
+
+
+def config(**config):
+    def wrap(cb):
+        cb.cli2 = Config(**config)
+        return cb
+    return wrap
+
+
+# don't do this, use @cli2.config(options...) or a class instead
+config.cli2 = dict(blacklist=True)
+
+
+@config(exclude=True)
+def autotest(path, *args):
+    """
+    The autowriting test pattern, minimal for testing cli2 scripts.
+
+    """
+    proc = subprocess.Popen(args, stdout=subprocess.PIPE)
+    test_out, test_err = proc.communicate()
+
+    fixture = b'\n'.join([
+        b'stdout:',
+        test_out,
+    ])
+    if test_err:
+        fixture += b'\n'.join([
+            b'stderr:',
+            test_err,
+        ])
+
+    if not os.path.exists(path):
+        os.makedirs('/'.join(path.split('/')[:-1]))
+        with open(path, 'wb+') as f:
+            f.write(fixture)
+
+        raise type('FixtureCreated', (Exception,), {})(
+            f'{path} was not in workdir and was created')
+
+    cmd = 'diff -U 1 - "%s" | sed "1,2 d"' % path
+    proc = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stdin=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        shell=True
+    )
+
+    diff_out, diff_err = proc.communicate(input=fixture)
+    if diff_out:
+        raise type(f'''
+DiffFound
+- test output capture
++ {path}
+        '''.strip(), (Exception,), {})('\n' + diff_out.decode('utf8'))
 
 
 class Cli2Exception(Exception):
@@ -344,28 +424,6 @@ class Callable(Importable):
             return argspec.args[:-len(argspec.defaults)]
         else:
             return argspec.args
-
-
-class Config(dict):
-    defaults = dict(
-        color=YELLOW,
-    )
-
-    def __init__(self, **options):
-        cfg = copy.copy(self.defaults)
-        cfg.update(options)
-        super().__init__(cfg)
-
-    def __get__(self, obj, objtype):
-        config = getattr(obj.target, 'cli2', None)
-        if isinstance(config, dict):
-            return Config(**config)
-        elif config is None:
-            return self
-        return config
-
-    def __getattr__(self, name):
-        return self[name]
 
 
 class Command(Callable):

@@ -1,4 +1,28 @@
+import os
+import sys
+from io import TextIOWrapper, BytesIO
+
 import cli2
+
+
+def save_result(self, result):
+    self.__dict__.setdefault('_result', [])
+    self._results.append(result)
+
+
+def patch(console_script, result_handler):
+    console_script.handle_result = result_handler.__get__(
+        console_script, 
+        type(console_script)
+    )
+
+
+def test_help():
+    cli2.autotest('tests/cli2_help.txt', 'cli2', 'help')
+
+
+def test_run_help():
+    cli2.autotest('tests/cli2_help.txt', 'cli2', 'run', 'cli2.help')
 
 
 def test_importable_factory():
