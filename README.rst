@@ -53,8 +53,8 @@ has changed.
 You should be able tho pip install cli2 and start using the cli2 command, or
 cli2.ConsoleScript to make your own commands.
 
-.. image:: https://asciinema.org/a/221136.svg
-   :target: https://asciinema.org/a/221136
+.. image:: https://asciinema.org/a/221137.svg
+   :target: https://asciinema.org/a/221137
 
 Projects using cli2 so far:
 
