@@ -53,9 +53,8 @@ has changed.
 You should be able tho pip install cli2 and start using the cli2 command, or
 cli2.ConsoleScript to make your own commands.
 
-.. raw:: html
-
-   <a href="https://asciinema.org/a/221136" target="_blank"><img src="https://asciinema.org/a/221136.svg" /></a>
+.. image:: https://asciinema.org/a/221136.svg
+   :target: https://asciinema.org/a/221136
 
 Projects using cli2 so far:
 
