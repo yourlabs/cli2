@@ -2,11 +2,7 @@ import cli2
 
 
 def test_help():
-    cli2.autotest('tests/cli2_help.txt', 'cli2', 'help')
-
-
-def test_run_help():
-    cli2.autotest('tests/cli2_help.txt', 'cli2', 'run', 'cli2.help')
+    cli2.autotest('tests/cli2_help.txt', 'cli2 help')
 
 
 def test_importable_factory():
