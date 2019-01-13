@@ -7,7 +7,6 @@ cli2 provides sub-commands to introspect python modules or callables docstrings
 or to execute callables or help working with cli2 itself.
 
   help     Get help for a command.
-  config   config(**config)
   debug    Dump parsed variables.
   docfile  Docstring for a file path.
   docmod   Docstring for a module in dotted path.

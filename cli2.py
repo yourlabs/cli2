@@ -62,7 +62,7 @@ def config(**config):
 config.cli2 = dict(blacklist=True)
 
 
-@config(exclude=True)
+@config(blacklist=True)
 def autotest(path, cmd, ignore=None):
     """
     The autowriting test pattern, minimal for testing cli2 scripts.
@@ -451,7 +451,7 @@ class Importable:
                 continue
 
             cfg = getattr(member, 'cli2', {})
-            if cfg.get('exclude', False):
+            if cfg.get('blacklist', False):
                 continue
 
             yield Callable(name, member)
@@ -552,7 +552,7 @@ class Group(collections.OrderedDict):
 
 
 class ConsoleScript(Group):
-    cli2 = dict(exclude=True)
+    cli2 = dict(blacklist=True)
 
     def __init__(self, doc=None, argv=None, default_command='help'):
         # update cli2.console_script the singl370n in __1n17__ so it works
