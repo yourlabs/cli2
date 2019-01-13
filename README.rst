@@ -55,7 +55,7 @@ cli2.ConsoleScript to make your own commands.
 
 .. raw:: html
 
-   <script id="asciicast-221136" src="https://asciinema.org/a/221136.js" async></script>
+   <a href="https://asciinema.org/a/221136" target="_blank"><img src="https://asciinema.org/a/221136.svg" /></a>
 
 Projects using cli2 so far:
 
