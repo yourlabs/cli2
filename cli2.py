@@ -270,13 +270,8 @@ def run(callback, *args, **kwargs):
         cli2 your.module.callback arg1 argN kwarg1=foo
 
     You can also prefix arguments with a dash, those that contain equal sign
-    will end in dict your_console_script.parser.dashkwargs, those without equal
-    sign will end up in a list in your_console_script.parser.dashargs.
-
-    If you're using the default cli2.console_script then you can import it. If
-    you don't know what console_script instance, use
-    cli2.guess_console_script() which will inspect the call stack and return
-    what it believes is the ConsoleScript instance currently in use.
+    will end in dict console_script.parser.dashkwargs, those without equal
+    sign will end up in a list in console_script.parser.dashargs.
 
     For examples, try `cli2 debug`.
     For other commands, try `cli2 help`.
