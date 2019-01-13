@@ -53,6 +53,10 @@ has changed.
 You should be able tho pip install cli2 and start using the cli2 command, or
 cli2.ConsoleScript to make your own commands.
 
+.. raw:: html
+
+   <script id="asciicast-221136" src="https://asciinema.org/a/221136.js" async></script>
+
 Projects using cli2 so far:
 
 - `djcli
