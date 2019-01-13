@@ -55,4 +55,5 @@ cli2.ConsoleScript to make your own commands.
 
 Projects using cli2 so far:
 
-- `djcli<https://yourlabs.io/oss/djcli>`_,
+- `djcli
+  <https://yourlabs.io/oss/djcli>`_,
