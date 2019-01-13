@@ -157,6 +157,7 @@ class Cli2ArgsException(Cli2Exception):
         super().__init__('\n'.join(msg))
 
 
+@config(color=GREEN)
 def help(*args):
     """
     Get help for a command.
@@ -187,13 +188,14 @@ def help(*args):
                 yield Group.factory(importable.module.__name__).doc
 
 
+@config(color=GREEN)
 def docfile(filepath):
     """
     Docstring for a file path.
 
     Examples:
 
-        cli2 docfile foo.py
+        cli2 docfile cli2.py
     """
     if not os.path.exists(filepath):
         raise Cli2Exception(f'{RED}{filepath}{RESET} not found')
@@ -209,13 +211,16 @@ def docfile(filepath):
     return docstring
 
 
-docfile.cli2 = dict(color=RED)
-
-
+@config(color=GREEN)
 def docmod(module_name):
+    """Docstring for a module in dotted path.
+
+    Example: cli2 docmod cli2
+    """
     return Group.factory(module_name).doc
 
 
+@config(color=GREEN)
 def debug(callback, *args, **kwargs):
     """
     Dump parsed variables.
