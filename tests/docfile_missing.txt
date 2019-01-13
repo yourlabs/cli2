@@ -1,0 +1,4 @@
+command: cli2 docfile cli2aoeuoeauoaeu.py
+retcode: 1
+stdout:
+cli2aoeuoeauoaeu.py not found

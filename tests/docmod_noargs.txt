@@ -1,0 +1,9 @@
+command: cli2 docmod
+retcode: 1
+stdout:
+Missing arguments: module_name
+
+Signature: docmod(module_name)
+Docstring for a module in dotted path.
+
+Example: cli2 docmod cli2

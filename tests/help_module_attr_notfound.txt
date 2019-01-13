@@ -1,0 +1,28 @@
+command: cli2 help pytest.skipppp
+retcode: 1
+stdout:
+Cannot import pytest.skipppp
+ Showing help for pytest
+
+pytest: unit and functional testing with Python.
+
+  help                     Get help for a command.
+  approx                   Assert that two numbers (or two sets of numbers) are equal to each other
+  deprecated_call          context manager that can be used to ensure a block of code triggers a
+  ensuretemp               (deprecated) return temporary directory path with
+  exit                     Exit testing process as if KeyboardInterrupt was triggered.
+  fail                     Explicitly fail an executing test with the given message.
+  fixture                  Decorator to mark a fixture factory function.
+  freeze_includes          Returns a list of module names used by pytest that should be
+  hookimpl                 Decorator helper class for marking functions as hook implementations.
+  hookspec                 Decorator helper class for marking functions as hook specifications.
+  importorskip             return imported module if it has at least "minversion" as its
+  main                     return exit code, after performing an in-process test run.
+  param                    Specify a parameter in `pytest.mark.parametrize`_ calls or
+  raises                   Assert that a code block/function call raises ``expected_exception``
+  register_assert_rewrite  Register one or more module names to be rewritten on import.
+  set_trace                invoke PDB set_trace debugging, dropping any IO capturing. 
+  skip                     Skip an executing test with the given message.
+  warns                    Assert that code raises a particular class of warning.
+  xfail                    Imperatively xfail an executing test or setup functions with the given reason.
+  yield_fixture            (return a) decorator to mark a yield-fixture factory function.

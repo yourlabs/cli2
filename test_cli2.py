@@ -10,11 +10,20 @@ import pytest
     ('run_help', 'run cli2.help'),
     ('run_help_debug', 'run cli2.help debug'),
     ('run_help_implicit', 'cli2.help'),
+    ('run_module', 'cli2'),
+    ('run_module_missing_attr', 'cli2.missing'),
+    ('run_module_missing', 'missinggggggg.foo'),
+    ('run_module_nodoc', 'test_cli2.test_cli2'),
+    ('help_module', 'help pytest'),
+    ('help_module_attr', 'help pytest.skip'),
+    ('help_module_attr_notfound', 'help pytest.skipppp'),
     ('docmod', 'docmod cli2'),
+    ('docmod_noargs', 'docmod'),
     ('docfile', 'docfile cli2.py'),
+    ('docfile_missing', 'docfile cli2aoeuoeauoaeu.py'),
     ('debug', 'debug cli2.run to see=how -it --parses=me'),
 ])
-def test_djcli(name, command):
+def test_cli2(name, command):
     cli2.autotest(
         f'tests/{name}.txt',
         'cli2 ' + command,

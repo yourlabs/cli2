@@ -201,11 +201,11 @@ def help(*args):
             elif importable.module:
                 if not importable.target:
                     yield f'{RED}Cannot import {args[0]}{RESET}'
-                    yield ' '.join(
+                    yield ' '.join([
                         YELLOW,
                         'Showing help for',
                         importable.module.__name__ + RESET
-                    )
+                    ])
                 yield Group.factory(importable.module.__name__).doc
 
 
@@ -328,12 +328,12 @@ def run(callback, *args, **kwargs):
             else:
                 return f'Docstring not found in {cb.module.__name__}'
         elif callback != callback.split('.')[0]:
-            yield ' '.join(
+            yield ' '.join([
                 RED,
                 'Could not import module:',
-                callback.split(".")[0],
+                callback.split('.')[0],
                 RESET,
-            )
+            ])
 
 
 class Parser:
