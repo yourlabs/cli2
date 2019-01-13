@@ -11,9 +11,11 @@ import inspect
 import io
 import os
 import pprint
+import re
 import sys
 import textwrap
 import types
+import shlex
 import subprocess
 
 import colorama
@@ -59,15 +61,34 @@ config.cli2 = dict(blacklist=True)
 
 
 @config(exclude=True)
-def autotest(path, *args):
+def autotest(path, cmd, ignore=None):
     """
     The autowriting test pattern, minimal for testing cli2 scripts.
 
+    Example:
+
+        cli2.autotest(
+            'tests/djcli_save_user.txt',
+            'djcli',
+            'save',
+            'auth.User',
+            'username="test"',
+        )
+
+        cli2.autotest(
+            'tests/djcli_ls_user.txt',
+            'djcli',
+            'ls',
+            'auth.User'
+        )
     """
-    proc = subprocess.Popen(args, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, shell=True)
     test_out, test_err = proc.communicate()
 
     fixture = b'\n'.join([
+        b'command: ' + cmd.encode('utf8'),
+        b'retcode: ' + str(proc.returncode).encode('utf8'),
         b'stdout:',
         test_out,
     ])
@@ -77,13 +98,25 @@ def autotest(path, *args):
             test_err,
         ])
 
+    fixture = fixture.decode('utf8')
+    for r in ignore or []:
+        fixture = re.compile(r).sub(f'redacted', fixture)
+    fixture = fixture.encode('utf8')
+
     if not os.path.exists(path):
-        os.makedirs('/'.join(path.split('/')[:-1]))
+        dirname = '/'.join(path.split('/')[:-1])
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+
         with open(path, 'wb+') as f:
             f.write(fixture)
 
         raise type('FixtureCreated', (Exception,), {})(
-            f'{path} was not in workdir and was created')
+            f'''
+{path} was not in workding and was created with:
+{fixture.decode("utf-8")}
+            '''.strip(),
+        )
 
     cmd = 'diff -U 1 - "%s" | sed "1,2 d"' % path
     proc = subprocess.Popen(
