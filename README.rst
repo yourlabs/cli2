@@ -41,10 +41,12 @@ function in cli2 that I can use as such::
            'cli2 ' + command,
        )
 
-This will execute the command and compare with the contents in the test text
-file with GNU or busybox diff and fail if there's a diff. If the file doesn't
-exist then it will create it and fail because it created the fixture. I can
-just rm -rf my tests dir and run pytest again, and use git diff to see what
+This got me to 86% coverage in 3 minutes. How so ?
+
+Well, it will execute the command and compare with the contents in the test
+text file with GNU or busybox diff and fail if there's a diff. If the file
+doesn't exist then it will create it and fail because it created the fixture. I
+can just rm -rf my tests dir and run pytest again, and use git diff to see what
 has changed.
 
 You should be able tho pip install cli2 and start using the cli2 command, or
