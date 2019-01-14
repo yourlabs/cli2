@@ -1,4 +1,4 @@
-command: cli2 docfile cli2aoeuoeauoaeu.py
+command: cli2 docfile missing.py
 retcode: 1
 stdout:
-cli2aoeuoeauoaeu.py not found
+missing.py not found

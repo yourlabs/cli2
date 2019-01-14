@@ -4,13 +4,12 @@ stdout:
 Could not import callback: cli2.missing
 However we could import module cli2
 Showing help for cli2:
-cli2 makes your python callbacks work on CLI too !
+cli2 is like click but as laxist as docopts.
 
-cli2 provides sub-commands to introspect python modules or callables docstrings
-or to execute callables or help working with cli2 itself.
-
-  help     Get help for a command.
-  debug    Dump parsed variables.
-  docfile  Docstring for a file path.
-  docmod   Docstring for a module in dotted path.
-  run      Execute a python callback on the command line.
+  autotest  The autowriting test pattern, minimal for testing cli2 scripts.
+  command   command(**config)
+  debug     Dump parsed variables.
+  docfile   Docstring for a file path.
+  docmod    Docstring for a module in dotted path.
+  help      Get help for a command.
+  run       Execute a python callback on the command line.
