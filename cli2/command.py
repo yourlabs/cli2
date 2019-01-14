@@ -1,20 +1,10 @@
-import collections
-
 from .introspection import Callable
-from .colors import YELLOW
-
-
-class Command(Callable):
-    def __init__(self, name, target, color=None, options=None, doc=None):
-        super().__init__(name, target)
-        self.color = color or YELLOW
-        self.options = options or collections.OrderedDict()
 
 
 def command(**config):
     def wrap(cb):
         if 'cli2' not in cb.__dict__:
-            cb.cli2 = Command(cb.__name__, cb, **config)
+            cb.cli2 = Callable(cb.__name__, cb, **config)
         else:
             cb.cli2.__dict__.update(config)
         return cb

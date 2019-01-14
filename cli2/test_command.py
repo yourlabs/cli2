@@ -1,5 +1,3 @@
-import cli2
-
 from .command import command, option
 
 
@@ -35,9 +33,3 @@ def test_chain():
     assert foo.cli2.color == 'test'
     # should not have removed any option
     assert foo.cli2.options['foo'].color == 'foocolor'
-
-
-def test_command_color_default():
-    def foo():
-        pass
-    assert cli2.Command('foo', foo).color == cli2.YELLOW

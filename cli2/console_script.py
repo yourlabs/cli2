@@ -7,9 +7,8 @@ import types
 
 from .colors import RESET
 from .parser import Parser
-from .command import Command
 from .exceptions import Cli2ArgsException, Cli2Exception
-from .introspection import Importable
+from .introspection import Callable, Importable
 
 
 class GroupDocDescriptor:
@@ -56,7 +55,7 @@ class Group(collections.OrderedDict):
 
     def add_help(self):
         from .cli import help
-        self['help'] = Command('help', help)
+        self.add_commands(help)
         return self
 
     def add_module(self, module_name):
@@ -66,17 +65,13 @@ class Group(collections.OrderedDict):
             raise Cli2Exception('Module not found' + importable.module)
 
         for cb in importable.get_callables():
-            self[cb.name] = getattr(
-                cb.target, 'cli2', Command(cb.name, cb.target))
+            self[cb.name] = Callable.for_callback(cb.target)
 
         return self
 
     def add_commands(self, *callbacks):
         for cb in callbacks:
-            self[cb.__name__] = getattr(
-                cb, 'cli2',
-                Command(cb.__name__, cb)
-            )
+            self[cb.__name__] = Callable.for_callback(cb)
         return self
 
     @classmethod

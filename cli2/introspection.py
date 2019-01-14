@@ -1,9 +1,10 @@
+import collections
 import inspect
 import importlib
 import types
 import os
 
-from .colors import GREEN, RED, RESET
+from .colors import GREEN, RED, RESET, YELLOW
 from .exceptions import Cli2Exception, Cli2ArgsException
 
 
@@ -123,6 +124,12 @@ class Importable:
                     ret = ret[int(part)]
                 else:
                     ret = getattr(ret, part, None)
+
+            if getattr(ret, 'cli2', None):
+                return ret.cli2
+
+            if module != ret:
+                cls = Callable
         else:
             ret = None
 
@@ -154,6 +161,17 @@ class Importable:
 
 class Callable(Importable):
     doc = DocDescriptor()
+
+    def __init__(self, name, target, module=None, color=None, options=None,
+                 doc=None):
+
+        super().__init__(name, target, module=module)
+        self.color = color or YELLOW
+        self.options = options or collections.OrderedDict()
+
+    @classmethod
+    def for_callback(cls, cb):
+        return getattr(cb, 'cli2', cls(cb.__name__, cb))
 
     def __call__(self, *args, **kwargs):
         if len(args) < len(self.required_args):

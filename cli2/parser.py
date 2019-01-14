@@ -1,4 +1,3 @@
-from .command import Command
 
 
 class Parser:
@@ -17,6 +16,7 @@ class Parser:
         self.options = {}
 
     def parse(self):
+        from .introspection import Callable
         from .console_script import Group
 
         for arg in self.argv_all:
@@ -25,7 +25,7 @@ class Parser:
 
                 if isinstance(item, Group):
                     self.group = item
-                elif isinstance(item, Command):
+                elif isinstance(item, Callable):
                     self.command = item
             else:
                 self.argv.append(arg)
