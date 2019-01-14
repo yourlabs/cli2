@@ -16,3 +16,7 @@ sign will end up in a list in console_script.parser.dashargs.
 
 For examples, try `cli2 debug`.
 For other commands, try `cli2 help`.
+
+Extra CLI options:
+
+  --debug,-d      Also print debug output

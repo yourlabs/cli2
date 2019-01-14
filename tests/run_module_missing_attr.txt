@@ -12,4 +12,5 @@ cli2 is like click but as laxist as docopts.
   docfile   Docstring for a file path.
   docmod    Docstring for a module in dotted path.
   help      Get help for a command.
+  option    option(name, **cfg)
   run       Execute a python callback on the command line.
