@@ -5,13 +5,12 @@ cli2 provides sub-commands to introspect python modules or callables docstrings
 or to execute callables or help working with cli2 itself.
 """
 
-import os
 import textwrap
 import types
 
 from .console_script import ConsoleScript, Group
 from .command import command, option
-from .exceptions import Cli2Exception, Cli2ArgsException
+from .exceptions import Cli2ArgsException
 from .colors import GREEN, RED, RESET, YELLOW
 from .introspection import docfile, Callable, Importable
 
