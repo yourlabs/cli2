@@ -38,7 +38,10 @@ def autotest(path, cmd, ignore=None):
     @unittest.mock.patch('sys.stderr', new_callable=io.StringIO)
     @unittest.mock.patch('sys.stdout', new_callable=io.StringIO)
     def test(mock_stdout, mock_stderr):
-        console_script()
+        try:
+            console_script()
+        except SystemExit as e:
+            console_script.exit_code = e.code
         return mock_stdout, mock_stderr
 
     out, err = test()
