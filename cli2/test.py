@@ -67,7 +67,12 @@ def autotest(path, cmd, ignore=None):
     for r in ignore or []:
         fixture = re.compile(r).sub(f'redacted', fixture)
 
-    if not os.path.exists(path):
+    exists = os.path.exists(path)
+    if os.getenv('TEST_REWRITE') and exists:
+        os.unlink(path)
+        exists = False
+
+    if not exists:
         dirname = '/'.join(path.split('/')[:-1])
         if not os.path.exists(dirname):
             os.makedirs(dirname)
@@ -75,9 +80,12 @@ def autotest(path, cmd, ignore=None):
         with open(path, 'w+') as f:
             f.write(fixture)
 
+        if os.getenv('TEST_REWRITE'):
+            return
+
         raise type('FixtureCreated', (Exception,), {})(
             f'''
-{path} was not in workding and was created with:
+{path} was not in workdir and was created with:
 {fixture}
             '''.strip(),
         )
