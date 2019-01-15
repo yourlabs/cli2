@@ -125,7 +125,8 @@ class Importable:
                 else:
                     ret = getattr(ret, part, None)
 
-            if getattr(ret, 'cli2', None):
+            candidate = getattr(ret, 'cli2', None)
+            if isinstance(candidate, Callable):
                 return ret.cli2
 
             if module != ret:
