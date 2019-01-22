@@ -4,7 +4,8 @@ from .introspection import Callable
 def command(**config):
     def wrap(cb):
         if 'cli2' not in cb.__dict__:
-            cb.cli2 = Callable(cb.__name__, cb, **config)
+            name = config.pop('name', cb.__name__)
+            cb.cli2 = Callable(name, cb, **config)
         else:
             cb.cli2.__dict__.update(config)
         return cb
