@@ -28,7 +28,10 @@ class GroupDocDescriptor:
             ])
 
             if cmd.target:
-                doc = inspect.getdoc(cmd.target)
+                if isinstance(cmd, Group):
+                    doc = cmd.doc.split('\n')[0]
+                else:
+                    doc = inspect.getdoc(cmd.target)
 
                 if doc:
                     line += doc.split('\n')[0]
