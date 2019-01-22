@@ -17,13 +17,13 @@ class Parser:
 
     def parse(self):
         from .introspection import Callable
-        from .console_script import Group
+        from .console_script import BaseGroup
 
         for arg in self.argv_all:
             if not self.command and arg in self.group:
                 item = self.group[arg]
 
-                if isinstance(item, Group):
+                if isinstance(item, BaseGroup):
                     self.group = item
                 elif isinstance(item, Callable):
                     self.command = item

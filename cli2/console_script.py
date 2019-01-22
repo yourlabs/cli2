@@ -45,13 +45,14 @@ class GroupDocDescriptor:
         self.value = value
 
 
-class Group(collections.OrderedDict):
+class BaseGroup(collections.OrderedDict):
     doc = GroupDocDescriptor()
 
-    def __init__(self, name, doc=None):
+    def __init__(self, name, doc=None, default_command='help'):
         self.name = name
         if doc:
             self.doc = doc
+        self.default_command = default_command
 
     def add_help(self):
         from .cli import help
@@ -80,12 +81,25 @@ class Group(collections.OrderedDict):
         return cls(module_name, doc).add_module(module_name)
 
 
-class ConsoleScript(Group):
+class Group(Callable, BaseGroup):
+    doc = GroupDocDescriptor()
+
+    def __init__(self, name, doc=None, default_command='help', color=None,
+                 options=None):
+
+        from .cli import help
+        BaseGroup.__init__(self, name, doc, default_command=default_command)
+        Callable.__init__(self, name, help, color=color, options=options)
+        self.add_help()
+        if doc:
+            self.doc = doc
+
+
+class ConsoleScript(BaseGroup):
     def __init__(self, doc=None, argv=None, default_command='help'):
         ConsoleScript.singleton = self
-        self.default_command = default_command
         argv = argv if argv is not None else sys.argv
-        Group.__init__(self, argv[0].split('/')[-1], doc)
+        super().__init__(argv[0].split('/')[-1], doc, default_command)
         self.argv = argv
         self.exit_code = 0
         self.add_help()

@@ -8,7 +8,7 @@ or to execute callables or help working with cli2 itself.
 import textwrap
 import types
 
-from .console_script import ConsoleScript, Group
+from .console_script import ConsoleScript, BaseGroup
 from .command import command, option
 from .exceptions import Cli2ArgsException
 from .colors import GREEN, RED, RESET, YELLOW
@@ -20,7 +20,7 @@ def docmod(module_name):
 
     Example: cli2 docmod cli2
     """
-    return Group.factory(module_name).doc
+    return BaseGroup.factory(module_name).doc
 
 
 @command(color=GREEN)
@@ -35,8 +35,8 @@ def help(*args):
     console_script = ConsoleScript.singleton
 
     if not args:
-        # show console script documentation
-        yield console_script.doc
+        # show documentation for parsed group
+        yield console_script.parser.group.doc
     else:
         # show command documentation if possible
         if args[0] in console_script:
@@ -53,7 +53,7 @@ def help(*args):
                         'Showing help for',
                         importable.module.__name__ + RESET
                     ])
-                yield Group.factory(importable.module.__name__).doc
+                yield BaseGroup.factory(importable.module.__name__).doc
 
 
 @command(color=GREEN)
