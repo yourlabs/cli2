@@ -15,8 +15,8 @@ class GroupDocDescriptor:
     def __get__(self, obj, objtype):
         ret = []
 
-        if 'value' in self.__dict__:
-            ret.append(self.value.strip() + '\n')
+        if '_doc' in obj.__dict__:
+            ret.append(obj._doc.strip() + '\n')
 
         width = len(max(obj.keys(), key=len)) + 2
         for name, cmd in obj.items():
@@ -45,7 +45,7 @@ class GroupDocDescriptor:
         return '\n'.join(ret)
 
     def __set__(self, obj, value):
-        self.value = value
+        obj._doc = value
 
 
 class BaseGroup(collections.OrderedDict):
