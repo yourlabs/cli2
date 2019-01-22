@@ -37,8 +37,11 @@ class DocDescriptor:
                 return self.value
 
             # Only show module docstring
-            from .cli import docfile
-            return docfile(obj.module.__file__)
+            if obj.module:
+                from .cli import docfile
+                return docfile(obj.module.__file__)
+            else:
+                return f'No docstring found for {obj}'
 
         elif obj.target:
             # Show callable docstring + signature
