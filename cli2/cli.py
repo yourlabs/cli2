@@ -35,8 +35,8 @@ def help(*args):
     console_script = ConsoleScript.singleton
 
     if not args:
-        # show console script documentation
-        yield console_script.doc
+        # show documentation for parsed group
+        yield console_script.parser.group.doc
     else:
         # show command documentation if possible
         if args[0] in console_script:
