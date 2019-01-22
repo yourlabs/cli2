@@ -66,7 +66,7 @@ class BaseGroup(collections.OrderedDict):
         importable = Importable.factory(module_name)
 
         if not importable.module:
-            raise Cli2Exception('Module not found' + importable.module)
+            raise Cli2Exception('Module not found')
 
         for cb in importable.get_callables():
             self[cb.name] = Callable.for_callback(cb.target)
