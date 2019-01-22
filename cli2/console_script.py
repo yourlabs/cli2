@@ -78,6 +78,10 @@ class BaseGroup(collections.OrderedDict):
             self[cb.__name__] = Callable.for_callback(cb)
         return self
 
+    def add_group(self, name, *args, **kwargs):
+        self[name] = Group(name, *args, **kwargs)
+        return self[name]
+
     @classmethod
     def factory(cls, module_name):
         doc = Importable.factory(module_name).doc
