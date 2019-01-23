@@ -18,7 +18,7 @@ class GroupDocDescriptor:
         if '_doc' in obj.__dict__:
             ret.append(obj._doc.strip() + '\n')
 
-        width = len(max(obj.keys(), key=len)) + 2
+        width = len(max(obj.keys(), key=len, default=[''])) + 2
         for name, cmd in obj.items():
             line = '  ' + ''.join([
                 cmd.color,
