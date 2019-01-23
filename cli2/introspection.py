@@ -48,9 +48,14 @@ class DocDescriptor:
             ret = []
             if callable(obj.target):
                 # TODO: enhance output of the signature help
+                sig = ''
+                try:
+                    sig = inspect.signature(obj.target)
+                except ValueError:
+                    pass
                 ret.append(''.join([
                     f'Signature: {GREEN}{obj.name}{RESET}',
-                    f'{inspect.signature(obj.target)}'
+                    f'{sig}'
                 ]))
 
             if 'value' in self.__dict__:
