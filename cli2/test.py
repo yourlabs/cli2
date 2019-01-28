@@ -7,6 +7,9 @@ import subprocess
 import unittest
 
 
+REWRITE = os.getenv('FIXTURE_REWRITE') or os.getenv('TEST_REWRITE')
+
+
 def entrypoint_get(name):
     for ep in pkg_resources.iter_entry_points('console_scripts'):
         if ep.name == name:
@@ -68,7 +71,7 @@ def autotest(path, cmd, ignore=None):
         fixture = re.compile(r).sub(f'redacted', fixture)
 
     exists = os.path.exists(path)
-    if os.getenv('TEST_REWRITE') and exists:
+    if REWRITE and exists:
         os.unlink(path)
         exists = False
 
@@ -80,7 +83,7 @@ def autotest(path, cmd, ignore=None):
         with open(path, 'w+') as f:
             f.write(fixture)
 
-        if os.getenv('TEST_REWRITE'):
+        if REWRITE:
             return
 
         raise type('FixtureCreated', (Exception,), {})(
