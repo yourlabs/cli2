@@ -16,6 +16,8 @@ import pytest
     ('run_module_nodoc', 'test_cli2.test_cli2'),
     ('help_module', 'help cli2'),
     ('help_module_attr_notfound', 'help cli2.skipppp'),
+    ('help_module_no_callables', 'help datetime'),
+    ('help_module_no_signature', 'help datetime.datetime'),
     ('docmod', 'docmod cli2'),
     ('docmod_noargs', 'docmod'),
     ('docfile', 'docfile cli2/cli.py'),
