@@ -13,6 +13,7 @@ class Parser:
         self.funckwargs = {}
         self.dashargs = []
         self.dashkwargs = {}
+        self.dashall = []
         self.options = {}
 
     def parse(self):
@@ -52,6 +53,7 @@ class Parser:
                     self.options[option.name] = value
                 else:
                     self.dashkwargs[key] = value
+                    self.dashall.append(arg)
             else:
                 key, value = arg.split('=', 1)
                 self.funckwargs[key] = value
@@ -64,5 +66,6 @@ class Parser:
                     self.options[option.name] = True
                 else:
                     self.dashargs.append(stripped)
+                    self.dashall.append(arg)
             else:
                 self.funcargs.append(arg)
