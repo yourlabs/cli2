@@ -74,7 +74,7 @@ def debug(callback, *args, **kwargs):
     console_script.parser.options: {GREEN}{parser.options}{RESET}
     console_script.parser.dashargs: {GREEN}{parser.dashargs}{RESET}
     console_script.parser.dashkwargs: {GREEN}{parser.dashkwargs}{RESET}
-    console_script.parser.dashall: {GREEN}{parser.dashall}{RESET}
+    console_script.parser.extraargs: {GREEN}{parser.extraargs}{RESET}
     ''').strip()
 
 

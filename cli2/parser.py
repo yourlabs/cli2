@@ -1,3 +1,4 @@
+import inspect
 
 
 class Parser:
@@ -13,7 +14,7 @@ class Parser:
         self.funckwargs = {}
         self.dashargs = []
         self.dashkwargs = {}
-        self.dashall = []
+        self.extraargs = []
         self.options = {}
 
     def parse(self):
@@ -45,6 +46,14 @@ class Parser:
         return False
 
     def append(self, arg):
+        spec = inspect.getargspec(self.command.target)
+        filled = False
+        if not spec.varargs and len(spec.args) == len(self.funcargs):
+            filled = True
+
+        if filled:
+            self.extraargs.append(arg)
+
         if '=' in arg:
             if arg.startswith('-'):
                 key, value = arg.lstrip('-').split('=')
@@ -53,7 +62,6 @@ class Parser:
                     self.options[option.name] = value
                 else:
                     self.dashkwargs[key] = value
-                    self.dashall.append(arg)
             else:
                 key, value = arg.split('=', 1)
                 self.funckwargs[key] = value
@@ -66,6 +74,5 @@ class Parser:
                     self.options[option.name] = True
                 else:
                     self.dashargs.append(stripped)
-                    self.dashall.append(arg)
-            else:
+            elif not filled:
                 self.funcargs.append(arg)

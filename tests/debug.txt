@@ -7,4 +7,4 @@ Kwargs: {'see': 'how'}
 console_script.parser.options: {}
 console_script.parser.dashargs: ['it']
 console_script.parser.dashkwargs: {'parses': 'me'}
-console_script.parser.dashall: ['-it', '--parses=me']
+console_script.parser.extraargs: []
