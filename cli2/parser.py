@@ -54,7 +54,7 @@ class Parser:
         if filled:
             self.extraargs.append(arg)
 
-        if '=' in arg:
+        if arg.count('=') == 1:
             if arg.startswith('-'):
                 key, value = arg.lstrip('-').split('=')
                 option = self.get_option(key)
