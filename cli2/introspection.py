@@ -161,6 +161,9 @@ class Importable:
             if name.startswith('_'):
                 continue
 
+            if not hasattr(member, '__name__'):
+                continue
+
             yield Callable(name, member)
 
     @property
