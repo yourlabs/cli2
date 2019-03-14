@@ -46,7 +46,7 @@ class Parser:
         return False
 
     def append(self, arg):
-        spec = inspect.getargspec(self.command.target)
+        spec = inspect.getfullargspec(self.command.target)
         filled = False
         if not spec.varargs and len(spec.args) == len(self.funcargs):
             filled = True
