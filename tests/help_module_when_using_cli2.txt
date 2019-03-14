@@ -1,0 +1,15 @@
+command: cli2 help djcli
+retcode: 1
+stdout:
+djcli: time for CLI party !
+
+Will try to auto-detect $DJANGO_SETTINGS_MODULE by searching for settings.py
+from the current directory.
+
+  chpasswd  Change the password for user.
+  delete    Delete a model filtered with kwargs.
+  detail    Print detail for a model.
+  ls        Search models
+  save      Update or create a model.
+  setting   Show settings from django.
+  settings  Print out DJANGO_SETTINGS_MODULE.
