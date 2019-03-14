@@ -2,6 +2,7 @@ import collections
 import inspect
 import colorama
 import pprint
+import os.path
 import sys
 import types
 
@@ -107,7 +108,7 @@ class ConsoleScript(BaseGroup):
     def __init__(self, doc=None, argv=None, default_command='help'):
         ConsoleScript.singleton = self
         argv = argv if argv is not None else sys.argv
-        super().__init__(argv[0].split('/')[-1], doc, default_command)
+        super().__init__(os.path.basename(argv[0]), doc, default_command)
         self.argv = argv
         self.exit_code = 0
         self.add_help()

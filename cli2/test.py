@@ -76,7 +76,8 @@ def autotest(path, cmd, ignore=None):
         exists = False
 
     if not exists:
-        dirname = '/'.join(path.split('/')[:-1])
+        # dirname = '/'.join(path.split('/')[:-1])
+        dirname = os.path.dirname(path)
         if not os.path.exists(dirname):
             os.makedirs(dirname)
 
