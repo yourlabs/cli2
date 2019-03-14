@@ -18,6 +18,7 @@ import pytest
     ('help_module_attr_notfound', 'help cli2.skipppp'),
     ('help_module_no_callables', 'help datetime'),
     ('help_module_no_signature', 'help datetime.datetime'),
+    ('help_module_using_cli2', 'help djcli'),
     ('docmod', 'docmod cli2'),
     ('docmod_noargs', 'docmod'),
     ('docfile', 'docfile cli2/cli.py'),
