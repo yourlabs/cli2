@@ -6,14 +6,6 @@ setup(
     versioning='dev',
     setup_requires='setupmeta',
     install_requires=['colorama'],
-    extras_require=dict(
-        test=[
-            'pytest',
-            'pytest-cov',
-            'pytest-mock',
-            'djcli',
-        ],
-    ),
     author='James Pic',
     author_email='jamespic@gmail.com',
     url='https://yourlabs.io/oss/cli2',
