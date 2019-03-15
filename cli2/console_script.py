@@ -76,8 +76,8 @@ class BaseGroup(collections.OrderedDict):
 
     def add_commands(self, *callbacks):
         for cb in callbacks:
-            callable = Callable.for_callback(cb)
-            self[callable.name] = callable
+            _callable = Callable.for_callback(cb)
+            self[_callable.name] = _callable
         return self
 
     def add_group(self, name, *args, **kwargs):
