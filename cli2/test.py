@@ -4,7 +4,7 @@ import pkg_resources
 import re
 import shlex
 import subprocess
-import unittest
+import unittest.mock
 
 
 REWRITE = os.getenv('FIXTURE_REWRITE') or os.getenv('TEST_REWRITE')
