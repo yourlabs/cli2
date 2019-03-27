@@ -45,6 +45,19 @@ class Parser:
                 return option
         return False
 
+    @staticmethod
+    def cast_val(value):
+        """Attempt to cast CLI argument to int or float."""
+        if value == 'None':
+            return None
+        try:
+            return int(value)
+        except ValueError:
+            try:
+                return float(value)
+            except ValueError:
+                return value
+
     def append(self, arg):
         spec = inspect.getfullargspec(self.command.target)
         filled = False
@@ -57,6 +70,7 @@ class Parser:
         if arg.count('=') == 1:
             if arg.startswith('-'):
                 key, value = arg.lstrip('-').split('=')
+                value = self.cast_val(value)
                 option = self.get_option(key)
                 if option:
                     self.options[option.name] = value
@@ -64,6 +78,7 @@ class Parser:
                     self.dashkwargs[key] = value
             else:
                 key, value = arg.split('=', 1)
+                value = self.cast_val(value)
                 self.funckwargs[key] = value
 
         else:
@@ -75,4 +90,4 @@ class Parser:
                 else:
                     self.dashargs.append(stripped)
             elif not filled:
-                self.funcargs.append(arg)
+                self.funcargs.append(self.cast_val(arg))
