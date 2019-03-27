@@ -5,7 +5,6 @@ from freezegun import freeze_time
 import cli2
 
 
-
 @pytest.mark.parametrize('name,command', [
     ('cli2', ''),
     ('help', 'help'),
