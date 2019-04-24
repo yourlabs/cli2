@@ -30,7 +30,7 @@ def autotest(path, cmd, ignore=None):
     name = cmd.split(' ')[0]
     ep = entrypoint_get(name)
     if not ep:
-        raise Exception('Could not find entrypoint {name}')
+        raise Exception(f'Could not find entrypoint {name}')
 
     console_script = ep.load()
     console_script.argv = shlex.split(cmd)
