@@ -103,6 +103,11 @@ class Group(Callable, BaseGroup):
         if doc:
             self.doc = doc
 
+    @classmethod
+    def factory(cls, name, module_name):
+        doc = Importable.factory(module_name).doc
+        return cls(name, doc).add_module(module_name)
+
 
 class ConsoleScript(BaseGroup):
     def __init__(self, doc=None, argv=None, default_command='help'):
