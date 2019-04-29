@@ -17,6 +17,8 @@ class Parser:
         self.extraargs = []
         self.options = {}
 
+        self.immediate = True
+
     def parse(self):
         from .introspection import Callable
         from .console_script import BaseGroup
@@ -72,11 +74,13 @@ class Parser:
                 key, value = arg.lstrip('-').split('=')
                 value = self.cast_val(value)
                 option = self.get_option(key)
-                if option:
+                if option and (not option.immediate or self.immediate):
                     self.options[option.name] = value
                 else:
+                    self.immediate = False
                     self.dashkwargs[key] = value
             else:
+                self.immediate = False
                 key, value = arg.split('=', 1)
                 value = self.cast_val(value)
                 self.funckwargs[key] = value
@@ -85,9 +89,11 @@ class Parser:
             if arg.startswith('-'):
                 stripped = arg.lstrip('-')
                 option = self.get_option(stripped)
-                if option:
+                if option and (not option.immediate or self.immediate):
                     self.options[option.name] = True
                 else:
+                    self.immediate = False
                     self.dashargs.append(stripped)
             elif not filled:
+                self.immediate = False
                 self.funcargs.append(self.cast_val(arg))
