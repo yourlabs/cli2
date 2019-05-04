@@ -1,16 +1,15 @@
+image: yourlabs/python
+
 qa:
   stage: test
-  image: yourlabs/python
   script: flake8
 
 pytest:
   stage: test
-  image: yourlabs/python
   script:
   - pip install -e .[test]
   - py.test --cov . -v
 
 pypi:
   stage: deploy
-  image: yourlabs/python
   script: pypi-release

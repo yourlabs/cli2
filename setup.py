@@ -9,6 +9,8 @@ setup(
     extras_require=dict(
         test=[
             'freezegun',
+            'pytest',
+            'pytest-cov',
         ],
     ),
     author='James Pic',
