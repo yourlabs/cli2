@@ -1,0 +1,4 @@
+command: cli2 datetime.datetime.now None
+retcode: 1
+stdout:
+FakeDatetime(2010, 2, 1, 0, 0)

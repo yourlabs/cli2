@@ -1,0 +1,4 @@
+command: cli2 datetime.datetime year=2019 month=2 day=1
+retcode: 1
+stdout:
+FakeDatetime(2019, 2, 1, 0, 0)
