@@ -7,8 +7,7 @@ qa:
 pytest:
   stage: test
   script:
-  - pip install -e .[test]
-  - py.test --cov . -v
+  - ./sh.yml test
 
 pypi:
   stage: deploy
