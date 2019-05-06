@@ -186,16 +186,38 @@ class Callable(Importable):
         return getattr(cb, 'cli2', cls(cb.__name__, cb))
 
     def __call__(self, *args, **kwargs):
-        if len(args) < len(self.required_args):
+        req_args = self.required_args
+        if len(args) < len(req_args):
             raise Cli2ArgsException(self, args)
-        return self.target(*args, **kwargs)
+        try:
+            return self.target(*args, **kwargs)
+        except TypeError as exc:
+            # catch builtins that don't provide info for required_args
+            if exc.args[0].startswith('Required argument'):
+                raise Cli2ArgsException(self, args)
+            else:
+                raise
 
     @property
     def required_args(self):
         if self.is_module:
             return []
-        argspec = inspect.getfullargspec(self.target)
-        if argspec.defaults:
-            return argspec.args[:-len(argspec.defaults)]
-        else:
-            return argspec.args
+        try:
+            argspec = inspect.getfullargspec(self.target)
+            """
+            This edge case is for builtin datetime.datetime.now() which
+            returns args=['type', 'tz'] for some reason, rather than ['tz'].
+            The freezegun mocking module changes 'type' to 'cls' for tests...
+            """
+            if (self.name.startswith('datetime')
+                    and argspec.args[0] in ['cls', 'type']):
+                del argspec.args[0]
+
+            if argspec.defaults:
+                return argspec.args[:-len(argspec.defaults)]
+            else:
+                return argspec.args
+        except TypeError:
+            # catch builtins that don't provide a signature
+            # TODO: parse first line of inspect.getdoc() for builtin signature?
+            return []
