@@ -36,6 +36,7 @@ class Parser:
 
         if not self.command:
             self.command = self.group[self.group.default_command]
+        self.spec = inspect.getfullargspec(self.command.target)
 
         for arg in self.argv:
             self.append(arg)
@@ -61,9 +62,8 @@ class Parser:
                 return value
 
     def append(self, arg):
-        spec = inspect.getfullargspec(self.command.target)
         filled = False
-        if not spec.varargs and len(spec.args) == len(self.funcargs):
+        if not self.spec.varargs and len(self.spec.args) == len(self.funcargs):
             filled = True
 
         if filled:
