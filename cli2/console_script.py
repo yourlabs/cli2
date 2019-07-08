@@ -110,6 +110,8 @@ class Group(Callable, BaseGroup):
 
 
 class ConsoleScript(BaseGroup):
+    Parser = Parser
+
     def __init__(self, doc=None, argv=None, default_command='help'):
         ConsoleScript.singleton = self
         argv = argv if argv is not None else sys.argv
@@ -121,10 +123,11 @@ class ConsoleScript(BaseGroup):
     def __call__(self):
         ConsoleScript.singleton = self
 
-        self.parser = Parser(self.argv[1:], self)
+        self.parser = self.Parser(self.argv[1:], self)
         self.parser.parse()
 
-        colorama.init()
+        if not os.getenv('CLI2_COLOR_DISABLE'):
+            colorama.init()
 
         result = None
         try:
