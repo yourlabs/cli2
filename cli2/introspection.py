@@ -1,3 +1,4 @@
+from asgiref import sync
 import collections
 import inspect
 import importlib
@@ -189,8 +190,14 @@ class Callable(Importable):
         req_args = self.required_args
         if len(args) < len(req_args):
             raise Cli2ArgsException(self, args)
+
+        if inspect.iscoroutinefunction(self.target):
+            target = sync.async_to_sync(self.target)
+        else:
+            target = self.target
+
         try:
-            return self.target(*args, **kwargs)
+            return target(*args, **kwargs)
         except TypeError as exc:
             # catch builtins that don't provide info for required_args
             if exc.args[0].startswith('Required argument'):
