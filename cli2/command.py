@@ -14,12 +14,13 @@ def command(**config):
 
 class Option:
     def __init__(self, name, help=None, color=None, alias=None,
-                 immediate=False):
+                 immediate=False, default=None):
         self.name = name
         self.help = help or 'Undocumented option'
         self.color = color or ''
         self.alias = alias
         self.immediate = immediate
+        self.default = default
 
 
 def option(name, **cfg):

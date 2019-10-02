@@ -41,6 +41,10 @@ class Parser:
         for arg in self.argv:
             self.append(arg)
 
+        for name, option in self.command.options.items():
+            if name not in self.options:
+                self.options[name] = option.default
+
     def get_option(self, name):
         name = name.lstrip('-')
         for option in self.command.options.values():
