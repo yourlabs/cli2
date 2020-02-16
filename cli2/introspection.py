@@ -181,6 +181,8 @@ class Callable(Importable):
         super().__init__(name, target, module=module)
         self.color = color or YELLOW
         self.options = options or collections.OrderedDict()
+        if doc:
+            self._doc = doc
 
     @classmethod
     def for_callback(cls, cb):

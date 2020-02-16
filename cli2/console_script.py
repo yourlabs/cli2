@@ -32,7 +32,7 @@ class GroupDocDescriptor:
                 if isinstance(cmd, Group):
                     doc = cmd.doc.split('\n')[0]
                 else:
-                    doc = inspect.getdoc(cmd.target)
+                    doc = getattr(cmd, '_doc', inspect.getdoc(cmd.target))
 
                 if doc:
                     line += doc.split('\n')[0]
@@ -101,7 +101,7 @@ class Group(Callable, BaseGroup):
         Callable.__init__(self, name, help, color=color, options=options)
         self.add_help()
         if doc:
-            self.doc = doc
+            self._doc = doc
 
     @classmethod
     def factory(cls, name, module_name):
