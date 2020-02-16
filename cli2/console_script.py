@@ -55,7 +55,7 @@ class BaseGroup(collections.OrderedDict):
     def __init__(self, name, doc=None, default_command='help'):
         self.name = name
         if doc:
-            self.doc = doc
+            self._doc = doc
         self.default_command = default_command
 
     def add_help(self):
