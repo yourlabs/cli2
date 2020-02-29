@@ -47,20 +47,12 @@ class DocDescriptor:
         elif obj.target:
             # Show callable docstring + signature
             ret = []
-            if callable(obj.target):
-                # TODO: enhance output of the signature help
-                sig = ''
-                try:
-                    sig = inspect.signature(obj.target)
-                except ValueError:
-                    pass
-                ret.append(''.join([
-                    f'Signature: {GREEN}{obj.name}{RESET}',
-                    f'{sig}'
-                ]))
+            sig = obj.signature()
+            if sig:
+                ret.append(sig)
 
             if 'value' in self.__dict__:
-                ret.append(self.value)
+                ret.append(obj._doc)
             else:
                 ret.append(inspect.getdoc(obj.target) or 'No docstring found')
 
@@ -81,7 +73,7 @@ class DocDescriptor:
             return '\n'.join(ret)
 
     def __set__(self, obj, value):
-        self.value = value
+        obj._doc = value
 
 
 class Importable:
@@ -106,6 +98,19 @@ class Importable:
 
     def __eq__(self, other):
         return other.name == self.name and other.target == self.target
+
+    def signature(self):
+        if callable(self.target):
+            # TODO: enhance output of the signature help
+            sig = ''
+            try:
+                sig = inspect.signature(self.target)
+            except ValueError:
+                pass
+            return ''.join([
+                f'{GREEN}{self.name}{RESET}',
+                f'{sig}'
+            ])
 
     @classmethod
     def factory(cls, name):

@@ -39,8 +39,8 @@ def help(*args):
         yield console_script.parser.group.doc
     else:
         # show command documentation if possible
-        if args[0] in console_script:
-            yield console_script[args[0]].doc
+        if args[0] in console_script.parser.group:
+            yield console_script.parser.group[args[0]].doc
         else:
             importable = Importable.factory(args[0])
             if importable.target and not importable.is_module:
