@@ -1,9 +1,9 @@
-command: cli2 debug cli2.run to see=how -it --parses=me
+command: cli2 debug cli2.run to see="h o=w" -it --parses=me
 retcode: 1
 stdout:
 Callable: cli2.run
 Args: ('to',)
-Kwargs: {'see': 'how'}
+Kwargs: {'see': 'h o=w'}
 console_script.parser.options: {}
 console_script.parser.dashargs: ['it']
 console_script.parser.dashkwargs: {'parses': 'me'}

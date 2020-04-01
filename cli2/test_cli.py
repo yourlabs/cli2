@@ -29,7 +29,7 @@ import cli2
     ('docmod_noargs', 'docmod'),
     ('docfile', 'docfile cli2/cli.py'),
     ('docfile_missing', 'docfile missing.py'),
-    ('debug', 'debug cli2.run to see=how -it --parses=me'),
+    ('debug', 'debug cli2.run to see="h o=w" -it --parses=me'),
 ])
 @freeze_time("2010-02-01")  # so datetime.datetime.now() output is unchanging
 def test_cli2(name, command):

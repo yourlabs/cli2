@@ -73,7 +73,7 @@ class Parser:
         if filled:
             self.extraargs.append(arg)
 
-        if arg.count('=') == 1:
+        if arg.count('='):
             if arg.startswith('-'):
                 key, value = arg.lstrip('-').split('=')
                 value = self.cast_val(value)
