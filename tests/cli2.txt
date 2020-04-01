@@ -3,7 +3,7 @@ retcode: 1
 stdout:
 Missing arguments: callback
 
-Signature: run(callback, *args, **kwargs)
+run(callback, *args, **kwargs)
 Execute a python callback on the command line.
 
 To call your.module.callback('arg1', 'argN', kwarg1='foo'):

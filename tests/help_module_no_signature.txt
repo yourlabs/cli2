@@ -1,7 +1,7 @@
 command: cli2 help datetime.date.fromtimestamp
 retcode: 1
 stdout:
-Signature: datetime.date.fromtimestamp(timestamp, /)
+datetime.date.fromtimestamp(timestamp, /)
 Create a date from a POSIX timestamp.
 
 The timestamp is a number, e.g. created via time.time(), that is interpreted
