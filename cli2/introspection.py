@@ -193,12 +193,19 @@ class Callable(Importable):
     def for_callback(cls, cb):
         return getattr(cb, 'cli2', cls(cb.__name__, cb))
 
+    @property
+    def is_async(self):
+        __call__ = getattr(self.target, '__call__', None)
+        if __call__ and inspect.iscoroutinefunction(__call__):
+            return True
+        return inspect.iscoroutinefunction(self.target)
+
     def __call__(self, *args, **kwargs):
         req_args = self.required_args
         if len(args) < len(req_args):
             raise Cli2ArgsException(self, args)
 
-        if inspect.iscoroutinefunction(self.target):
+        if self.is_async:
             target = sync.async_to_sync(self.target)
         else:
             target = self.target
@@ -216,6 +223,7 @@ class Callable(Importable):
     def required_args(self):
         if self.is_module:
             return []
+
         try:
             argspec = inspect.getfullargspec(self.target)
             """
@@ -228,9 +236,13 @@ class Callable(Importable):
                 del argspec.args[0]
 
             if argspec.defaults:
-                return argspec.args[:-len(argspec.defaults)]
+                args = argspec.args[:-len(argspec.defaults)]
             else:
-                return argspec.args
+                args = argspec.args
+
+            if args and args[0] in ('self', 'cls'):
+                return args[1:]
+            return args
         except TypeError:
             # catch builtins that don't provide a signature
             # TODO: parse first line of inspect.getdoc() for builtin signature?
