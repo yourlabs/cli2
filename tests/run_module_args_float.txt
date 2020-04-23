@@ -1,4 +1,0 @@
-command: cli2 builtins.round 1.888 1
-retcode: 1
-stdout:
-1.9

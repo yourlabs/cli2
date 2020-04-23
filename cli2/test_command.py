@@ -1,35 +1,214 @@
-from .command import command, option
+from cli2 import cast, Command, Group, Option
+
+import pytest
 
 
-def test_command_decorator_alone():
-    @command(color='test')
-    def foo():
-        pass
 
-    assert foo.cli2.color == 'test'
-
-
-def test_option_decorator_alone():
-    @option('bar', color='test')
-    def foo():
-        pass
-
-    assert foo.cli2.options['bar'].color == 'test'
+def test_asyncio():
+    async def test():
+        return 'foo'
+    assert Command(test)([]) == 'foo'
 
 
-def test_chain():
-    @option('bar', color='barcolor')
-    @command(color='commandcolor')
-    @option('foo', color='foocolor')
-    def foo():
-        pass
+def test_group_command_not_found():
+    assert Group()(['a', 'b']) == 'Command not found a'
 
-    assert foo.cli2.options['bar'].color == 'barcolor'
-    assert foo.cli2.options['foo'].color == 'foocolor'
-    assert foo.cli2.color == 'commandcolor'
 
-    # try overriding a command attribute
-    command(color='test')(foo)
-    assert foo.cli2.color == 'test'
-    # should not have removed any option
-    assert foo.cli2.options['foo'].color == 'foocolor'
+def test_group_subcommand_not_found():
+    group = Group()
+    group['a'] = Group(name='a')
+    assert group(['a', 'b']) == 'Command not found b'
+
+
+def test_group_no_command():
+    assert Group()([]) == 'No command'
+
+
+def test_missing_arg():
+    cmd = Group().add_command(lambda b: True, name='a')
+    assert cmd(['a']) == 'Missing required args: b'
+
+
+def test_extra_args():
+    cmd = Command(lambda: True)
+    assert cmd(['b']) == 'Extra args: b'
+
+
+def test_unknown_kwarg():
+    cmd = Command(lambda: True)
+    assert cmd(['c=d']) == 'Extra args: c=d'
+
+
+def test_kwarg_looking_arg():
+    cmd = Command(lambda a: a)
+    assert cmd(['b=c']) == 'b=c'
+
+
+@pytest.mark.parametrize('args', [
+    ['c', 'b=d'],
+    ['a=c', 'b=d'],
+    ['b=d', 'a=c'],
+])
+def test_args_parse_basic(args):
+    """Convert all argv to kwargs properly"""
+    cmd = Command(lambda a, c=None, b=None: 1)
+    cmd.parse(*args)
+    assert cmd.defaults == dict(c=None, b=None)
+    assert cmd.vars == dict(a='c', b='d')
+    assert cmd.args == ['c']
+    assert cmd.kwargs == dict(b='d')
+    assert repr(cmd) == 'Command(<lambda>)'
+
+
+def test_reminder():
+    """Collect extra args properly"""
+    cmd = Command(lambda a: 1)
+    cmd.parse(*['-a', '-b'])
+    assert cmd.vars == {'a': '-a'}
+    assert cmd.reminder == ['-b']
+
+
+def test_varargs():
+    """Varargs parsed into list kwarg"""
+    cmd = Command(lambda a, *b: 1)
+    cmd.parse('1', '2', '3')
+    assert cmd.vars == dict(a='1', b=['2', '3'])
+    assert cmd.args == ['1', '2', '3']
+
+
+@pytest.mark.parametrize('args', [
+    ['a=b', '1', '2', 'c=d', 'r'],
+    ['a=b', '1', 'c=d', '2', 'r'],
+    ['1', '2', 'c=d', 'a=b', 'r'],
+])
+def test_varkwargs(args):
+    """Support **kwargs"""
+    cmd = Command(lambda e, i=None, **a: 1)
+    cmd.parse(*args)
+    assert cmd.vars == {'a': 'b', 'c': 'd', 'e': '1', 'i': '2'}
+    assert cmd.args == ['1', '2']
+    assert cmd.kwargs == {'a': 'b', 'c': 'd'}
+    assert cmd.defaults == dict(i=None)
+    assert cmd.reminder == ['r']
+
+
+def test_list_single_arg():
+    """Support list type annotation for single argument"""
+    def foo(a: list): pass
+    cmd = Command(foo)
+    cmd.parse('b')
+    assert cmd.vars['a'] == ['b']
+    assert cmd.types['a'] == list
+
+
+def test_parse_list_repeated_arg():
+    """Support list type annotation for single argument"""
+    def foo(a: list): pass
+    cmd = Command(foo)
+    cmd.parse('a=b', 'a=c')
+    assert cmd.vars['a'] == ['b', 'c']
+
+
+def test_cast_list():
+    """Support list of strings with a simple syntax"""
+    assert cast(list, '[b,c, d]') == ['b', 'c', 'd']
+
+
+def test_cast_json_list():
+    """Support json list when decodable"""
+    assert cast(list, '[1,2, "c"]') == [1, 2, 'c']
+
+
+def test_parse_dict_dotted_args():
+    """Support dotted kwarg names to build a dict"""
+    cmd = Command(lambda a: 1)
+    cmd.parse('a.b=c', 'a.d=e')
+    cmd.vars['a'] == dict(b='c', d='e')
+
+
+def test_cast_string_dict():
+    """Support string dict"""
+    assert cast(dict, '{a: b, c: d}') == dict(a='b', c='d')
+
+
+def test_cast_json_dict():
+    """Support string dict"""
+    assert cast(dict, '{"a": 2}') == dict(a=2)
+
+
+def test_parse_json_dict():
+    """Support dotted kwarg names to build a dict"""
+    def foo(a, b: dict, c): pass
+    cmd = Command(foo)
+
+    # json
+    cmd.parse('d', '{"e": 1}', '2')
+    assert cmd.vars == {'a': 'd', 'b': {'e': 1}, 'c': '2'}
+
+    # simple
+    cmd.parse('d', '{e: 1}', '2')
+    assert cmd.vars == {'a': 'd', 'b': {'e': "1"}, 'c': '2'}
+
+
+def test_cast_bool():
+    """Support bool type"""
+    assert cast(bool, 'True') is True
+    assert cast(bool, '1') is True
+    assert cast(bool, 'yes') is True
+    assert cast(bool, 'Yes') is True
+    assert cast(bool, 'true') is True
+
+    assert cast(bool, '') is False
+    assert cast(bool, 'False') is False
+    assert cast(bool, 'false') is False
+    assert cast(bool, 'no') is False
+    assert cast(bool, 'NO') is False
+    assert cast(bool, '0') is False
+
+
+def test_parse_bool():
+    def foo(a, b=False): pass
+    cmd = Command(foo)
+
+    cmd.parse('a', '1')
+    assert cmd.vars['b'] is True
+
+    cmd.parse('a', '0')
+    assert cmd.vars['b'] is False
+
+    cmd.parse('a', 'b=0')
+    assert cmd.vars['b'] is False
+
+
+def test_cast_int():
+    """Support string dict"""
+    assert cast(int, '1') == 1
+
+
+def test_alias():
+    """Alias support"""
+    def foo(age: int, debug=False): pass
+    cmd = Command(foo, options=[
+        Option('debug', alias='-d'),
+        Option('age', alias='-a'),
+    ])
+
+    cmd.parse('-d')
+    assert cmd.vars['debug'] is True
+
+    cmd.parse('-d=no')
+    assert cmd.vars['debug'] is False
+
+    cmd.parse('-a=12')
+    assert cmd.vars['age'] == 12
+
+
+def test_cast_override():
+    def foo(ages): pass
+    class AgesOption(Option):
+        def cast(self, command, value):
+            value = value.split('=')[1]  # strip -a= from -a=1,2
+            return [int(i) for i in value.split(',')]
+    cmd = Command(foo, options=[AgesOption('ages')])
+    cmd.parse('ages=1,2')
+    assert cmd.vars['ages'] == [1, 2]
