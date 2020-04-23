@@ -1,4 +1,0 @@
-command: cli2 docfile missing.py
-retcode: 1
-stdout:
-missing.py not found

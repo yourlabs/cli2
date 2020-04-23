@@ -5,7 +5,6 @@ setup(
     name='cli2',
     versioning='dev',
     setup_requires='setupmeta',
-    install_requires=['colorama', 'asgiref'],
     extras_require=dict(
         test=[
             'freezegun',

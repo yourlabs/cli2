@@ -1,5 +1,0 @@
-command: cli2 missinggggggg.foo
-retcode: 1
-stdout:
-Could not import callback: missinggggggg.foo
- Could not import module: missinggggggg 

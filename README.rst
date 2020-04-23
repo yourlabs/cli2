@@ -1,58 +1,179 @@
-cli2: unfrustrating python CLI
+cli2: Dynamic CLI for Python 3
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Sometimes I just want to execute a python callback and pass args/kwargs on the
-CLI, and not have to define any custom CLI entry point of any sort, nor change
-any code, typically when automating stuff, cli2 unfrustrates me::
+Break free from the POSIX standard for more fluent CLIs, by exposing simple
+Python functions or objects with a minimalist argument typing style, or
+building your own command try during runtime.
 
-   cli2 yourmodule.yourcallback somearg somekwarg=foo
+Getting Started
+===============
 
-Sometimes I just want to define a new command and expose all callables in a
-module and I can't just do it with a one-liner. cli2 unfrustrates me again:
-
-.. code-block:: python
-
-   console_script = cli2.ConsoleScript(__doc__).add_module('mymodule')
-   # then i add console_script entrypoint as such: mycmd = mycmd.console_script
-
-I also like when readonly commands are in green, writing commands in yellow and
-destructive commands in red, I find the commands list in the help output more
-readable, and directive for new users of the CLI:
+You can either create a Command from a callable that can invoked directly or
+via console_script:
 
 .. code-block:: python
 
-   @cli2.config(color=cli2.RED)
-   def challenge(dir):
-      '''The challenge command dares you to run it.'''
-      os.exec('rm -rf ' + dir)
+    def yourcmd():
+        """Your own command"""
 
-Of course then there's all this code I need to have coverage for and I'm
-`still
-<https://pypi.org/project/django-dbdiff/>`_ so lazy that I still
-`don't write most of my test code myself
-<https://pypi.org/project/django-responsediff/>`_, so I throwed an autotest
-function in cli2 ("ala" dbunit with a personal touch) that I can use as such:
+    # good enough for your console_script entry_point
+    console_script = cli2.Command(yourcmd)
+
+    # without entry_point, you can call yourself
+    console_script()
+
+Command group
+-------------
+
+In the same fashing, you can create a command Group, and add Commands to it:
 
 .. code-block:: python
 
-   @pytest.mark.parametrize('name,command', [
-       ('cli2', ''),
-       ('help', 'help'),
-       ('help_debug', 'help debug'),
-       # ... bunch of other commands
-       ('debug', 'debug cli2.run to see=how -it --parses=me'),
-   ])
-   def test_cli2(name, command):
-       cli2.autotest(
-           f'tests/{name}.txt',
-           'cli2 ' + command,
-       )
+    # or create a command group group
+    console_script = cli2.Group()
+    # and add yourcmd to it
+    console_script.cmd(yourcmd)
 
-You should be able tho pip install cli2 and start using the cli2 command, or
-cli2.ConsoleScript to make your own commands.
+Type-casting
+------------
 
-.. image:: https://asciinema.org/a/221137.svg
-   :target: https://asciinema.org/a/221137
+Type hinting is well supported, but you may also hack how arguments are casted
+into python values at a per argument level, set the ``cli2_argname`` attribute
+to attributes that you want to override on the generated Argument for
+``argname``.
 
-Check `djcli, another cli built on cli2
-<https://pypi.org/project/djcli>`_.
+You could cast any argument with JSON as such:
+
+.. code-block:: python
+
+    def yourcmd(x):
+        return x
+    yourcmd.cli2_x = dict(cast=lambda v: json.loads(v))
+
+    cmd = Command(yourcmd)
+    cmd(['[1,2]']) == [1, 2]  # same as CLI: yourcmd [1,2]
+
+Or, override ``Argument.cast()`` for the ``ages`` argument:
+
+.. code-block:: python
+
+    def yourcmd(ages):
+        return ages
+    yourcmd.cli2_ages = dict(cast=lambda v: [int(i) for i in v.split(',')])
+
+    cmd = Command(yourcmd)
+    cmd(['1,2']) == [1, 2]  # same as CLI: yourcmd 1,2
+
+If an argument is annotated with the list or dict type, then cli2 will use
+json.loads to cast them to Python arguments, but be careful with spaces on your
+command line: one sysarg goes to one argument::
+
+    yourcmd ["a","b"]   # works
+    yourcmd ["a", "b"]  # does not because of the space
+
+However, space is supported as long as in the same sysarg:
+
+.. code-block:: python
+
+    subprocess.check_call(['yourcmd', '["a", "b"]')
+
+Typable syntax
+--------------
+
+Arguments with the list type annotation are automatically parsed as JSON, if
+that fails it will try to split by commas which is easier to type than JSON for
+lists of strings::
+
+    yourcmd a,b  # calls yourcmd(["a", "b"])
+
+Keep in mind that JSON is tried first for list arguments, so a list of ints is
+also easy::
+
+    yourcmd [1,2]  # calls yourcmd([1, 2])
+
+A simple syntax is also supported for dicts by default::
+
+    yourcmd a:b,c:d  # calls yourcmd({"a": "b", "c": "d"})
+
+The disadvantage is that JSON decode exceptions are swallowed, but by design
+cli2 is supposed to make Python types more accessible on the CLI, rather than
+being a JSON validation tool. Generated JSON args should always work though.
+
+Boolean flags
+-------------
+
+Cast to boolean is already supported by type-hinting, or with json (see above
+example), or with simple switches:
+
+.. code-block:: python
+
+    def yourcmd(debug=True):
+        pass
+
+    # prefixing dash not necessary at all
+    yourcmd.cli2_debug = dict(negate='-no-debug')
+
+    # or map this boolean to two simple switches
+    yourcmd.cli2_debug = dict(alias='-d', negate='-nd')
+
+Edge cases
+==========
+
+Simple and common use cases were favored over rarer use cases by design. Know
+the couple of gotchas and you'll be fine.
+
+Args containing ``=`` in Mixed ``(*args, **kwargs)``
+----------------------------------------------------
+
+It was decided to favor simple use cases when a callable both have varargs and
+varkwargs as such:
+
+.. code-block:: python
+
+    def foo(*args, **kwargs):
+        return (args, kwargs)
+
+Call ``foo("a", b="x")`` on the CLI as such::
+
+    foo a b=x
+
+**BUT**, to call ``foo("a", "b=x")`` on the CLI you will need to use an
+asterisk with a JSON list as such::
+
+    foo '*["a","b=x"]'
+
+Admittedly, the second use case should be pretty rare compared to the first
+one, so that's why the first one is favored.
+
+For the sake of consistency, varkwarg can also be specified with a double
+asterisk and a JSON dict as such::
+
+    # call foo("a", b="x")
+    foo a **{"b":"x"}
+
+Calling with ``a="b=x"`` in ``(a=None, b=None)``
+------------------------------------------------
+
+The main weakness is that it's difficult to tell the difference between a
+keyword argument, and a keyword argument passed positionnaly which value starts
+with the name of another keyword argument. Example:
+
+.. code-block:: python
+
+    def foo(a=None, b=None):
+        return (a, b)
+
+Call ``foo(b='x')`` on the CLI like this::
+
+    foo b=x
+
+**BUT**, to call ``foo(a="b=x")`` on the CLI, you need to name the argument::
+
+    foo a=b=x
+
+Admitadly, that's a silly edge case. Protect yourself from it by always naming
+keyword arguments ...
+
+... Because the parser considers token that start with a keyword of a keyword
+argument prioritary to positional arguments once the positional arguments have
+all been bound.

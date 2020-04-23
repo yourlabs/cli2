@@ -1,8 +1,0 @@
-command: cli2 help datetime.date.fromtimestamp
-retcode: 1
-stdout:
-datetime.date.fromtimestamp(timestamp, /)
-Create a date from a POSIX timestamp.
-
-The timestamp is a number, e.g. created via time.time(), that is interpreted
-as local time.

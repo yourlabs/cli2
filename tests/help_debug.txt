@@ -1,9 +1,0 @@
-command: cli2 help debug
-retcode: 1
-stdout:
-debug(callback, *args, **kwargs)
-Dump parsed variables.
-
-Example usage::
-
-    cli2 debug test to=see --how -it=parses

@@ -1,5 +1,0 @@
-command: cli2 test_cli2.test_cli2
-retcode: 1
-stdout:
-Could not import callback: test_cli2.test_cli2
- Could not import module: test_cli2 
