@@ -109,10 +109,10 @@ override how the argument is casted in Python as such:
         pass
 
     class AgesArgument(Argument):
-        def cast(self, command, value):
+        def cast(self, value):
             return [int(i) for i in value.split(',')]
 
-    cmd = Command(foo, options=[AgesArgument('ages', '-a')])
+    cmd = Command(foo, arguments=[AgesArgument('ages', '-a')])
     cmd.parse('-a=1,2')
     cmd.vars['ages'] == [1, 2]
 
@@ -121,7 +121,7 @@ alias is not necessary for that specific purpose:
 
 .. code-block:: python
 
-    cmd = Command(foo, options=[AgesArgument('ages')])
+    cmd = Command(foo, arguments=[AgesArgument('ages')])
     cmd.parse('ages=1,2')
     cmd.vars['ages'] == [1, 2]
 
@@ -132,6 +132,20 @@ Actually, you can even go down this road and override ``Command.parse`` for a
 specific command, and implement a completely different parsing logic from other
 commands, this should work well as long as you're will to write a lot of little
 tests.
+
+Another way is to use an override:
+
+.. code-block:: python
+
+    def foo(ages):
+        pass
+    foo.cli2_ages = dict(
+        alias='-a',
+        cast=lambda v: [int(i) for i in value.split(',')]
+    )
+
+The advantage of that way is that you don't need to import cli2, and as such
+you may leave it as an optional dependency to your package.
 
 Sometimes I just want to execute a python callback and pass args/kwargs on the
 CLI, and not have to define any custom CLI entry point of any sort, nor change

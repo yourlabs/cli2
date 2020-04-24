@@ -4,6 +4,7 @@ import json
 import re
 import subprocess
 import sys
+import types
 
 import cli2
 
@@ -56,18 +57,18 @@ def typeguess(spec, name):
                 return type(default)
 
 
-def getdoc(target):
-    return inspect.getdoc(target)
-
-
 class Command:
-    def __init__(self, target, name=None, doc=None, color=None, options=None):
+    def __init__(self, target, name=None, doc=None, color=None, arguments=None):
         self.target = target
-        self.name = name or getattr(target, '__name__', None)
+        overrides = getattr(target, 'cli2', {})
+        self.name = name or overrides.get(
+            'name',
+            getattr(target, '__name__', None),
+        )
         self.spec = inspect.getfullargspec(target)
-        self.doc = doc or getdoc(target)
+        self.doc = doc or overrides.get('doc', inspect.getdoc(target))
         self.color = color
-        self.options = options or []
+        self.arguments = arguments or []
         self.missing = []
         self.reminder = []
         self.args = []
@@ -88,6 +89,17 @@ class Command:
             }
         else:
             self.types = dict()
+
+        # argument overrides
+        for key, value in target.__dict__.items():
+            if not key.startswith('cli2_'):
+                continue
+
+            name = key[5:]
+            argument = Argument(name)
+            for k, v in value.items():
+                setattr(argument, k, v)
+            self.arguments.append(argument)
 
     def cast(self, name, value):
         """Cast an named argument value based on its annotation if any"""
@@ -110,10 +122,14 @@ class Command:
         for arg in argv:
             # do we have any option matching that arg ?
             found = False
-            for option in self.options:
+            for option in self.arguments:
                 value = option.match(arg)
                 if value is not None:
-                    self.vars[option.name] = option.cast(self, value)
+                    caster = getattr(option, 'cast', None)
+                    if caster:
+                        self.vars[option.name] = caster(value)
+                    else:
+                        self.vars[option.name] = self.cast(option.name, value)
                     found = True
                     break
             if found:
@@ -225,12 +241,12 @@ class Group(dict):
         self.doc = doc
         self.color = color
 
-    def add_command(self, target, name=None, doc=None, color=None, options=None):
-        if options and isinstance(options, dict):
-            options = [
-                Argument(key, **value) for key, value in options.items()
+    def add_command(self, target, name=None, doc=None, color=None, arguments=None):
+        if arguments and isinstance(arguments, dict):
+            arguments = [
+                Argument(key, **value) for key, value in arguments.items()
             ]
-        cmd = Command(target, name, doc, color, options)
+        cmd = Command(target, name, doc, color, arguments)
         self[cmd.name] = cmd
         return self
 
@@ -281,6 +297,3 @@ class Argument:
             return arg[len(name + '='):]
         if arg == self.alias:
             return arg
-
-    def cast(self, command, value):
-        return command.cast(self.name, value)

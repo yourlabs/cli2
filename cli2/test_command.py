@@ -188,7 +188,7 @@ def test_cast_int():
 def test_alias():
     """Alias support"""
     def foo(age: int, debug=False): pass
-    cmd = Command(foo, options=[
+    cmd = Command(foo, arguments=[
         Argument('debug', alias='-d'),
         Argument('age', alias='-a'),
     ])
@@ -206,15 +206,35 @@ def test_alias():
 def test_cast_override():
     def foo(ages): pass
     class AgesArgument(Argument):
-        def cast(self, command, value):
+        def cast(self, value):
             return [int(i) for i in value.split(',')]
-    cmd = Command(foo, options=[AgesArgument('ages')])
+    cmd = Command(foo, arguments=[AgesArgument('ages')])
     cmd.parse('ages=1,2')
     assert cmd.vars['ages'] == [1, 2]
 
     # try with alias, should have been stripped fine by default in match()
-    cmd = Command(foo, options=[AgesArgument('ages', alias='-a')])
+    cmd = Command(foo, arguments=[AgesArgument('ages', alias='-a')])
     cmd.parse('-a=1,2')
     assert cmd.vars['ages'] == [1, 2]
 
 
+def test_command_override():
+    def foo(): pass
+    foo.cli2 = dict(name='lol', doc='test')
+    assert Command(foo).name == 'lol'
+    assert Command(foo).doc == 'test'
+
+    group = Group()
+    group.add_command(foo)
+    assert 'lol' in group
+
+
+def test_argument_override():
+    def foo(a): pass
+    foo.cli2_a = dict(
+        alias='-a',
+        cast=lambda v: int(v),
+    )
+    cmd = Command(foo)
+    cmd.parse('-a=3')
+    assert cmd.vars['a'] == 3
