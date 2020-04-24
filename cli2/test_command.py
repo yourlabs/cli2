@@ -11,32 +11,32 @@ def test_asyncio():
 
 
 def test_group_command_not_found():
-    assert Group()(['a', 'b']) == 'Command not found a'
+    assert 'Command a not found' in Group()(['a', 'b'])
 
 
 def test_group_subcommand_not_found():
     group = Group()
     group['a'] = Group(name='a')
-    assert group(['a', 'b']) == 'Command not found b'
+    assert 'Command b not found' in group(['a', 'b'])
 
 
 def test_group_no_command():
-    assert Group()([]) == 'No command'
+    assert 'No command' in Group()([])
 
 
 def test_missing_arg():
     cmd = Group().add_command(lambda b: True, name='a')
-    assert cmd(['a']) == 'Missing required args: b'
+    assert 'Missing required args: b' in cmd(['a'])
 
 
 def test_extra_args():
     cmd = Command(lambda: True)
-    assert cmd(['b']) == 'Extra args: b'
+    assert 'Extra args: b' in cmd(['b'])
 
 
 def test_unknown_kwarg():
     cmd = Command(lambda: True)
-    assert cmd(['c=d']) == 'Extra args: c=d'
+    assert 'Extra args: c=d' in cmd(['c=d'])
 
 
 def test_kwarg_looking_arg():

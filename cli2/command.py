@@ -2,9 +2,15 @@ import copy
 import inspect
 import json
 import re
+import subprocess
 import sys
 
 import cli2
+
+
+def termsize():
+    rows, columns = subprocess.check_output(['stty', 'size']).split()
+    return int(rows), int(columns)
 
 
 def cast(type, value):
@@ -173,16 +179,32 @@ class Command:
 
         return self  # nested group/command support
 
+    def help(self, short=False):
+        output = []
+
+        if self.missing:
+            output.append('Missing required args: ' + ' '.join(self.missing) + '\n')
+
+        if self.reminder:
+            output.append('Extra args: ' + ' '.join(self.reminder) + '\n')
+
+        if self.doc:
+            output.append(self.doc + '\n')
+
+        if self.spec.args:
+            output.append('Arguments doc:')
+            for arg in self.spec.args:
+                output.append(arg)
+
+        return '\n'.join(output)
+
     def __call__(self, argv=None):
         """Parse, unparse argv, call target and await if returns coroutine."""
         argv = argv if argv is not None else sys.argv[1:]
         self.parse(*argv)
 
-        if self.missing:
-            return 'Missing required args: ' + ' '.join(self.missing)
-
-        if self.reminder:
-            return 'Extra args: ' + ' '.join(self.reminder)
+        if self.missing or self.reminder:
+            return self.help()
 
         result = self.target(*self.args, **self.kwargs)
 
@@ -211,15 +233,35 @@ class Group(dict):
         self[cmd.name] = cmd
         return self
 
+    def help(self, error=None):
+        output = []
+        if error:
+            output.append(error + '\n')
+
+        if self.doc:
+            output.append(self.doc + '\n')
+
+        if not len(self):
+            return '\n'.join(output)
+
+        namewidth = 2 + max([len(key) for key in self]) + 2
+        descwidth = termsize()[1] - namewidth
+
+        for name, command in self.items():
+            output.append(
+                '  ' + name + '  ' + command.help(short=True)[:descwidth]
+            )
+        return '\n'.join(output)
+
     def __call__(self, argv=None):
         argv = argv if argv is not None else sys.argv[1:]
         if not argv:
-            return 'No command'
+            return self.help('No command provided, showing help.')
 
         if argv[0] in self:
             result = self[argv[0]](argv[1:])
         else:
-            return 'Command not found ' + argv[0]
+            return self.help(f'Command {argv[0]} not found, showing help.')
 
         return result
 

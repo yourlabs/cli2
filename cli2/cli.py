@@ -7,7 +7,7 @@ import inspect
 import cli2
 
 
-def help(dotted_path):
+def run(dotted_path):
     node = Node.factory(dotted_path)
     if not node.target:
         return 'Not found ' + str(node)
@@ -17,4 +17,4 @@ def help(dotted_path):
         print(sub)
 
 
-console_script = cli2.Group(doc=__doc__).add_command(help)
+console_script = cli2.Command(run)
