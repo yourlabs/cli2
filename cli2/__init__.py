@@ -4,10 +4,10 @@
 # from .exceptions import Cli2Exception, Cli2ArgsException
 # from .parser import Parser
 # from .introspection import docfile, Callable, Importable, DocDescriptor
-# from .command import command, option, Option
+# from .command import command, option, Argument
 # from .console_script import ConsoleScript, BaseGroup, Group
 # from .test import autotest
 # from .cli import debug, docmod, help, run
 
-from .command import Command, cast, Group, Option
+from .command import Command, cast, Group, Argument
 from .node import Node

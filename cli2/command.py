@@ -111,8 +111,9 @@ class Command:
             # do we have any option matching that arg ?
             found = False
             for option in self.options:
-                if option.match(arg):
-                    self.vars[option.name] = option.cast(self, arg)
+                value = option.match(arg)
+                if value is not None:
+                    self.vars[option.name] = option.cast(self, value)
                     found = True
                     break
             if found:
@@ -227,7 +228,7 @@ class Group(dict):
     def add_command(self, target, name=None, doc=None, color=None, options=None):
         if options and isinstance(options, dict):
             options = [
-                Option(key, **value) for key, value in options.items()
+                Argument(key, **value) for key, value in options.items()
             ]
         cmd = Command(target, name, doc, color, options)
         self[cmd.name] = cmd
@@ -269,19 +270,17 @@ class Group(dict):
         return f'Group({self.name})'
 
 
-class Option:
+class Argument:
     def __init__(self, name, alias=None):
         self.name = name
         self.alias = alias
 
     def match(self, arg):
-        if self.alias:
-            return arg.split('=')[0] == self.alias
-        return arg.split('=')[0] == self.name
+        name = self.alias or self.name
+        if '=' in arg and arg.split('=')[0] == name:
+            return arg[len(name + '='):]
+        if arg == self.alias:
+            return arg
 
     def cast(self, command, value):
-        if '=' not in value:
-            return True
-        else:
-            value = '='.join(value.split('=')[1:])
         return command.cast(self.name, value)

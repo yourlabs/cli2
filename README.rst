@@ -97,10 +97,10 @@ bunch).
 Framework
 =========
 
-Options
--------
+Arguments
+---------
 
-An interresting point is that you can override the default Option class and
+An interresting point is that you can override the default Argument class and
 override how the argument is casted in Python as such:
 
 .. code-block:: python
@@ -108,21 +108,22 @@ override how the argument is casted in Python as such:
     def foo(ages):
         pass
 
-    class AgesOption(Option):
+    class AgesArgument(Argument):
         def cast(self, command, value):
-            value = value.split('=')[1]  # strip -a= from -a=1,2
             return [int(i) for i in value.split(',')]
 
-    cmd = Command(foo, options=[AgesOption('ages', '-a')])
-    cmd.parse('-a=1,2')['ages'] == [1, 2]
+    cmd = Command(foo, options=[AgesArgument('ages', '-a')])
+    cmd.parse('-a=1,2')
+    cmd.vars['ages'] == [1, 2]
 
 As you can see, we have implemented custom parsing of a value. Actually an
 alias is not necessary for that specific purpose:
 
 .. code-block:: python
 
-    cmd = Command(foo, options=[AgesOption('ages')])
-    cmd.parse('ages=1,2')['ages'] == [1, 2]
+    cmd = Command(foo, options=[AgesArgument('ages')])
+    cmd.parse('ages=1,2')
+    cmd.vars['ages'] == [1, 2]
 
 At this point, it should be pretty clear that you are free to implement any
 kind of option parsing and casting at a per-option level.

@@ -1,4 +1,4 @@
-from cli2 import cast, Command, Group, Option
+from cli2 import cast, Command, Group, Argument
 
 import pytest
 
@@ -189,14 +189,14 @@ def test_alias():
     """Alias support"""
     def foo(age: int, debug=False): pass
     cmd = Command(foo, options=[
-        Option('debug', alias='-d'),
-        Option('age', alias='-a'),
+        Argument('debug', alias='-d'),
+        Argument('age', alias='-a'),
     ])
 
-    cmd.parse('-d')
+    cmd.parse('1', '-d')
     assert cmd.vars['debug'] is True
 
-    cmd.parse('-d=no')
+    cmd.parse('1', '-d=no')
     assert cmd.vars['debug'] is False
 
     cmd.parse('-a=12')
@@ -205,10 +205,16 @@ def test_alias():
 
 def test_cast_override():
     def foo(ages): pass
-    class AgesOption(Option):
+    class AgesArgument(Argument):
         def cast(self, command, value):
-            value = value.split('=')[1]  # strip -a= from -a=1,2
             return [int(i) for i in value.split(',')]
-    cmd = Command(foo, options=[AgesOption('ages')])
+    cmd = Command(foo, options=[AgesArgument('ages')])
     cmd.parse('ages=1,2')
     assert cmd.vars['ages'] == [1, 2]
+
+    # try with alias, should have been stripped fine by default in match()
+    cmd = Command(foo, options=[AgesArgument('ages', alias='-a')])
+    cmd.parse('-a=1,2')
+    assert cmd.vars['ages'] == [1, 2]
+
+
