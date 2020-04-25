@@ -8,6 +8,7 @@ class Callable:
 
     def __call__(self, a):
         return a
+    __call__.cli2 = dict(name='call')
 
     def other(self, a):
         return a
@@ -270,3 +271,11 @@ def test_method():
     cmd = Command(cb.other)
     assert cmd.name == 'other'
     assert cmd(['a']) == 'a'
+
+
+def test_object_group():
+    group = Group()
+    group.generate(cb)
+    assert [*group.keys()] == ['example', 'other']
+    assert group(['other', 'lol']) == 'lol'
+    assert group(['example', 'lol']) == 'lol'

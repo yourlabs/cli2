@@ -84,10 +84,11 @@ class Command:
             self.defaults = dict()
 
         # argument overrides
-        for key, value in target.__dict__.items():
+        for key in dir(target):
             if not key.startswith('cli2_'):
                 continue
 
+            value = getattr(target, key)
             name = key[5:]
             argument = Argument(name)
             for k, v in value.items():
@@ -280,6 +281,21 @@ class Group(dict):
                 '  ' + name + '  ' + command.help(short=True)[:descwidth]
             )
         return '\n'.join(output)
+
+    def generate(self, obj):
+        for name in dir(obj):
+            if name == '__call__':
+                target = obj
+            elif name.startswith('__'):
+                continue
+            else:
+                target = getattr(obj, name)
+
+            if not callable(target):
+                continue
+
+            cmd = Command(target)
+            self[cmd.name] = cmd
 
     def __call__(self, argv=None):
         argv = argv if argv is not None else sys.argv[1:]
