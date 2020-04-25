@@ -3,6 +3,16 @@ from cli2 import cast, Command, Group, Argument
 import pytest
 
 
+class Callable:
+    cli2 = dict(name='example')
+
+    def __call__(self, a):
+        return a
+
+    def other(self, a):
+        return a
+cb = Callable()
+
 
 def test_asyncio():
     async def test():
@@ -98,7 +108,6 @@ def test_list_single_arg():
     cmd = Command(foo)
     cmd.parse('b')
     assert cmd.vars['a'] == ['b']
-    assert cmd.types['a'] == list
 
 
 def test_parse_list_repeated_arg():
@@ -249,3 +258,15 @@ def test_argument_override():
     cmd = Command(foo)
     cmd.parse('-a=3')
     assert cmd.vars['a'] == 3
+
+
+def test_callable():
+    cmd = Command(cb)
+    assert cmd.name == 'example'
+    assert cmd(['a']) == 'a'
+
+
+def test_method():
+    cmd = Command(cb.other)
+    assert cmd.name == 'other'
+    assert cmd(['a']) == 'a'

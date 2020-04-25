@@ -77,18 +77,11 @@ class Command:
 
         if self.spec.defaults:
             self.defaults = {
-                self.spec.args[-i-1]: value
+                self.spec_args[-i-1]: value
                 for i, value in enumerate(self.spec.defaults)
             }
         else:
             self.defaults = dict()
-
-        if self.spec.args:
-            self.types = {
-                name: typeguess(self.spec, name) for name in self.spec.args
-            }
-        else:
-            self.types = dict()
 
         # argument overrides
         for key, value in target.__dict__.items():
@@ -148,7 +141,7 @@ class Command:
                 else:
                     name = left
 
-                if name in self.spec.args or self.spec.varkw:
+                if name in self.spec_args or self.spec.varkw:
                     if isinstance(value, dict):
                         self.vars.setdefault(name, dict())
                         self.vars[name].update(value)
@@ -161,7 +154,7 @@ class Command:
                     continue
 
             found = False
-            for name in self.spec.args:
+            for name in self.spec_args:
                 # is there a callback arg that's left to provision ?
                 # attribute the value to the first one unless it has an
                 # Argument
@@ -191,12 +184,12 @@ class Command:
         self.kwargs = copy.copy(self.vars)
         self.missing = [
             name
-            for name in self.spec.args
+            for name in self.spec_args
             if name not in self.kwargs
             and name not in self.defaults
         ]
         self.args = []
-        for name in self.spec.args:
+        for name in self.spec_args:
             if name not in self.kwargs:
                 break
             self.args.append(self.kwargs.pop(name))
@@ -217,12 +210,21 @@ class Command:
         if self.doc:
             output.append(self.doc + '\n')
 
-        if self.spec.args:
+        if self.spec_args:
             output.append('Arguments doc:')
-            for arg in self.spec.args:
+            for arg in self.spec_args:
                 output.append(arg)
 
         return '\n'.join(output)
+
+    @property
+    def spec_args(self):
+        result = []
+        for name in self.spec.args:
+            if not result and name in ('self', 'cls'):
+                continue
+            result.append(name)
+        return result
 
     def __call__(self, argv=None):
         """Parse, unparse argv, call target and await if returns coroutine."""
