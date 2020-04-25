@@ -177,7 +177,7 @@ def test_cast_bool():
 
 
 def test_parse_bool():
-    def foo(a, b=False): pass
+    def foo(a, b: bool=False): pass
     cmd = Command(foo)
 
     cmd.parse('a', '1')
@@ -205,9 +205,6 @@ def test_alias():
 
     cmd.parse('1', '-d')
     assert cmd.vars['debug'] is True
-
-    cmd.parse('1', '-d=no')
-    assert cmd.vars['debug'] is False
 
     cmd.parse('-a=12')
     assert cmd.vars['age'] == 12

@@ -97,9 +97,8 @@ class Command:
 
     def cast(self, name, value):
         """Cast an named argument value based on its annotation if any"""
-        guessed = typeguess(self.spec, name)
-        if guessed:
-            return cast(guessed, value)
+        if name in self.spec.annotations:
+            return cast(self.spec.annotations[name], value)
         return value  # didn't find annotation nor default, leave parsed string
 
     def parse(self, *argv):
@@ -323,4 +322,4 @@ class Argument:
         if '=' in arg and arg.split('=')[0] == name:
             return arg[len(name + '='):]
         if arg == self.alias:
-            return arg
+            return True
