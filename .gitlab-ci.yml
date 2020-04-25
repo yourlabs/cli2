@@ -7,7 +7,7 @@ qa:
 pytest:
   stage: test
   script:
-  - ./sh.yml test
+  - py.test -sv cli2
 
 pypi:
   stage: deploy
