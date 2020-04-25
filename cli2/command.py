@@ -163,7 +163,16 @@ class Command:
             found = False
             for name in self.spec.args:
                 # is there a callback arg that's left to provision ?
-                # attribute the value to the first one
+                # attribute the value to the first one unless it has an
+                # Argument
+                found = False
+                for argument in self.arguments:
+                    if argument.name == name:
+                        found = True
+                        break
+                if found:
+                    continue
+
                 if name not in self.vars:
                     self.vars[name] = self.cast(name, arg)
                     found = True

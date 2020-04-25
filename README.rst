@@ -125,6 +125,17 @@ alias is not necessary for that specific purpose:
     cmd.parse('ages=1,2')
     cmd.vars['ages'] == [1, 2]
 
+Note that when you instanciate an Argument for a callable arg it becomes
+non-positional:
+
+.. code-block:: python
+
+    def foo(a, b=None): pass
+    cmd = Command(foo, arguments=[AgesArgument('ages')])
+    cmd.parse('c', '-a=3')
+    assert cmd.vars['a'] == 3
+    assert cmd.vars['b'] == 'c'
+
 At this point, it should be pretty clear that you are free to implement any
 kind of option parsing and casting at a per-option level.
 

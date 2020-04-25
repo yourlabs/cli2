@@ -202,6 +202,11 @@ def test_alias():
     cmd.parse('-a=12')
     assert cmd.vars['age'] == 12
 
+    # test that it becomes non-positional
+    cmd.parse('-d', '-a=3')
+    assert cmd.vars['age'] == 3
+    assert cmd.vars['debug'] == True
+
 
 def test_cast_override():
     def foo(ages): pass
@@ -230,7 +235,7 @@ def test_command_override():
 
 
 def test_argument_override():
-    def foo(a): pass
+    def foo(a, b=None): pass
     foo.cli2_a = dict(
         alias='-a',
         cast=lambda v: int(v),
