@@ -27,7 +27,7 @@ via console_script:
     console_script = cli2.Command(yourcmd)
 
     # without entry_point, you can call yourself
-    console_script()
+    print(console_script())  # console_script would print result by default
 
 Command group
 -------------
