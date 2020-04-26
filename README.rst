@@ -1,3 +1,10 @@
+.. image:: https://yourlabs.io/oss/cli2/badges/master/pipeline.svg
+   :target: https://yourlabs.io/oss/cli2/pipelines
+.. image:: https://img.shields.io/codecov/c/github/yourlabs/cli2/master.svg
+   :target: https://codecov.io/gh/yourlabs/cli2
+.. image:: https://img.shields.io/pypi/v/cli2.svg
+   :target: https://pypi.python.org/pypi/cli2
+
 cli2: Dynamic CLI for Python 3
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
