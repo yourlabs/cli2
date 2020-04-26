@@ -3,13 +3,23 @@ import inspect
 import sys
 
 from .argument import Argument
+from .colors import colors
 
 
 class Command(dict):
-    def __init__(self, target, name=None, doc=None):
+    def __init__(self, target, name=None, doc=None, color=None):
         self.target = target
         self.name = name or getattr(target, '__name__', type(target).__name__)
         self.doc = doc or inspect.getdoc(target)
+        self.color = color or colors.orange
+
+        overrides = getattr(target, 'cli2', {})
+        for key, value in overrides.items():
+            setattr(self, key, value)
+
+        if self.color in colors.__dict__:
+            self.color = getattr(colors, self.color)
+
         self.sig = inspect.signature(target)
 
         for name, param in self.sig.parameters.items():
@@ -25,7 +35,16 @@ class Command(dict):
             output.append(error + '\n')
 
         if self.doc:
-            output.append(self.doc + '\n')
+            if short:
+                # get the first sentence
+                sentence = ''
+                for char in self.doc.replace('\n', ' '):
+                    if char == '.':
+                        break
+                    sentence += char
+                output.append(sentence)
+            else:
+                output.append(self.doc + '\n')
 
         return '\n'.join(output)
 

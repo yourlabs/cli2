@@ -7,7 +7,9 @@ qa:
 pytest:
   stage: test
   script:
-  - ./sh.yml test
+  - pip install --user -e .
+  - pytest -vv --cov cli2 --cov-report=xml:coverage.xml --cov-report=term-missing --strict
+  - codecov-bash -f coverage.xml
 
 pypi:
   stage: deploy

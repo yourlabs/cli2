@@ -20,10 +20,6 @@ class Argument:
         )
 
     @property
-    def set(self):
-        return self.param.name not in self.cmd.bound.arguments
-
-    @property
     def accepts(self):
         return (
             self.param.name not in self.cmd.bound.arguments

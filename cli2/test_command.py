@@ -1,3 +1,5 @@
+import pytest
+
 from .command import Command
 
 
@@ -8,6 +10,7 @@ def test_int():
     assert cmd['one'].value == 1
     assert not cmd['one'].accepts
     assert cmd(['1']) == 1
+    assert repr(cmd['one']) == 'one'
 
 
 def test_vararg():
@@ -34,6 +37,23 @@ def test_varkwarg():
     cmd.parse('a=b', 'c=d')
     assert cmd['one'].value == dict(a='b', c='d')
     assert cmd['one'].accepts
+
+
+def test_skip():
+    def foo(a=None, b=None, c=None):
+        return (a, b, c)
+    cmd = Command(foo)
+    assert cmd(['b=x']) == (None, 'x', None)
+
+
+def test_nested_typeerror():
+    # Test that TypeError unrelated to top level function call are not
+    # swallowed to display help
+    def foo():
+        raise TypeError('Lol')
+    cmd = Command(foo)
+    with pytest.raises(TypeError):
+        cmd([])
 
 
 def test_vararg_varkwarg_natural():
@@ -137,6 +157,15 @@ def test_dict():
     assert cmd(['one=a:b,c:d']) == {"a": "b", "c": "d"}
 
 
+def test_override():
+    def foo(one): return one
+    foo.cli2 = dict(color=1, name='lol', doc='foodoc')
+    cmd = Command(foo)
+    assert cmd.color == 1
+    assert cmd.name == 'lol'
+    assert cmd.doc == 'foodoc'
+
+
 def test_cast_override():
     def foo(one): return one
     foo.cli2_one = dict(cast=lambda v: [int(i) for i in v.split(',')])
@@ -182,8 +211,11 @@ def test_stress():
 
 
 def test_missing():
-    cmd = Command(lambda a: True)
+    def foo(missing):
+        """docstring"""
+    cmd = Command(foo)
     assert 'missing 1 required' in cmd([])
+    assert 'docstring' in cmd([])
 
 
 def test_extra():

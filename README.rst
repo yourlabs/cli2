@@ -31,8 +31,15 @@ In the same fashing, you can create a command Group, and add Commands to it:
 
     # or create a command group group
     console_script = cli2.Group()
+
     # and add yourcmd to it
     console_script.cmd(yourcmd)
+
+    # or add a Command per callables of a module
+    console_script.load(your.module)
+
+    # and/or add from an object to create a Command per method
+    console_script.load(your_object)
 
 Type-casting
 ------------
@@ -177,3 +184,29 @@ keyword arguments ...
 ... Because the parser considers token that start with a keyword of a keyword
 argument prioritary to positional arguments once the positional arguments have
 all been bound.
+
+Demo
+====
+
+Initially, cli2 was supposed to just bring Python callables on the CLI without
+even a single line of code::
+
+    cli2 path.to.your.callable arg1 kwarg1=value
+
+This command was implemented again in this 10th rewrite of the CLI engine
+extracted from Playlabs, however this implementation features something pretty
+funny: cli2 is a Group subclass which overrides the default Group
+implementation based on the first argument passed on the command line.
+
+Basically, when you call ``cli2 path.to.module``, it will load a Group of name
+``path.to.module`` which whill load one Command per callable in
+``path.to.module``.
+
+When you call ``cli2 path.to.function`` it will execute the function.
+
+As a result, these two commands are strictly equivalent::
+
+    cli2 cli2.test_node example_function foo=bar
+    cli2 cli2.test_node.example_function foo=bar
+
+Your challenge is to understand why ;)

@@ -26,7 +26,7 @@ class Node:
         return self.name
 
     def __repr__(self):
-        return self.name
+        return f'Node({self.name})'
 
     @property
     def type(self):
@@ -38,10 +38,11 @@ class Node:
     @property
     def callables(self):
         results = []
+        builtins = (types.BuiltinFunctionType, types.BuiltinMethodType)
         for name, member in inspect.getmembers(self.target):
             if not callable(member):
                 continue
-            if name.startswith('__'):
+            if name.startswith('__') or isinstance(member, builtins):
                 continue  # skip builtins
             results.append(Node(name, member))
         return results

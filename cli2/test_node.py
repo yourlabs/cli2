@@ -1,21 +1,34 @@
+"""
+Test cases for cli2.Node
+"""
 from cli2 import Node
 
 
-def example_function():
-    pass
+def example_function(*args, **kwargs):
+    """
+    Example function docstring where the first sentence unfortunnately spreads
+    over the next line.
+    """
+    return f"""
+    You have called example_function with:
+
+    args={args}
+    kwargs={kwargs}
+    """
+
+
+example_function.cli2 = dict(color='pink')
 
 
 class ExampleClass:
-    def example_method(self):
-        pass
+    def example_method(self): pass
 
 
 example_object = ExampleClass()
 
 
 class ExampleClassCallable:
-    def __call__(self):
-        pass
+    def __call__(self, *args, **kwargs): return (args, kwargs)
 
 
 example_object_callable = ExampleClassCallable()
@@ -30,7 +43,35 @@ def test_module():
     node = Node.factory('cli2.test_node')
     assert node.target == test_node
     assert node.type == 'module'
+    assert str(node) == 'cli2.test_node'
+    assert repr(node) == 'Node(cli2.test_node)'
     assert example_object_callable in node.callables
+
+    node = Node('test_node', test_node)
+    assert node.target == test_node
+    assert node.type == 'module'
+
+
+example_list = [lambda: True]
+
+
+def test_list():
+    node = Node.factory('cli2.test_node.example_list.0')
+    assert node.target == example_list[0]
+
+
+example_dict = dict(a=lambda: True)
+
+
+def test_dict():
+    node = Node.factory('cli2.test_node.example_dict.a')
+    assert node.target == example_dict['a']
+
+
+def test_unknown():
+    node = Node.factory('lollololololololollolool')
+    assert not node.module
+    assert not node.target
 
 
 def test_function():
