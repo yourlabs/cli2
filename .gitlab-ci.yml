@@ -8,8 +8,11 @@ pytest:
   stage: test
   script:
   - pip install --user -e .
-  - pytest -vv --cov cli2 --cov-report=xml:coverage.xml --cov-report=term-missing --strict
+  - pytest -vv --cov cli2 --cov-report=xml:coverage.xml --junitxml=report.xml --cov-report=term-missing --strict
   - codecov-bash -f coverage.xml
+  artifacts:
+    reports:
+      junit: report.xml
 
 pypi:
   stage: deploy
