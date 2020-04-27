@@ -1,12 +1,12 @@
 import asyncio
 import inspect
-import sys
 
 from .argument import Argument
 from .colors import colors
+from .entry_point import EntryPoint
 
 
-class Command(dict):
+class Command(EntryPoint, dict):
     def __init__(self, target, name=None, doc=None, color=None):
         self.target = target
         self.name = name or getattr(target, '__name__', type(target).__name__)
@@ -85,14 +85,16 @@ class Command(dict):
         if extra:
             return 'No parameters for these arguments: ' + ', '.join(extra)
 
-    def __call__(self, argv=None):
-        error = self.parse(*(argv if argv is not None else sys.argv[1:]))
+    def __call__(self, *argv):
+        self.exit_code = 0
+        error = self.parse(*argv)
         if error:
             return self.help(error)
 
         try:
             result = self.target(*self.bound.args, **self.bound.kwargs)
         except TypeError as exc:
+            self.exit_code = 1
             rep = getattr(self.target, '__name__')
             error = str(exc)
             if error.startswith(rep):

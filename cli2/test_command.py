@@ -9,7 +9,7 @@ def test_int():
     cmd.parse('1')
     assert cmd['one'].value == 1
     assert not cmd['one'].accepts
-    assert cmd(['1']) == 1
+    assert cmd('1') == 1
     assert repr(cmd['one']) == 'one'
 
 
@@ -19,7 +19,7 @@ def test_vararg():
     cmd.parse('a', 'b')
     assert cmd['one'].value == ['a', 'b']
     assert cmd['one'].accepts
-    assert cmd(['a', 'b']) == ('a', 'b')
+    assert cmd('a', 'b') == ('a', 'b')
 
 
 def test_kwarg():
@@ -28,7 +28,7 @@ def test_kwarg():
     cmd.parse('one=b')
     assert cmd['one'].value == 'b'
     assert not cmd['one'].accepts
-    assert cmd(['one=b']) == 'b'
+    assert cmd('one=b') == 'b'
 
 
 def test_varkwarg():
@@ -43,7 +43,7 @@ def test_skip():
     def foo(a=None, b=None, c=None):
         return (a, b, c)
     cmd = Command(foo)
-    assert cmd(['b=x']) == (None, 'x', None)
+    assert cmd('b=x') == (None, 'x', None)
 
 
 def test_nested_typeerror():
@@ -53,7 +53,7 @@ def test_nested_typeerror():
         raise TypeError('Lol')
     cmd = Command(foo)
     with pytest.raises(TypeError):
-        cmd([])
+        cmd()
 
 
 def test_vararg_varkwarg_natural():
@@ -62,7 +62,7 @@ def test_vararg_varkwarg_natural():
     cmd.parse('x', 'y', 'a=b', 'c=d')
     assert cmd['one'].value == ['x', 'y']
     assert cmd['two'].value == dict(a='b', c='d')
-    assert cmd(['x', 'y', 'a=b', 'c=d']) == (('x', 'y'), dict(a='b', c='d'))
+    assert cmd('x', 'y', 'a=b', 'c=d') == (('x', 'y'), dict(a='b', c='d'))
 
 
 def test_vararg_varkwarg_asterisk():
@@ -80,13 +80,13 @@ def test_bool():
     cmd.parse('yes')
     assert cmd['one'].value is True
     assert not cmd['one'].accepts
-    assert cmd(['yes']) is True
+    assert cmd('yes') is True
 
     for i in ('0', 'no', 'False'):
         cmd.parse(i)
         assert cmd['one'].value is False
         assert not cmd['one'].accepts
-        assert cmd([i]) is False
+        assert cmd(i) is False
 
 
 def test_bool_flag():
@@ -122,7 +122,7 @@ def test_further_search():
     cmd.parse('one=yes')
     assert cmd['one'].value is True
     assert not cmd['one'].accepts
-    assert cmd(['one=yes']) is True
+    assert cmd('one=yes') is True
 
 
 def test_list():
@@ -134,11 +134,11 @@ def test_list():
     assert cmd['one'].value == [1]
     assert not cmd['one'].accepts
 
-    assert cmd(['one=[1]']) == [1]
-    assert cmd(['[1]']) == [1]
+    assert cmd('one=[1]') == [1]
+    assert cmd('[1]') == [1]
 
     # simple syntax for simple list of strings
-    assert cmd(['one=a,b']) == ['a', 'b']
+    assert cmd('one=a,b') == ['a', 'b']
 
 
 def test_dict():
@@ -150,11 +150,11 @@ def test_dict():
     assert cmd['one'].value == {"a": 1}
     assert not cmd['one'].accepts
 
-    assert cmd(['one={"a": 1}']) == {"a": 1}
-    assert cmd(['{"a": 1}']) == {"a": 1}
+    assert cmd('one={"a": 1}') == {"a": 1}
+    assert cmd('{"a": 1}') == {"a": 1}
 
     # simple syntax for simple dict of strings
-    assert cmd(['one=a:b,c:d']) == {"a": "b", "c": "d"}
+    assert cmd('one=a:b,c:d') == {"a": "b", "c": "d"}
 
 
 def test_override():
@@ -172,7 +172,7 @@ def test_cast_override():
     cmd = Command(foo)
     cmd.parse('1,2')
     assert cmd['one'].value == [1, 2]
-    assert cmd(['1,2']) == [1, 2]
+    assert cmd('1,2') == [1, 2]
 
 
 def test_weird_pattern():
@@ -183,12 +183,12 @@ def test_weird_pattern():
 
     cmd.parse('b=x')
     assert cmd['b'].value == 'x'
-    assert cmd(['b=x']) == (None, 'x')
+    assert cmd('b=x') == (None, 'x')
 
     cmd = Command(foo)
     cmd.parse('a=b=x')
     assert cmd['a'].value == 'b=x'
-    assert cmd(['a=b=x']) == ('b=x', None)
+    assert cmd('a=b=x') == ('b=x', None)
 
 
 class Foo:
@@ -202,7 +202,7 @@ class Foo:
 
 def test_stress():
     cmd = Command(Foo())
-    cmd(['1', '[2]', 'yes', 'var1', 'var2', 'kw1=1', 'kw2=2'])
+    cmd('1', '[2]', 'yes', 'var1', 'var2', 'kw1=1', 'kw2=2')
     assert cmd.target.one == 1
     assert cmd.target.two == [2]
     assert cmd.target.three is True
@@ -214,16 +214,16 @@ def test_missing():
     def foo(missing):
         """docstring"""
     cmd = Command(foo)
-    assert 'missing 1 required' in cmd([])
-    assert 'docstring' in cmd([])
+    assert 'missing 1 required' in cmd()
+    assert 'docstring' in cmd()
 
 
 def test_extra():
     cmd = Command(lambda: True)
-    assert 'No parameters for these' in cmd(['a'])
+    assert 'No parameters for these' in cmd('a')
 
 
 def test_asyncio():
     async def test():
         return 'foo'
-    assert Command(test)([]) == 'foo'
+    assert Command(test)() == 'foo'

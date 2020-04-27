@@ -15,19 +15,53 @@ building your own command try during runtime.
 Getting Started
 ===============
 
-You can either create a Command from a callable that can invoked directly or
-via console_script:
+Create a command from any callable:
 
 .. code-block:: python
 
     def yourcmd():
         """Your own command"""
 
-    # good enough for your console_script entry_point
-    console_script = cli2.Command(yourcmd)
+    cli = cli2.Command(yourcmd)
+
+No entry point
+--------------
+
+If you don't want to use an entry point, you can execute your command as such
+which will print the result:
+
+.. code-block:: python
 
     # without entry_point, you can call yourself
-    print(console_script())  # console_script would print result by default
+    import sys
+    print(cli(*sys.argv[1:]))
+
+Even if you want to use an entry point, this kind of call can also be useful
+for testing:
+
+.. code-block:: python
+
+    from your.module import cli
+
+    def test_cli():
+        # simulate command: yourcmd some thing
+        assert cli('some', 'thing') == 'some result'
+
+
+Entry point
+-----------
+
+You may also use the ``.entry_point`` attribute of ``cli2.Command`` or
+``cli2.Group`` to define a command with the ``clis`` entry point by adding
+something like that to your ``setup.py``:
+
+.. code-block:: python
+
+    entry_points={
+        'console_scripts': [
+            'yourcmd  = your.module:cli.entry_point',
+        ],
+    },
 
 Command group
 -------------
@@ -37,16 +71,16 @@ In the same fashing, you can create a command Group, and add Commands to it:
 .. code-block:: python
 
     # or create a command group group
-    console_script = cli2.Group()
+    cli = cli2.Group()
 
     # and add yourcmd to it
-    console_script.cmd(yourcmd)
+    cli.cmd(yourcmd)
 
     # or add a Command per callables of a module
-    console_script.load(your.module)
+    cli.load(your.module)
 
     # and/or add from an object to create a Command per method
-    console_script.load(your_object)
+    cli.load(your_object)
 
 Type-casting
 ------------

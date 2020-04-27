@@ -1,9 +1,9 @@
 import inspect
 import subprocess
-import sys
 
 from .colors import colors
 from .command import Command
+from .entry_point import EntryPoint
 
 
 def termsize():
@@ -14,7 +14,7 @@ def termsize():
     return int(rows), int(columns)
 
 
-class Group(dict):
+class Group(EntryPoint, dict):
     def __init__(self, name=None, doc=None, color=None):
         self.name = name
         self.doc = doc or inspect.getdoc(self)
@@ -75,13 +75,15 @@ class Group(dict):
             else:
                 self[name] = Group(name)
 
-    def __call__(self, argv=None):
-        argv = argv if argv is not None else sys.argv[1:]
+    def __call__(self, *argv):
+        self.exit_code = 0
         if not argv:
             return self.help('No command provided, showing help.')
 
         if argv[0] in self:
-            result = self[argv[0]](argv[1:])
+            result = self[argv[0]](*argv[1:])
+            # fetch exit code
+            self.exit_code = self[argv[0]].exit_code
         elif argv[0] == 'help':
             if len(argv) > 1:
                 if argv[1] in self:

@@ -19,4 +19,9 @@ setup(
     license='MIT',
     keywords='cli',
     python_requires='>=3',
+    entry_points={
+        'console_scripts': [
+            'cli2 = cli2.cli:main.entry_point',
+        ],
+    },
 )

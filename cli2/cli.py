@@ -32,9 +32,7 @@ class ConsoleScript(cli2.Group):
             )
             self[dotted_path].load(node.target)
 
-    def __call__(self, argv=None):
-        argv = argv if argv is not None else sys.argv[1:]
-
+    def __call__(self, *argv):
         def arghelp(dotted_path):
             """
             Get help and callables for a dotted_path.
@@ -44,16 +42,15 @@ class ConsoleScript(cli2.Group):
 
         self['help'] = cli2.Command(arghelp, color=cli2.c.green)
 
-        if not argv:
+        if not argv or argv == ('help',):
             return self.help()
 
         if argv[0] == 'help':
-            if argv:
-                self.load(argv[1])
+            self.load(argv[1])
         else:
             self.load(argv[0])
 
-        return super().__call__(argv)
+        return super().__call__(*argv)
 
 
 main = ConsoleScript()
