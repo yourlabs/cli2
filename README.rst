@@ -170,11 +170,29 @@ Edge cases
 Simple and common use cases were favored over rarer use cases by design. Know
 the couple of gotchas and you'll be fine.
 
-Args containing ``=`` in Mixed ``(*args, **kwargs)``
-----------------------------------------------------
+Args containing ``=`` when ``**kwargs`` is present
+--------------------------------------------------
 
-It was decided to favor simple use cases when a callable both have varargs and
-varkwargs as such:
+Simple use cases are favored over rarer ones when a callable has varkwargs.
+
+When a callable has ``**kwargs`` as such:
+
+.. code-block:: python
+
+    def foo(x, **kwargs):
+        pass
+
+Then, arguments that look like kwargs will be attracted to the kwargs
+argument, so if you want to call ``foo("a=b")`` then you need to call as such::
+
+    foo x=a=b
+
+Because the following will call ``foo(a='b')``, and fail because of missing
+``x``, which is more often than not what you want on the command line::
+
+    foo a=b
+
+Now, even more of an edgy case when ``*args, **kwargs`` are used:
 
 .. code-block:: python
 

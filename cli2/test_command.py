@@ -248,6 +248,30 @@ def test_missing():
     assert 'docstring' in cmd()
 
 
+def test_kwarg_priority():
+    def foo(missing, **kwarg):
+        """docstring"""
+    cmd = Command(foo)
+    cmd.parse('foo=bar')
+    with pytest.raises(KeyError):
+        cmd['missing'].value
+
+
+def test_kwarg_priority_doesnt_break_positional():
+    def foo(missing, **kwarg):
+        return missing
+    cmd = Command(foo)
+    cmd.parse('y', 'foo=bar')
+    assert cmd['missing'].value == 'y'
+    assert cmd['kwarg'].value == dict(foo='bar')
+
+    # can't call foo("foo=bar") as such:
+    assert "required positional argument: 'missing'" in cmd('foo=bar')
+
+    # needs to specify missing by name
+    assert cmd('missing=foo=bar') == 'foo=bar'
+
+
 def test_extra():
     cmd = Command(lambda: True)
     assert 'No parameters for these' in cmd('a')

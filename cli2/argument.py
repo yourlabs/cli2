@@ -95,15 +95,6 @@ class Argument:
                 self.cmd.bound.arguments[self.param.name] = json.loads(arg[1:])
                 return True
 
-            # edge case vararg+varkwargs
-            # priority to varkwargs for word= and **{}
-            last = self.cmd[[*self.cmd.keys()][-1]]
-            if last.param.kind == self.param.VAR_KEYWORD:
-                if re.match('^\\w+=', arg):
-                    return
-                elif arg.startswith('**{') and arg.endswith('}'):
-                    return
-
         # look ahead for keyword arguments that would match this
         for name, argument in self.cmd.items():
             if not argument.accepts:
@@ -111,6 +102,15 @@ class Argument:
             if argument == self:
                 continue
             if argument.aliasmatch(arg):
+                return
+
+        # edge case varkwargs
+        # priority to varkwargs for word= and **{}
+        last = self.cmd[[*self.cmd.keys()][-1]]
+        if last is not self and last.param.kind == self.param.VAR_KEYWORD:
+            if re.match('^\\w+=', arg):
+                return
+            elif arg.startswith('**{') and arg.endswith('}'):
                 return
 
         value = self.match(arg)
