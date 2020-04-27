@@ -2,7 +2,6 @@
 Demonstration of a completely dynamic command line !
 """
 import inspect
-import sys
 
 import cli2
 

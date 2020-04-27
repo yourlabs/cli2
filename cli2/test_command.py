@@ -73,6 +73,36 @@ def test_vararg_varkwarg_asterisk():
     assert cmd['two'].value == dict(y='z')
 
 
+def test_vararg_after_kwarg():
+    def foo(one=None, *two): return (one, two)
+    cmd = Command(foo)
+
+    cmd.parse('x')
+    assert cmd['one'].value == 'x'
+    with pytest.raises(KeyError):
+        cmd['two'].value
+
+
+def test_positional_only_looksahead():
+    def foo(one=None, /, *two, three=None): return (one, two)
+    cmd = Command(foo)
+
+    cmd.parse('three=z', 'x', 'y')
+    assert cmd['one'].value == 'x'
+    assert cmd['two'].value == ['y']
+    assert cmd['three'].value == 'z'
+
+
+def test_keyword_only():
+    def foo(*one, two=None): return (one, two)
+    cmd = Command(foo)
+
+    cmd.parse('x')
+    assert cmd['one'].value == ['x']
+    with pytest.raises(KeyError):
+        cmd['two'].value
+
+
 def test_bool():
     def foo(one: bool): return one
     cmd = Command(foo)

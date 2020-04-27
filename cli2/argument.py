@@ -14,10 +14,11 @@ class Argument:
 
     @property
     def iskw(self):
-        return self.param.kind in (
-            self.param.KEYWORD_ONLY,
-            self.param.POSITIONAL_OR_KEYWORD,
-        )
+        if self.param.kind == self.param.KEYWORD_ONLY:
+            return True
+
+        if self.param.POSITIONAL_OR_KEYWORD:
+            return self.param.default != self.param.empty
 
     @property
     def accepts(self):
@@ -81,6 +82,9 @@ class Argument:
         return arg
 
     def take(self, arg):
+        if not self.accepts:
+            return
+
         if self.param.kind == self.param.VAR_KEYWORD:
             if arg.startswith('**{') and arg.endswith('}'):
                 self.cmd.bound.arguments[self.param.name] = json.loads(arg[2:])
@@ -99,6 +103,15 @@ class Argument:
                     return
                 elif arg.startswith('**{') and arg.endswith('}'):
                     return
+
+        # look ahead for keyword arguments that would match this
+        for name, argument in self.cmd.items():
+            if not argument.accepts:
+                continue
+            if argument == self:
+                continue
+            if argument.aliasmatch(arg):
+                return
 
         value = self.match(arg)
         if value is not None:

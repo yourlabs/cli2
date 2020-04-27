@@ -52,29 +52,9 @@ class Command(EntryPoint, dict):
         self.bound = self.sig.bind_partial()
         extra = []
         for current in argv:
+
             taken = False
             for arg in self.values():
-                if not arg.accepts:
-                    continue
-
-                if arg.iskw:
-                    # we have reached keyword argument sequence
-                    # see if another, further arg matches per alias and takes
-                    reached = False
-                    for _arg in self.values():
-                        if taken:
-                            break
-                        if _arg == arg:
-                            reached = True
-                            continue
-                        if not reached:
-                            continue
-                        if _arg.aliasmatch(current):
-                            taken = _arg.take(current)
-
-                if taken:
-                    break
-
                 taken = arg.take(current)
                 if taken:
                     break
