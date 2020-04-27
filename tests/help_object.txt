@@ -1,0 +1,4 @@
+command: cli2 help cli2.test_node.example_object
+retcode: 0
+stdout:
+  [38;5;202mexample_method[0m  

@@ -1,0 +1,23 @@
+command: cli2 help cli2.test_node
+retcode: 0
+stdout:
+Test cases for cli2.Node
+
+  [38;5;202mExampleClass[0m          
+  [38;5;202mExampleClassCallable[0m  
+  [38;5;202mNode[0m                  
+  [38;5;10mexample_dict[0m          
+  [38;5;199mexample_function[0m      Example function docstring where the first sentence unfo
+                        rtunnately spreads over the next line
+  [38;5;10mexample_list[0m          
+  [38;5;10mexample_object[0m        
+  [38;5;202mtest_callable_class[0m   
+  [38;5;202mtest_callable_object[0m  
+  [38;5;202mtest_class[0m            
+  [38;5;202mtest_dict[0m             
+  [38;5;202mtest_eq[0m               
+  [38;5;202mtest_function[0m         
+  [38;5;202mtest_list[0m             
+  [38;5;202mtest_module[0m           
+  [38;5;202mtest_object[0m           
+  [38;5;202mtest_unknown[0m          

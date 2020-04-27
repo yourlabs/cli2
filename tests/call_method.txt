@@ -1,0 +1,4 @@
+command: cli2 cli2.test_node.example_object.example_method a b=c
+retcode: 0
+stdout:
+(('a',), {'b': 'c'})

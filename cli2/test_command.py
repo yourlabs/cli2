@@ -84,7 +84,8 @@ def test_vararg_after_kwarg():
 
 
 def test_positional_only_looksahead():
-    def foo(one=None, /, *two, three=None): return (one, two)
+    def foo(one=None, /, *two, three=None):  # noqa
+        return (one, two)
     cmd = Command(foo)
 
     cmd.parse('three=z', 'x', 'y')

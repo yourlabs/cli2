@@ -21,14 +21,17 @@ example_function.cli2 = dict(color='pink')
 
 
 class ExampleClass:
-    def example_method(self): pass
+    def example_method(self, *args, **kwargs):
+        return (args, kwargs)
 
 
 example_object = ExampleClass()
 
 
 class ExampleClassCallable:
-    def __call__(self, *args, **kwargs): return (args, kwargs)
+    @classmethod
+    def __call__(cls, *args, **kwargs):
+        return (args, kwargs)
 
 
 example_object_callable = ExampleClassCallable()

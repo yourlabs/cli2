@@ -1,0 +1,15 @@
+command: cli2 
+retcode: 0
+stdout:
+cli2 makes your python callbacks work on CLI too !
+
+Show doc and callables for module cli2.test_node:
+
+    cli2 cli2.test_node
+    cli2 help cli2.test_node  # alternate
+
+Call cli2.test_node.example_function with args=['x'] and kwargs=dict(y='z')
+
+    cli2 cli2.test_node.example_function x y=z
+
+  [38;5;10mhelp[0m  Get help and callables for a dotted_path
