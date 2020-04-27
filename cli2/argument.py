@@ -50,6 +50,8 @@ class Argument:
     def cast(self, value):
         if self.param.annotation == int:
             return int(value)
+        if self.param.annotation == float:
+            return float(value)
         if self.param.annotation == bool:
             return value.lower() not in ('', '0', 'no', 'false', self.negate)
         if self.param.annotation == list:
