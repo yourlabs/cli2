@@ -1,4 +1,5 @@
 import inspect
+import os
 import subprocess
 
 from .colors import colors
@@ -7,10 +8,10 @@ from .entry_point import EntryPoint
 
 
 def termsize():
-    try:
-        rows, columns = subprocess.check_output(['stty', 'size']).split()
-    except subprocess.CalledProcessError:
+    if 'FORCE_TERMSIZE' in os.environ:
         return 180, 80
+
+    rows, columns = subprocess.check_output(['stty', 'size']).split()
     return int(rows), int(columns)
 
 

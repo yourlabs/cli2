@@ -1,0 +1,9 @@
+command: cli2 cli2.test_node.example_function
+retcode: 0
+stdout:
+
+    You have called example_function with:
+
+    args=()
+    kwargs={}
+    
