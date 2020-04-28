@@ -3,11 +3,12 @@ import json
 
 
 class Argument:
-    def __init__(self, cmd, param):
+    def __init__(self, cmd, param, doc=None):
         self.cmd = cmd
         self.param = param
         self.alias = param.name if self.iskw else None
         self.negate = None
+        self.doc = doc or None
 
     def __repr__(self):
         return self.param.name

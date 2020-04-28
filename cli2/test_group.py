@@ -16,7 +16,7 @@ def test_group_no_command():
 
 
 def test_missing_arg():
-    cmd = Group().cmd(lambda b: True, name='a')
+    cmd = Group().add(lambda b: True, name='a')
     assert "missing 1 required positional argument: 'b'" in cmd('a')
 
 
@@ -28,7 +28,7 @@ def test_help():
     def foo():
         """foodoc"""
     group = Group('lol', doc='loldoc')
-    group.cmd(foo)
+    group.add(foo)
     assert 'foodoc' in group()
     assert 'loldoc' in group()
     assert 'foodoc' in group('help')
@@ -40,6 +40,12 @@ def test_load_module():
     from cli2 import test_group
     group = Group()
     group.load(test_group)
+    assert 'test_load_module' in group
+
+
+def test_load_module_str():
+    group = Group()
+    group.load('cli2.test_group')
     assert 'test_load_module' in group
 
 

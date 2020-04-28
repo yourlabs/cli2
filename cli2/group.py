@@ -4,7 +4,9 @@ import subprocess
 
 from .colors import colors
 from .command import Command
+from .decorators import arg
 from .entry_point import EntryPoint
+from .node import Node
 
 
 def termsize():
@@ -24,10 +26,27 @@ class Group(EntryPoint, dict):
         self.doc = doc or inspect.getdoc(self)
         self.color = color or colors.green
 
-    def cmd(self, target, name=None):
-        cmd = Command(target, name)
+    def add(self, target, *args, **kwargs):
+        cmd = Command(target, *args, **kwargs)
         self[cmd.name] = cmd
         return self
+
+    def cmd(self, *args, **kwargs):
+        if len(args) == 1 and not kwargs:
+            # simple @group.cmd syntax
+            target = args[0]
+            self.add(target)
+            return target
+        elif not args:
+            def wrap(cb):
+                self.add(cb, **kwargs)
+                return cb
+            return wrap
+        else:
+            raise Exception('Only kwargs are supported by Group.cmd')
+
+    def arg(self, name, **kwargs):
+        return arg(name, **kwargs)
 
     def help(self, error=None, short=False):
         output = []
@@ -64,6 +83,9 @@ class Group(EntryPoint, dict):
         return '\n'.join(output)
 
     def load(self, obj):
+        if isinstance(obj, str):
+            obj = Node.factory(obj).target
+
         for name in dir(obj):
             if name == '__call__':
                 target = obj

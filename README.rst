@@ -74,10 +74,20 @@ In the same fashing, you can create a command Group, and add Commands to it:
     cli = cli2.Group()
 
     # and add yourcmd to it
-    cli.cmd(yourcmd)
+    cli.add(yourcmd)
+
+    # or with a decorator
+    @cli.cmd
+    def foo(): pass
+
+    # decorator that can also override the Command attributes btw
+    @cli.cmd(name='bar')
+    def foo(): pass
 
     # or add a Command per callables of a module
     cli.load(your.module)
+    # or by name
+    cli.load('your.module')
 
     # and/or add from an object to create a Command per method
     cli.load(your_object)
@@ -94,9 +104,9 @@ You could cast any argument with JSON as such:
 
 .. code-block:: python
 
+    @cli2.arg('x', cast=lambda v: json.loads(v))
     def yourcmd(x):
         return x
-    yourcmd.cli2_x = dict(cast=lambda v: json.loads(v))
 
     cmd = Command(yourcmd)
     cmd(['[1,2]']) == [1, 2]  # same as CLI: yourcmd [1,2]
@@ -105,9 +115,9 @@ Or, override ``Argument.cast()`` for the ``ages`` argument:
 
 .. code-block:: python
 
+    @cli2.args('ages', cast=lambda v: [int(i) for i in v.split(',')])
     def yourcmd(ages):
         return ages
-    yourcmd.cli2_ages = dict(cast=lambda v: [int(i) for i in v.split(',')])
 
     cmd = Command(yourcmd)
     cmd(['1,2']) == [1, 2]  # same as CLI: yourcmd 1,2
@@ -155,14 +165,46 @@ example), or with simple switches:
 
 .. code-block:: python
 
+    @cli2.arg('debug', alias='-d', negate='-nd')
     def yourcmd(debug=True):
         pass
 
-    # prefixing dash not necessary at all
-    yourcmd.cli2_debug = dict(negate='-no-debug')
+Overriding Command and Argument classes
+---------------------------------------
 
-    # or map this boolean to two simple switches
-    yourcmd.cli2_debug = dict(alias='-d', negate='-nd')
+Overriding the Command class can be useful to override how the target callable
+will be invoked. Example:
+
+.. code-block:: python
+
+    class YourThingCommand(cli2.Command):
+        def call(self):
+            self.target.is_CLI = True
+            return self.target(*self.bound.args, **self.bound.kwargs)
+
+    @cli2.cmd(cls=YourThingCommand)
+    class YourThing:
+        def __call__(self):
+            pass
+
+    cmd = Command(YourThing())  # will be a YourThingCommand
+
+Overriding an Argument class can be useful if you want to heavily customize an
+argument, here's an example with the age argument again:
+
+.. code-block:: python
+
+    class AgesArgument(cli2.Argument):
+        def cast(self, value):
+            # logic to convert the ages argument from the command line to
+            # python goes in this method
+            return [int(i) for i in value.split(',')]
+
+    @cli2.arg('ages', cls=AgesArgument)
+    def yourcmd(ages):
+        return ages
+
+    assert yourcmd('1,2') == [1, 2]
 
 Edge cases
 ==========
