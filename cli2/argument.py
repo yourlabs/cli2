@@ -6,9 +6,61 @@ class Argument:
     def __init__(self, cmd, param, doc=None):
         self.cmd = cmd
         self.param = param
-        self.alias = param.name if self.iskw else None
-        self.negate = None
         self.doc = doc or None
+
+        self.alias = None
+        if self.iskw:
+            self.alias = param.name
+            if cmd.posix:
+                self.alias = self.alias.replace('_', '-')
+
+        self.negate = None
+        if self.iskw and self.param.annotation == bool:
+            self.negate = 'no-' + param.name
+            if cmd.posix:
+                self.negate = self.negate.replace('_', '-')
+
+    @property
+    def aliases(self):
+        return self.optlist(self.alias, lambda a: '-' + a.lstrip('-')[0])
+
+    @property
+    def negates(self):
+        return self.optlist(self.negate, lambda a: '-n' + a.lstrip('-')[3])
+
+    def optlist(self, opt, shortgen):
+        if not opt:
+            return []
+
+        if isinstance(opt, (list, tuple)):
+            opts = opt
+        else:
+            opts = [opt]
+
+        if self.cmd.posix:
+            if len(opts) == 1 and len(opts[0].lstrip('-')) > 1:
+                short = shortgen(opts[0])
+                conflicts = False
+                for arg in self.cmd.values():
+                    if arg is self:
+                        continue
+                    if short in arg.aliases:
+                        conflicts = True
+                        break
+                if not conflicts:
+                    opts = [short] + opts
+
+            for i, alias in enumerate(opts):
+                if alias.startswith('-'):
+                    continue
+
+                if len(alias) == 1:
+                    opts[i] = '-' + alias
+                elif not alias.startswith('-'):
+                    if not alias.startswith('--'):
+                        opts[i] = '--' + alias
+
+        return opts
 
     def __repr__(self):
         return self.param.name
@@ -53,6 +105,8 @@ class Argument:
             return int(value)
         if self.param.annotation == float:
             return float(value)
+        if value in self.negates:
+            return False
         if self.param.annotation == bool:
             return value.lower() not in ('', '0', 'no', 'false', self.negate)
         if self.param.annotation == list:
@@ -74,17 +128,24 @@ class Argument:
     def aliasmatch(self, arg):
         if arg == self.negate:
             return True
-        if self.iskw and self.param.annotation == bool and arg == self.alias:
+        if self.iskw and self.param.annotation == bool and arg in self.aliases:
             return True
-        return self.alias and arg.startswith(self.alias + '=')
+        for alias in self.aliases:
+            if arg.startswith(alias + '='):
+                return True
 
     def match(self, arg):
         if self.aliasmatch(arg):
             if self.param.annotation != bool or '=' in arg:
-                return arg[len(self.alias) + 1:]
+                for alias in self.aliases:
+                    if arg.startswith(alias):
+                        arg = arg[len(alias):]
+                        if arg.startswith('='):
+                            arg = arg[1:]
+                        return arg
         return arg
 
-    def take(self, arg):
+    def take(self, arg, next_arg):
         if not self.accepts:
             return
 
@@ -116,7 +177,19 @@ class Argument:
             elif arg.startswith('**{') and arg.endswith('}'):
                 return
 
+        next_take = False
+        if (
+            self.iskw
+            and self.aliases[0].startswith('-')
+            and self.param.annotation != bool
+            and '=' not in arg
+            and next_arg
+        ):
+            arg = arg + '=' + next_arg
+            next_take = True
+
         value = self.match(arg)
+
         if value is not None:
             self.value = self.cast(value)
-            return True
+            return 'next' if next_take else True
