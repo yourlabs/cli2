@@ -124,6 +124,7 @@ def test_bool_flag():
     def foo(one: bool): return one
     foo.cli2_one = dict(alias='-o')
     cmd = Command(foo)
+    assert cmd['one'].alias == '-o'
     cmd.parse('-o')
     assert cmd['one'].value is True
 
@@ -134,6 +135,15 @@ def test_bool_flag_negate():
     cmd = Command(foo)
     cmd.parse('!o')
     assert cmd['one'].value is False
+
+
+def test_bool_kwarg_negate():
+    def foo(one: bool = True): return one
+    cmd = Command(foo)
+    assert cmd['one'].negates == ['no-one']
+
+    cmd.posix = True
+    assert cmd['one'].negates == ['-no', '--no-one']
 
 
 def test_json_cast():
@@ -282,3 +292,48 @@ def test_asyncio():
     async def test():
         return 'foo'
     assert Command(test)() == 'foo'
+
+
+def test_aliases():
+    def foo(he_llo):
+        pass
+    foo.cli2_he_llo = dict(alias=['-h', '--he-llo'])
+
+    cmd = Command(foo)
+    assert cmd['he_llo'].aliases == ['-h', '--he-llo']
+    cmd('-h=x')
+    assert cmd['he_llo'].value == 'x'
+
+    cmd('--he-llo=y')
+    assert cmd['he_llo'].value == 'y'
+
+
+def test_posix_style():
+    def foo(he_llo=None):
+        pass
+    cmd = Command(foo, posix=True)
+    assert cmd['he_llo'].aliases == ['-h', '--he-llo']
+
+    cmd.parse('-h=x')
+    assert cmd['he_llo'].value == 'x'
+
+    cmd('--he-llo=y')
+    assert cmd['he_llo'].value == 'y'
+
+
+def test_negates():
+    def foo(he_llo=None):
+        pass
+    foo.cli2_he_llo = dict(negate=['nh', 'no-he_llo'])
+    cmd = Command(foo)
+    assert cmd['he_llo'].negates == ['nh', 'no-he_llo']
+    cmd('nh')
+    assert cmd['he_llo'].value is False
+
+
+def test_posix_style_spaces():
+    def foo(aa=None, *args): pass
+    cmd = Command(foo, posix=True)
+    cmd('--aa', 'foo', 'bar')
+    assert cmd['aa'].value == 'foo'
+    assert cmd['args'].value == ['bar']

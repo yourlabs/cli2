@@ -12,8 +12,9 @@ class Command(EntryPoint, dict):
         cls = overrides.get('cls', cls)
         return super().__new__(cls, *args, **kwargs)
 
-    def __init__(self, target, name=None, color=None, doc=None):
+    def __init__(self, target, name=None, color=None, doc=None, posix=False):
         self.target = target
+        self.posix = posix
 
         overrides = getattr(target, 'cli2', {})
         for key, value in overrides.items():
@@ -93,11 +94,21 @@ class Command(EntryPoint, dict):
         self.setargs()
         self.bound = self.sig.bind_partial()
         extra = []
-        for current in argv:
+        skip = False
+        for position, current in enumerate(argv):
+            if skip:
+                skip = False
+                continue
+
+            try:
+                next_argv = argv[position + 1]
+            except IndexError:
+                next_argv = None
 
             taken = False
             for arg in self.values():
-                taken = arg.take(current)
+                taken = arg.take(current, next_argv)
+                skip = taken == 'next'
                 if taken:
                     break
 

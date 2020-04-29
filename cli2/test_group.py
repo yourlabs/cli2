@@ -55,3 +55,12 @@ def test_load_object():
     group = Group()
     group.load(Lol())
     assert 'Lol' in group
+
+
+def test_posix_group():
+    def foo():
+        """foodoc"""
+    group = Group(posix=True)
+    group.add(foo)
+    assert group.posix
+    assert group['foo'].posix

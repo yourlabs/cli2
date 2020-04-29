@@ -21,15 +21,20 @@ def termsize():
 
 
 class Group(EntryPoint, dict):
-    def __init__(self, name=None, doc=None, color=None):
+    def __init__(self, name=None, doc=None, color=None, posix=False):
         self.name = name
         self.doc = doc or inspect.getdoc(self)
         self.color = color or colors.green
+        self.posix = posix
 
     def add(self, target, *args, **kwargs):
         cmd = Command(target, *args, **kwargs)
         self[cmd.name] = cmd
         return self
+
+    def __setitem__(self, key, value):
+        value.posix = self.posix
+        super().__setitem__(key, value)
 
     def cmd(self, *args, **kwargs):
         if len(args) == 1 and not kwargs:

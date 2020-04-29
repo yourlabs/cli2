@@ -8,8 +8,7 @@
 cli2: Dynamic CLI for Python 3
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Break free from the POSIX standard for more fluent CLIs, by exposing simple
-Python functions or objects with a minimalist argument typing style, or
+Expose Python functions or objects with a minimalist argument typing style, or
 building your own command try during runtime.
 
 Getting Started
@@ -47,7 +46,6 @@ for testing:
         # simulate command: yourcmd some thing
         assert cli('some', 'thing') == 'some result'
 
-
 Entry point
 -----------
 
@@ -70,8 +68,11 @@ In the same fashing, you can create a command Group, and add Commands to it:
 
 .. code-block:: python
 
-    # or create a command group group
+    # create a command group
     cli = cli2.Group()
+
+    # optionnaly, tell it to generate argument names with dashes
+    cli = cli2.Group(posix=True)
 
     # and add yourcmd to it
     cli.add(yourcmd)
@@ -165,7 +166,8 @@ example), or with simple switches:
 
 .. code-block:: python
 
-    @cli2.arg('debug', alias='-d', negate='-nd')
+    # manually do what posix=True would generate
+    @cli2.arg('debug', alias=['-d', '--debug'], negate=['-nd', '--no-debug'])
     def yourcmd(debug=True):
         pass
 
