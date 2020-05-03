@@ -5,6 +5,7 @@ setup(
     name='cli2',
     versioning='dev',
     setup_requires='setupmeta',
+    install_requires=['docstring_parser==0.7.1'],
     extras_require=dict(
         test=[
             'freezegun',

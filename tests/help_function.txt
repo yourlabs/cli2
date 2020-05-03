@@ -4,3 +4,8 @@ stdout:
 Example function docstring where the first sentence unfortunnately spreads
 over the next line.
 
+[38;5;10m*args  [38;5;202m[0m
+  All arguments you want but this line will spread over multiple lines just for 
+  the sake of it
+[38;5;10m**kwargs  [38;5;202m[0m
+  No param documentation

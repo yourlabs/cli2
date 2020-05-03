@@ -1,9 +1,12 @@
 import asyncio
 import inspect
 
+from docstring_parser import parse
+
 from .argument import Argument
 from .colors import colors
 from .entry_point import EntryPoint
+from .termsize import termsize
 
 
 class Command(EntryPoint, dict):
@@ -25,10 +28,17 @@ class Command(EntryPoint, dict):
         elif 'name' not in overrides:
             self.name = getattr(target, '__name__', type(target).__name__)
 
+        self.parsed = parse(inspect.getdoc(target))
         if doc:
             self.doc = doc
         elif 'doc' not in overrides:
-            self.doc = inspect.getdoc(target)
+            self.doc = ''
+            if self.parsed.short_description:
+                self.doc += self.parsed.short_description.replace('\n', ' ')
+            if self.parsed.long_description:
+                if self.doc:
+                    self.doc += '\n'
+                self.doc += self.parsed.long_description.replace('\n', ' ')
 
         if color:
             self.color = color
@@ -71,6 +81,7 @@ class Command(EntryPoint, dict):
             raise Exception('Only kwargs are supported by Group.cmd')
 
     def help(self, error=None, short=False):
+        """Show help for a command."""
         output = []
 
         if error:
@@ -87,6 +98,31 @@ class Command(EntryPoint, dict):
                 output.append(sentence)
             else:
                 output.append(self.doc + '\n')
+
+        if short or not len(self):
+            return '\n'.join(output)
+
+        width = termsize()[1]
+        for arg in self.values():
+            kind = ''
+            if arg.param.annotation != arg.param.empty:
+                kind = str(arg.param.annotation)
+            output.append(''.join([
+                colors.green,
+                str(arg),
+                '  ',
+                colors.orange,
+                kind,
+                colors.reset,
+            ]))
+
+            if arg.doc:
+                doc = arg.doc[:]
+                while doc:
+                    output.append('  ' + doc[:width - 2])
+                    doc = doc[width - 2:]
+            else:
+                output.append('  No param documentation')
 
         return '\n'.join(output)
 

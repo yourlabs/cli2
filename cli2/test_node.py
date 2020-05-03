@@ -8,6 +8,9 @@ def example_function(*args, **kwargs):
     """
     Example function docstring where the first sentence unfortunnately spreads
     over the next line.
+
+    :param args: All arguments you want but this line will spread over
+                 multiple lines just for the sake of it
     """
     return f"""
     You have called example_function with:

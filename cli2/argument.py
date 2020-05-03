@@ -3,10 +3,17 @@ import json
 
 
 class Argument:
-    def __init__(self, cmd, param, doc=None):
+    def __init__(self, cmd, param, doc=None, color=None):
         self.cmd = cmd
         self.param = param
-        self.doc = doc or None
+        self.color = color
+
+        self.doc = doc or ''
+        if not doc:
+            for _param in cmd.parsed.params:
+                if _param.arg_name == self.param.name:
+                    self.doc = _param.description.replace('\n', ' ')
+                    break
 
         self.alias = None
         if self.iskw:
@@ -64,6 +71,16 @@ class Argument:
 
     def __repr__(self):
         return self.param.name
+
+    def __str__(self):
+        if self.alias:
+            return self.alias + '='
+        elif self.param.kind == self.param.VAR_POSITIONAL:
+            return '*' + self.param.name
+        elif self.param.kind == self.param.VAR_KEYWORD:
+            return '**' + self.param.name
+        else:
+            return '<' + self.param.name + '>'
 
     @property
     def iskw(self):

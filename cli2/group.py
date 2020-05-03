@@ -1,23 +1,11 @@
 import inspect
-import os
-import subprocess
 
 from .colors import colors
 from .command import Command
 from .decorators import arg
 from .entry_point import EntryPoint
 from .node import Node
-
-
-def termsize():
-    if 'FORCE_TERMSIZE' in os.environ:
-        return 180, 80
-
-    try:
-        rows, columns = subprocess.check_output(['stty', 'size']).split()
-    except subprocess.CalledProcessError:
-        return 180, 80
-    return int(rows), int(columns)
+from .termsize import termsize
 
 
 class Group(EntryPoint, dict):
@@ -61,7 +49,13 @@ class Group(EntryPoint, dict):
         return self[name]
 
     def help(self, *args, error=None, short=False):
-        """Get help for a command or group."""
+        """
+        Get help for a command or group.
+
+        :param args:  Command or sub-command chain to show help for.
+        :param error: Error message to print out.
+        :param short: Show short documentation.
+        """
         if args:
             target = self
             for arg in args:
@@ -164,3 +158,6 @@ class Group(EntryPoint, dict):
 
     def __repr__(self):
         return f'Group({self.name})'
+
+    def __str__(self):
+        return self.name

@@ -337,3 +337,33 @@ def test_posix_style_spaces():
     cmd('--aa', 'foo', 'bar')
     assert cmd['aa'].value == 'foo'
     assert cmd['args'].value == ['bar']
+
+
+def test_docstring():
+    def foo(bar, lol):
+        '''
+        Do something
+
+        Do something that will span over multiple lines if i find enough to
+        type in this line.
+
+        :param str bar: Some argument documentation that's unfortunnately going
+                        to span over multiple lines
+        :param lol:
+            Another argument documentation that's unfortunnately going
+            to span over multiple lines and without type annotation inside
+        '''
+    cmd = Command(foo)
+    assert cmd.doc == (
+        "Do something\n"
+        "Do something that will span over multiple lines if i find enough"
+        " to type in this line."
+    )
+    assert cmd['lol'].doc == (
+        "Another argument documentation that's unfortunnately going"
+        " to span over multiple lines and without type annotation inside"
+    )
+    assert cmd['bar'].doc == (
+        "Some argument documentation that's unfortunnately going to span over"
+        " multiple lines"
+    )
