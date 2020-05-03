@@ -125,7 +125,7 @@ class Command(EntryPoint, dict):
         self.exit_code = 0
         error = self.parse(*argv)
         if error:
-            return self.help(error)
+            return self.help(error=error)
 
         try:
             result = self.call()
@@ -134,7 +134,7 @@ class Command(EntryPoint, dict):
             rep = getattr(self.target, '__name__')
             error = str(exc)
             if error.startswith(rep):
-                return self.help(error.replace(rep, self.name))
+                return self.help(error=error.replace(rep, self.name))
             raise
 
         if inspect.iscoroutine(result):

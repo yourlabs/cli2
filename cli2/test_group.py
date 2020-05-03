@@ -12,7 +12,7 @@ def test_group_subcommand_not_found():
 
 
 def test_group_no_command():
-    assert 'No command' in Group()()
+    assert 'No sub-command' in Group()()
 
 
 def test_missing_arg():
@@ -34,6 +34,15 @@ def test_help():
     assert 'foodoc' in group('help')
     assert 'foodoc' in group('help', 'foo')
     assert 'not found' in group('help', 'lol')
+
+
+def test_help_nested():
+    def c(): 'cdoc'
+    a = Group('a')
+    b = a.group('b')
+    b.cmd(c)
+    assert 'cdoc' in a('help', 'b', 'c')
+    assert 'cdoc' in a('b', 'help', 'c')
 
 
 def test_load_module():

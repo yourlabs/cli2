@@ -1,8 +1,6 @@
 """
 Demonstration of a completely dynamic command line !
 """
-import inspect
-
 import cli2
 
 
@@ -19,36 +17,25 @@ class ConsoleScript(cli2.Group):
 
         cli2 cli2.test_node.example_function x y=z
     """
-
-    def load(self, dotted_path):
-        node = cli2.Node.factory(dotted_path)
-        if callable(node.target):
-            self[dotted_path] = cli2.Command(node.target)
-        else:
-            self[dotted_path] = cli2.Group(
-                dotted_path,
-                doc=inspect.getdoc(node.target),
-            )
-            self[dotted_path].load(node.target)
+    name = 'cli2'
 
     def __call__(self, *argv):
-        def arghelp(dotted_path):
-            """
-            Get help and callables for a dotted_path.
-            """
-            self.load(dotted_path)
-            return self[dotted_path].help()
+        # Find if there's anything we should lazy load
+        dotted = None
+        if len(argv) > 1 and argv[0] == 'help':
+            dotted = argv[1]
+        elif argv:
+            dotted = argv[0]
 
-        self['help'] = cli2.Command(arghelp, color=cli2.c.green)
+        if dotted:
+            # Lazy load argument as command or group
+            node = cli2.Node.factory(dotted)
+            if callable(node.target):
+                self.add(node.target, name=dotted)
+            elif node.callables:
+                self.group(dotted, doc=node.doc).load(dotted)
 
-        if not argv or argv == ('help',):
-            return self.help()
-
-        if argv[0] == 'help':
-            self.load(argv[1])
-        else:
-            self.load(argv[0])
-
+        self['help'].doc = 'Get help for a dotted path.'
         return super().__call__(*argv)
 
 

@@ -29,6 +29,10 @@ class Node:
         return f'Node({self.name})'
 
     @property
+    def doc(self):
+        return inspect.getdoc(self.target)
+
+    @property
     def type(self):
         if isinstance(self.target, types.ModuleType):
             return 'module'
