@@ -15,7 +15,8 @@ class Command(EntryPoint, dict):
         cls = overrides.get('cls', cls)
         return super().__new__(cls, *args, **kwargs)
 
-    def __init__(self, target, name=None, color=None, doc=None, posix=False):
+    def __init__(self, target, name=None, color=None, doc=None, posix=False,
+                 outfile=None):
         self.target = target
         self.posix = posix
 
@@ -50,6 +51,7 @@ class Command(EntryPoint, dict):
 
         self.sig = inspect.signature(target)
         self.setargs()
+        EntryPoint.__init__(self, outfile=outfile)
 
     def setargs(self):
         for name, param in self.sig.parameters.items():

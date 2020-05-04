@@ -311,6 +311,7 @@ def test_aliases():
 def test_posix_style():
     def foo(he_llo=None):
         pass
+
     cmd = Command(foo, posix=True)
     assert cmd['he_llo'].aliases == ['-h', '--he-llo']
 
@@ -366,4 +367,20 @@ def test_docstring():
     assert cmd['bar'].doc == (
         "Some argument documentation that's unfortunnately going to span over"
         " multiple lines"
+    )
+
+
+def test_print(mocker):
+    cmd = Command(lambda: True, outfile=mocker.Mock())
+    cmd.print('orangebold', 'foo', 'bar')
+    assert cmd.outfile.write.call_args_list[0].args == (
+        '\x1b[1;38;5;202mfoo bar\x1b[0m',
+    )
+
+
+def test_print_bold(mocker):
+    cmd = Command(lambda: True, outfile=mocker.Mock())
+    cmd.print('ORANGE', 'foo', 'bar')
+    assert cmd.outfile.write.call_args_list[0].args == (
+        '\x1b[1;38;5;202mfoo bar\x1b[0m',
     )
