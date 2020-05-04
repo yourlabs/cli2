@@ -1,6 +1,7 @@
 command: cli2 help cli2.test_node.example_function
 retcode: 0
 stdout:
+[1;38;5;202mDESCRIPTION[0m
 Example function docstring where the first sentence unfortunnately spreads
 over the next line.
 

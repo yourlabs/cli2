@@ -85,7 +85,13 @@ class Command(EntryPoint, dict):
         output = []
 
         if error:
-            output.append(error + '\n')
+            output.append(
+                colors.redbold
+                + 'ERROR: '
+                + colors.reset
+                + error
+                + '\n'
+            )
 
         if self.doc:
             if short:
@@ -97,6 +103,11 @@ class Command(EntryPoint, dict):
                     sentence += char
                 output.append(sentence)
             else:
+                output.append(
+                    colors.orangebold
+                    + 'DESCRIPTION'
+                    + colors.reset
+                )
                 output.append(self.doc + '\n')
 
         if short or not len(self):
