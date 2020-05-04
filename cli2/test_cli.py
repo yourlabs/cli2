@@ -2,7 +2,7 @@ import pytest
 
 from cli2.cli import main
 
-from cli2.test import autotest
+from cli2.test import autotest, Outfile
 
 
 def test_call():
@@ -11,15 +11,22 @@ def test_call():
     assert "kwargs={'y': 'z'}" in result
 
 
-def test_doc():
-    result = main('cli2.test_node')
-    assert 'example_function' in result
+def test_doc_by_default(mocker):
+    main.outfile = Outfile()
+    main('cli2.test_node')
+    assert 'example_function' in main.outfile
 
-    result = main('help', 'cli2.test_node')
-    assert 'example_function' in result
 
-    result = main()
-    assert 'help' in result
+def test_help_argument(mocker):
+    main.outfile = Outfile()
+    main('help', 'cli2.test_node')
+    assert 'example_function' in main.outfile
+
+
+def test_help_no_argument(mocker):
+    main.outfile = Outfile()
+    main()
+    assert 'help' in main.outfile
 
 
 @pytest.mark.parametrize('name,command', [

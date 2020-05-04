@@ -1,5 +1,14 @@
 command: cli2 help cli2.test_node.example_object
 retcode: 0
 stdout:
-  [38;5;10mhelp[0m            Get help for a command or group
-  [38;5;202mexample_method[0m
+[1;38;5;202mSYNOPSYS[0m
+cli2 cli2.test_node.example_object SUB-COMMAND <...>
+cli2 cli2.test_node.example_object help SUB-COMMAND
+cli2 help cli2.test_node.example_object SUB-COMMAND
+
+[1;38;5;202mDOCUMENTED SUB-COMMANDS[0m
+[38;5;10mhelp[0m
+Get help for a command or group
+
+[1;38;5;202mUNDOCUMENTED SUB-COMMANDS[0m
+[38;5;202mexample_method[0m

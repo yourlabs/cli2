@@ -1,23 +1,30 @@
 from .group import Group
+from .test import Outfile
 
 
 def test_group_command_not_found():
-    assert 'Command a not found' in Group()('a', 'b')
+    group = Group(outfile=Outfile())
+    group('a', 'b')
+    assert 'Command a not found' in group.outfile
 
 
 def test_group_subcommand_not_found():
-    group = Group()
+    group = Group(outfile=Outfile())
     group['a'] = Group(name='a')
-    assert 'Command b not found' in group('a', 'b')
+    group('a', 'b')
+    assert 'Command b not found' in group.outfile
 
 
 def test_group_no_command():
-    assert 'No sub-command' in Group()()
+    group = Group(outfile=Outfile())
+    group()
+    assert 'No sub-command' in group.outfile
 
 
 def test_missing_arg():
-    cmd = Group().add(lambda b: True, name='a')
-    assert "missing 1 required positional argument: 'b'" in cmd('a')
+    cmd = Group(outfile=Outfile()).add(lambda b: True, name='a')
+    cmd('a')
+    assert "missing 1 required positional argument: 'b'" in cmd.outfile
 
 
 def test_repr():
@@ -27,22 +34,38 @@ def test_repr():
 def test_help():
     def foo():
         """foodoc"""
-    group = Group('lol', doc='loldoc')
+
+    group = Group('lol', doc='loldoc', outfile=Outfile())
     group.add(foo)
-    assert 'foodoc' in group()
-    assert 'loldoc' in group()
-    assert 'foodoc' in group('help')
-    assert 'foodoc' in group('help', 'foo')
-    assert 'not found' in group('help', 'lol')
+    group()
+    assert 'foodoc' in group.outfile
+    assert 'loldoc' in group.outfile
+
+    group.outfile.reset()
+    group('help')
+    assert 'foodoc' in group.outfile
+
+    group.outfile.reset()
+    group('help', 'foo')
+    assert 'foodoc' in group.outfile
+
+    group.outfile.reset()
+    group('help', 'lol')
+    assert 'not found' in group.outfile
 
 
 def test_help_nested():
     def c(): 'cdoc'
-    a = Group('a')
+    a = Group('a', outfile=Outfile())
     b = a.group('b')
     b.cmd(c)
-    assert 'cdoc' in a('help', 'b', 'c')
-    assert 'cdoc' in a('b', 'help', 'c')
+
+    a('help', 'b', 'c')
+    assert 'cdoc' in a.outfile
+
+    a.outfile.reset()
+    a('b', 'help', 'c')
+    assert 'cdoc' in a.outfile
 
 
 def test_load_module():

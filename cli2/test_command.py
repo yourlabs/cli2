@@ -1,6 +1,7 @@
 import pytest
 
 from .command import Command
+from .test import Outfile
 
 
 def test_int():
@@ -254,9 +255,10 @@ def test_stress():
 def test_missing():
     def foo(missing):
         """docstring"""
-    cmd = Command(foo)
-    assert 'missing 1 required' in cmd()
-    assert 'docstring' in cmd()
+    cmd = Command(foo, outfile=Outfile())
+    cmd()
+    assert 'missing 1 required' in cmd.outfile
+    assert 'docstring' in cmd.outfile
 
 
 def test_kwarg_priority():
@@ -271,21 +273,23 @@ def test_kwarg_priority():
 def test_kwarg_priority_doesnt_break_positional():
     def foo(missing, **kwarg):
         return missing
-    cmd = Command(foo)
+    cmd = Command(foo, outfile=Outfile())
     cmd.parse('y', 'foo=bar')
     assert cmd['missing'].value == 'y'
     assert cmd['kwarg'].value == dict(foo='bar')
 
     # can't call foo("foo=bar") as such:
-    assert "required positional argument: 'missing'" in cmd('foo=bar')
+    cmd('foo=bar')
+    assert "required positional argument: 'missing'" in cmd.outfile
 
     # needs to specify missing by name
     assert cmd('missing=foo=bar') == 'foo=bar'
 
 
 def test_extra():
-    cmd = Command(lambda: True)
-    assert 'No parameters for these' in cmd('a')
+    cmd = Command(lambda: True, outfile=Outfile())
+    cmd('a')
+    assert 'No parameters for these' in cmd.outfile
 
 
 def test_asyncio():

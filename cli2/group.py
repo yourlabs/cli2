@@ -5,15 +5,17 @@ from .command import Command
 from .decorators import arg
 from .entry_point import EntryPoint
 from .node import Node
-from .termsize import termsize
 
 
 class Group(EntryPoint, dict):
-    def __init__(self, name=None, doc=None, color=None, posix=False):
+    def __init__(self, name=None, doc=None, color=None, posix=False,
+                 outfile=None):
         self.name = name
         self.doc = doc or inspect.getdoc(self)
         self.color = color or colors.green
         self.posix = posix
+        self.parent = None
+        EntryPoint.__init__(self, outfile=outfile)
 
         # make help a group command
         self.cmd(self.help)
@@ -25,6 +27,8 @@ class Group(EntryPoint, dict):
 
     def __setitem__(self, key, value):
         value.posix = self.posix
+        value.parent = self
+        value.outfile = self.outfile
         super().__setitem__(key, value)
 
     def cmd(self, *args, **kwargs):
@@ -62,46 +66,63 @@ class Group(EntryPoint, dict):
                 if arg in target:
                     target = target[arg]
                 elif isinstance(target, Command):
-                    return target.help(error=error)
+                    return target.help(error=error, short=short)
                 else:
                     error = f'Command {arg} not found in {target}'
-                    error += f'Showing help for {target}'
                     break
-            return target.help(error=error)
+            return target.help(error=error, short=short)
 
-        output = []
+        if short:
+            if self.doc:
+                return self.doc.replace('\n', ' ').split('.')[0]
+            return ''
 
         if error:
-            output.append(error + '\n')
+            self.print('RED', 'ERROR: ' + colors.reset + error, end='\n\n')
+
+        self.print('ORANGE', 'SYNOPSYS')
+        chain = []
+        current = self
+        while current:
+            chain.insert(0, current)
+            current = current.parent
+        self.print(' '.join(map(str, chain)) + ' SUB-COMMAND <...>')
+        self.print(' '.join(map(str, chain)) + ' help SUB-COMMAND')
+        if len(chain) > 1:
+            chain.insert(1, 'help')
+            self.print(' '.join(map(str, chain)) + ' SUB-COMMAND')
+        self.print()
 
         if self.doc:
-            output.append(self.doc + '\n')
+            self.print('ORANGE', 'DESCRIPTION')
+            self.print(self.doc.strip())
+            self.print()
 
-        if not len(self) or short:
-            return '\n'.join(output)
-
-        namewidth = 2 + max([len(key) for key in self]) + 2
-        descwidth = termsize()[1] - namewidth
+        documented = []
+        undocumented = []
 
         for name, command in self.items():
             doc = command.help(short=True)
-            out = ''
-            for char in doc:
-                if len(out) == descwidth and '\n' not in out:
-                    out += '\n' + ' ' * (namewidth)
-                out += char
-
-            line = [
-                '  ',
-                command.color,
+            cmd = (
+                getattr(colors, command.color, command.color),
                 name,
-                colors.reset,
-                ' ' * (namewidth - len(str(name)) - 4),
-                '  ',
-                out,
-            ]
-            output.append((''.join(map(str, line))).rstrip())
-        return '\n'.join(output)
+                doc,
+            )
+            if doc:
+                documented.append(cmd)
+            else:
+                undocumented.append(cmd)
+
+        if documented:
+            self.print('ORANGE', 'DOCUMENTED SUB-COMMANDS')
+            for cmd in documented:
+                self.print(cmd[0] + cmd[1] + colors.reset)
+                self.print(cmd[2] + '\n')
+
+        if undocumented:
+            self.print('ORANGE', 'UNDOCUMENTED SUB-COMMANDS')
+            for cmd in undocumented:
+                self.print(cmd[0] + cmd[1] + colors.reset)
     help.cli2 = dict(color='green')
 
     def load(self, obj, parent=None):
@@ -160,4 +181,4 @@ class Group(EntryPoint, dict):
         return f'Group({self.name})'
 
     def __str__(self):
-        return self.name
+        return self.name or ''

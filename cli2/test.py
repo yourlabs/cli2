@@ -90,3 +90,23 @@ DiffFound
 - {cmd}
 + {path}
         '''.strip(), (Exception,), {})('\n' + diff_out.decode('utf8'))
+
+
+class Outfile:
+    def __init__(self):
+        self.out = ''
+
+    def write(self, content):
+        self.out += content
+
+    def flush(self):
+        pass
+
+    def __contains__(self, value):
+        return value in self.out
+
+    def __repr__(self):
+        return self.out
+
+    def reset(self):
+        self.__init__()

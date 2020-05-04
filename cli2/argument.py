@@ -1,6 +1,8 @@
 import re
 import json
 
+from .colors import colors
+
 
 class Argument:
     def __init__(self, cmd, param, doc=None, color=None):
@@ -14,6 +16,10 @@ class Argument:
                 if _param.arg_name == self.param.name:
                     self.doc = _param.description.replace('\n', ' ')
                     break
+
+        self.type = None
+        if param.annotation != param.empty:
+            self.type = param.annotation
 
         self.alias = None
         if self.iskw:
@@ -74,13 +80,27 @@ class Argument:
 
     def __str__(self):
         if self.alias:
-            return self.alias + '='
+            return self.alias + '=...'
         elif self.param.kind == self.param.VAR_POSITIONAL:
             return '*' + self.param.name
         elif self.param.kind == self.param.VAR_KEYWORD:
             return '**' + self.param.name
         else:
             return '<' + self.param.name + '>'
+
+    def help(self):
+        out = colors.greenbold + str(self) + colors.reset
+        if self.type:
+            out += colors.orange + str(self.type) + colors.reset
+        self.cmd.print(out)
+
+        if self.param.kind == self.param.VAR_KEYWORD:
+            self.cmd.print('Any number of named arguments')
+        elif self.param.kind == self.param.VAR_POSITIONAL:
+            self.cmd.print('Any number of un-named arguments')
+
+        if self.doc:
+            self.cmd.print(self.doc)
 
     @property
     def iskw(self):

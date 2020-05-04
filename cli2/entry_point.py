@@ -18,7 +18,7 @@ class EntryPoint:
             print(result)
         sys.exit(self.exit_code)
 
-    def print(self, *args, sep=' ', file=None, color=None):
+    def print(self, *args, sep=' ', end='\n', file=None, color=None):
         if args and args[0].lower() in colors.__dict__ and not color:
             color = args[0]
             args = args[1:]
@@ -31,4 +31,4 @@ class EntryPoint:
         if color:
             msg = color + msg + colors.reset
 
-        print(msg, file=file or self.outfile, flush=True)
+        print(msg, end=end, file=file or self.outfile, flush=True)

@@ -1,12 +1,18 @@
 command: cli2 help cli2.test_node.example_function
 retcode: 0
 stdout:
+[1;38;5;202mSYNOPSYS[0m
+cli2 cli2.test_node.example_function *args **kwargs
+
 [1;38;5;202mDESCRIPTION[0m
 Example function docstring where the first sentence unfortunnately spreads
 over the next line.
 
-[38;5;10m*args  [38;5;202m[0m
-  All arguments you want but this line will spread over multiple lines just for 
-  the sake of it
-[38;5;10m**kwargs  [38;5;202m[0m
-  No param documentation
+[1;38;5;202mPOSITIONAL ARGUMENTS[0m
+[1;38;5;10m*args[0m
+Any number of un-named arguments
+All arguments you want but this line will spread over multiple lines just for the sake of it
+
+[1;38;5;202mNAMED ARGUMENTS[0m
+[1;38;5;10m**kwargs[0m
+Any number of named arguments

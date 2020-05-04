@@ -6,7 +6,6 @@ from docstring_parser import parse
 from .argument import Argument
 from .colors import colors
 from .entry_point import EntryPoint
-from .termsize import termsize
 
 
 class Command(EntryPoint, dict):
@@ -19,6 +18,7 @@ class Command(EntryPoint, dict):
                  outfile=None):
         self.target = target
         self.posix = posix
+        self.parent = None
 
         overrides = getattr(target, 'cli2', {})
         for key, value in overrides.items():
@@ -44,10 +44,7 @@ class Command(EntryPoint, dict):
         if color:
             self.color = color
         elif 'color' not in overrides:
-            self.color = colors.orange
-
-        if self.color in colors.__dict__:
-            self.color = getattr(colors, self.color)
+            self.color = 'orange'
 
         self.sig = inspect.signature(target)
         self.setargs()
@@ -84,60 +81,41 @@ class Command(EntryPoint, dict):
 
     def help(self, error=None, short=False):
         """Show help for a command."""
-        output = []
+        if short:
+            if self.doc:
+                return self.doc.replace('\n', ' ').split('.')[0]
+            return ''
 
         if error:
-            output.append(
-                colors.redbold
-                + 'ERROR: '
-                + colors.reset
-                + error
-                + '\n'
-            )
+            self.print('RED', 'ERROR: ' + colors.reset + error, end='\n\n')
 
-        if self.doc:
-            if short:
-                # get the first sentence
-                sentence = ''
-                for char in self.doc.replace('\n', ' '):
-                    if char == '.':
-                        break
-                    sentence += char
-                output.append(sentence)
-            else:
-                output.append(
-                    colors.orangebold
-                    + 'DESCRIPTION'
-                    + colors.reset
-                )
-                output.append(self.doc + '\n')
-
-        if short or not len(self):
-            return '\n'.join(output)
-
-        width = termsize()[1]
+        self.print('ORANGE', 'SYNOPSYS')
+        chain = []
+        current = self
+        while current:
+            chain.insert(0, current.name)
+            current = current.parent
         for arg in self.values():
-            kind = ''
-            if arg.param.annotation != arg.param.empty:
-                kind = str(arg.param.annotation)
-            output.append(''.join([
-                colors.green,
-                str(arg),
-                '  ',
-                colors.orange,
-                kind,
-                colors.reset,
-            ]))
+            chain.append(str(arg))
+        self.print(' '.join(map(str, chain)), end='\n\n')
 
-            if arg.doc:
-                doc = arg.doc[:]
-                while doc:
-                    output.append('  ' + doc[:width - 2])
-                    doc = doc[width - 2:]
-            else:
-                output.append('  No param documentation')
+        self.print('ORANGE', 'DESCRIPTION')
+        self.print(self.doc)
 
-        return '\n'.join(output)
+        shown_posargs = False
+        shown_kwargs = False
+        for arg in self.values():
+            self.print()
+
+            if not arg.iskw and not shown_posargs:
+                self.print('ORANGE', 'POSITIONAL ARGUMENTS')
+                shown_posargs = True
+
+            varkw = arg.param.kind == arg.param.VAR_KEYWORD
+            if (arg.iskw or varkw) and not shown_kwargs:
+                self.print('ORANGE', 'NAMED ARGUMENTS')
+                shown_kwargs = True
+            arg.help()
 
     def parse(self, *argv):
         self.setargs()
