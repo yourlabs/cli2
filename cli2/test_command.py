@@ -1,7 +1,7 @@
 import pytest
 
 from .command import Command
-from .test import Outfile
+from .test import autotest, Outfile
 
 
 def test_int():
@@ -25,11 +25,17 @@ def test_vararg():
 
 def test_kwarg():
     def foo(one=None): return one
-    cmd = Command(foo)
+    cmd = Command(foo, posix=False)
     cmd.parse('one=b')
     assert cmd['one'].value == 'b'
     assert not cmd['one'].accepts
     assert cmd('one=b') == 'b'
+
+
+def test_kwarg_posix():
+    def foo(one=None): return one
+    cmd = Command(foo, posix=True)
+    assert cmd('--one=b') == 'b'
 
 
 def test_varkwarg():
@@ -45,6 +51,9 @@ def test_skip():
         return (a, b, c)
     cmd = Command(foo)
     assert cmd('b=x') == (None, 'x', None)
+
+    cmd = Command(foo, posix=True)
+    assert cmd('-b=x') == (None, 'x', None)
 
 
 def test_nested_typeerror():
@@ -125,9 +134,18 @@ def test_bool_flag():
     def foo(one: bool): return one
     foo.cli2_one = dict(alias='-o')
     cmd = Command(foo)
-    assert cmd['one'].alias == '-o'
+    assert cmd['one'].alias == ('-o',)
     cmd.parse('-o')
     assert cmd['one'].value is True
+
+
+def test_bool_flag_posix():
+    def foo(hi: bool = None): return hi
+    cmd = Command(foo, posix=True)
+    assert cmd('--hi') is True
+    assert cmd('-h') is True
+    assert cmd('--no-hi') is False
+    assert cmd('-nh') is False
 
 
 def test_bool_flag_negate():
@@ -317,7 +335,7 @@ def test_posix_style():
         pass
 
     cmd = Command(foo, posix=True)
-    assert cmd['he_llo'].aliases == ['-h', '--he-llo']
+    assert cmd['he_llo'].alias == ['-h', '--he-llo']
 
     cmd.parse('-h=x')
     assert cmd['he_llo'].value == 'x'
@@ -388,3 +406,11 @@ def test_print_bold(mocker):
     assert cmd.outfile.write.call_args_list[0].args == (
         '\x1b[1;38;5;202mfoo bar\x1b[0m',
     )
+
+
+@pytest.mark.parametrize('name,command,env', [
+    ('yourcmd_posix', 'python example.py', {}),
+    ('yourcmd_help', 'python example.py', {'POSIX': ''}),
+])
+def test_help(name, command, env):
+    autotest(f'tests/{name}.txt', command, env)

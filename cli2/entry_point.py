@@ -11,8 +11,7 @@ class EntryPoint:
         super().__init__(*args, **kwargs)
 
     def entry_point(self):
-        if not self.name:
-            self.name = os.path.basename(sys.argv[0])
+        self.name = os.path.basename(sys.argv[0])
         result = self(*sys.argv[1:])
         if result is not None:
             print(result)

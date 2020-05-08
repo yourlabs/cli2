@@ -5,6 +5,8 @@ from .colors import colors
 
 
 class Argument:
+    # TODO: why not split this into a bunch of simpler sub-classes now that
+    # it's pretty featureful ?
     def __init__(self, cmd, param, doc=None, color=None):
         self.cmd = cmd
         self.param = param
@@ -21,12 +23,6 @@ class Argument:
         if param.annotation != param.empty:
             self.type = param.annotation
 
-        self.alias = None
-        if self.iskw:
-            self.alias = param.name
-            if cmd.posix:
-                self.alias = self.alias.replace('_', '-')
-
         self.negate = None
         if self.iskw and self.param.annotation == bool:
             self.negate = 'no-' + param.name
@@ -36,8 +32,25 @@ class Argument:
         self.taking = False
 
     @property
-    def aliases(self):
-        return self.optlist(self.alias, lambda a: '-' + a.lstrip('-')[0])
+    def alias(self):
+        if 'aliases' not in self.__dict__:
+            if self.iskw:
+                if self.cmd.posix:
+                    self.aliases = self.optlist(
+                        self.param.name.replace('_', '-'),
+                        lambda a: '-' + a.lstrip('-')[0],
+                    )
+                else:
+                    self.aliases = [self.param.name]
+            else:
+                self.aliases = []
+        return self.aliases
+
+    @alias.setter
+    def alias(self, value):
+        if not isinstance(value, (list, tuple)):
+            value = value,
+        self.aliases = value
 
     @property
     def negates(self):
@@ -59,7 +72,10 @@ class Argument:
                 for arg in self.cmd.values():
                     if arg is self:
                         continue
-                    if short in arg.aliases:
+                    if 'aliases' not in arg.__dict__:
+                        # aliases where not set
+                        continue
+                    if short in arg.alias:
                         conflicts = True
                         break
                 if not conflicts:
@@ -82,24 +98,65 @@ class Argument:
 
     def __str__(self):
         if self.alias:
-            return self.alias + '=...'
+            return (
+                '[' + self.alias[-1] + '='
+                + colors.green
+                + self.param.name.upper()
+                + colors.reset
+                + ']'
+            )
         elif self.param.kind == self.param.VAR_POSITIONAL:
-            return '*' + self.param.name
+            return (
+                '['
+                + colors.green
+                + self.param.name.upper()
+                + colors.reset
+                + ']...'
+            )
         elif self.param.kind == self.param.VAR_KEYWORD:
-            return '**' + self.param.name
+            prefix = '--' if self.cmd.posix else ''
+            return (
+                '['
+                + prefix
+                + colors.green
+                + self.param.name.upper()
+                + colors.reset
+                + '='
+                + colors.green
+                + 'VALUE'
+                + colors.reset
+                + ']...'
+            )
         else:
-            return '<' + self.param.name + '>'
+            return colors.green + self.param.name.upper() + colors.reset
 
     def help(self):
-        out = colors.greenbold + str(self) + colors.reset
-        if self.type:
-            out += colors.orange + str(self.type) + colors.reset
+        out = ''
+
+        if self.alias:
+            for alias in self.alias:
+                out += colors.greenbold + alias + colors.reset
+                out += '='
+                if self.type:
+                    out += colors.orange + self.type.__name__ + colors.reset
+                else:
+                    out += self.param.name.upper()
+                out += ' '
+        else:
+            out += colors.greenbold + str(self) + colors.reset
+
+        if self.param.default != self.param.empty:
+            out += '\nDefault: ' + str(self.param.default)
         self.cmd.print(out)
 
         if self.param.kind == self.param.VAR_KEYWORD:
-            self.cmd.print('Any number of named arguments')
+            self.cmd.print('Any number of named arguments, examples:')
+            if self.cmd.posix:
+                self.cmd.print('--something=somearg')
+            else:
+                self.cmd.print('something=somearg')
         elif self.param.kind == self.param.VAR_POSITIONAL:
-            self.cmd.print('Any number of un-named arguments')
+            self.cmd.print('Any number of un-named arguments with equal sign')
 
         if self.doc:
             self.cmd.print(self.doc)
@@ -134,8 +191,11 @@ class Argument:
         elif self.param.kind == self.param.VAR_KEYWORD:
             self.cmd.bound.arguments.setdefault(self.param.name, {})
             parts = value.split('=')
+            name = parts[0]
+            if self.cmd.posix:
+                name = name.lstrip('-')
             value = '='.join(parts[1:])
-            self.cmd.bound.arguments[self.param.name][parts[0]] = value
+            self.cmd.bound.arguments[self.param.name][name] = value
         else:
             self.cmd.bound.arguments[self.param.name] = value
 
@@ -167,16 +227,16 @@ class Argument:
     def aliasmatch(self, arg):
         if arg == self.negate:
             return True
-        if self.iskw and self.param.annotation == bool and arg in self.aliases:
+        if self.iskw and self.param.annotation == bool and arg in self.alias:
             return True
-        for alias in self.aliases:
+        for alias in self.alias:
             if arg.startswith(alias + '='):
                 return True
 
     def match(self, arg):
         if self.aliasmatch(arg):
             if self.param.annotation != bool or '=' in arg:
-                for alias in self.aliases:
+                for alias in self.alias:
                     if arg.startswith(alias):
                         arg = arg[len(alias):]
                         if arg.startswith('='):
@@ -199,6 +259,8 @@ class Argument:
                 return True
 
         # look ahead for keyword arguments that would match this
+        # so that you can skip arguments that are both keyword and positional
+        # ie. `foo b=x` binds 'x' to 'b' in foo(a=None, b=None)
         for name, argument in self.cmd.items():
             if not argument.accepts:
                 continue
@@ -211,23 +273,23 @@ class Argument:
         # priority to varkwargs for word= and **{}
         last = self.cmd[[*self.cmd.keys()][-1]]
         if last is not self and last.param.kind == self.param.VAR_KEYWORD:
-            if re.match('^\\w+=', arg):
+            if re.match('^-?-?\\w+=', arg):
                 return
             elif arg.startswith('**{') and arg.endswith('}'):
                 return
 
         if (
             self.iskw
-            and self.aliases[0].startswith('-')
+            and self.alias[0].startswith('-')
             and self.param.annotation != bool
             and '=' not in arg
-            and arg in self.aliases
+            and arg in self.alias
         ):
             self.taking = True
             return True
 
         if self.taking:
-            arg = self.aliases[0] + '=' + arg
+            arg = self.alias[0] + '=' + arg
 
         value = self.match(arg)
 
