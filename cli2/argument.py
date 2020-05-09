@@ -33,6 +33,8 @@ class Argument:
             if cmd.posix:
                 self.negate = self.negate.replace('_', '-')
 
+        self.taking = False
+
     @property
     def aliases(self):
         return self.optlist(self.alias, lambda a: '-' + a.lstrip('-')[0])
@@ -182,7 +184,7 @@ class Argument:
                         return arg
         return arg
 
-    def take(self, arg, next_arg):
+    def take(self, arg):
         if not self.accepts:
             return
 
@@ -214,19 +216,21 @@ class Argument:
             elif arg.startswith('**{') and arg.endswith('}'):
                 return
 
-        next_take = False
         if (
             self.iskw
             and self.aliases[0].startswith('-')
             and self.param.annotation != bool
             and '=' not in arg
-            and next_arg
+            and arg in self.aliases
         ):
-            arg = arg + '=' + next_arg
-            next_take = True
+            self.taking = True
+            return True
+
+        if self.taking:
+            arg = self.aliases[0] + '=' + arg
 
         value = self.match(arg)
 
         if value is not None:
             self.value = self.cast(value)
-            return 'next' if next_take else True
+            return True

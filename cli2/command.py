@@ -121,22 +121,10 @@ class Command(EntryPoint, dict):
         self.setargs()
         self.bound = self.sig.bind_partial()
         extra = []
-        skip = False
-        for position, current in enumerate(argv):
-            if skip:
-                skip = False
-                continue
-
-            try:
-                next_argv = argv[position + 1]
-            except IndexError:
-                next_argv = None
-
+        for current in argv:
             taken = False
             for arg in self.values():
-                taken = arg.take(current, next_argv)
-                skip = taken == 'next'
-                if taken:
+                if taken := arg.take(current):
                     break
 
             if not taken:
