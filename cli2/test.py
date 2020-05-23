@@ -11,7 +11,7 @@ def autotest(path, cmd, ignore=None, env=None):
     """
     The autowriting test pattern, minimal for testing cli2 scripts.
 
-    Example:
+    Example::
 
         cli2.autotest(
             'tests/djcli_save_user.txt',

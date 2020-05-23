@@ -1,6 +1,7 @@
 
 
 def cmd(**overrides):
+    """Set the overrides for a command."""
     def wrap(cb):
         cb.cli2 = overrides
         return cb
@@ -8,6 +9,7 @@ def cmd(**overrides):
 
 
 def arg(name, **kwargs):
+    """Set the overrides for an argument."""
     def wrap(cb):
         overrides = getattr(cb, 'cli2_' + name, None)
         if overrides is None:

@@ -8,6 +8,8 @@ from .node import Node
 
 
 class Group(EntryPoint, dict):
+    """Represents a group of named commands."""
+
     def __init__(self, name=None, doc=None, color=None, posix=False,
                  outfile=None):
         self.name = name
@@ -21,6 +23,7 @@ class Group(EntryPoint, dict):
         self.cmd(self.help)
 
     def add(self, target, *args, **kwargs):
+        """Add a new target as sub-command."""
         cmd = Command(target, *args, **kwargs)
         self[cmd.name] = cmd
         return self
@@ -32,6 +35,7 @@ class Group(EntryPoint, dict):
         super().__setitem__(key, value)
 
     def cmd(self, *args, **kwargs):
+        """Decorator to add a command with optionnal overrides."""
         if len(args) == 1 and not kwargs:
             # simple @group.cmd syntax
             target = args[0]
@@ -49,6 +53,7 @@ class Group(EntryPoint, dict):
         return arg(name, **kwargs)
 
     def group(self, name, **kwargs):
+        """Return a new sub-group."""
         self[name] = Group(name, **kwargs)
         return self[name]
 
@@ -126,6 +131,7 @@ class Group(EntryPoint, dict):
     help.cli2 = dict(color='green')
 
     def load(self, obj, parent=None):
+        """Load a Python object callables into sub-commands."""
         if isinstance(obj, str):
             obj = Node.factory(obj).target
 

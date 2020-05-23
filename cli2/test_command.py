@@ -161,8 +161,19 @@ def test_bool_kwarg_negate():
     cmd = Command(foo)
     assert cmd['one'].negates == ['no-one']
 
+    cmd.parse('no-one')
+    assert cmd.bound.arguments['one'] is False
+
+    cmd.parse('one')
+    assert cmd.bound.arguments['one'] is True
+
     cmd.posix = True
     assert cmd['one'].negates == ['-no', '--no-one']
+
+    cmd.parse('--no-one')
+    assert cmd.bound.arguments['one'] is False
+    cmd.parse('--one')
+    assert cmd.bound.arguments['one'] is True
 
 
 def test_json_cast():
@@ -252,22 +263,33 @@ def test_weird_pattern():
 
 
 class Foo:
-    def __call__(self, one: int, two: list, three: bool, *vararg, **varkwarg):
-        self.one = one
-        self.two = two
-        self.three = three
-        self.vararg = vararg
-        self.varkwarg = varkwarg
+    def __call__(self, a: int, b: list, c : bool = False, *d, e=None, **f):
+        self.a = a
+        self.b = b
+        self.c = c
+        self.d = d
+        self.e = e
+        self.f = f
 
 
-def test_stress():
+def test_mixed():
     cmd = Command(Foo())
     cmd('1', '[2]', 'yes', 'var1', 'var2', 'kw1=1', 'kw2=2')
-    assert cmd.target.one == 1
-    assert cmd.target.two == [2]
-    assert cmd.target.three is True
-    assert cmd.target.vararg == ('var1', 'var2')
-    assert cmd.target.varkwarg == dict(kw1='1', kw2='2')
+    assert cmd.target.a == 1
+    assert cmd.target.b == [2]
+    assert cmd.target.c is True
+    assert cmd.target.d == ('var1', 'var2')
+    assert cmd.target.f == dict(kw1='1', kw2='2')
+
+
+def test_mixed_posix():
+    cmd = Command(Foo(), posix=True)
+    cmd('1', '[2]', 'yes', 'var1', 'var2', '--kw1=1', '--kw2=2')
+    assert cmd.target.a == 1
+    assert cmd.target.b == [2]
+    assert cmd.target.c is True
+    assert cmd.target.d == ('var1', 'var2')
+    assert cmd.target.f == dict(kw1='1', kw2='2')
 
 
 def test_missing():

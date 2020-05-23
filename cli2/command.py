@@ -9,6 +9,8 @@ from .entry_point import EntryPoint
 
 
 class Command(EntryPoint, dict):
+    """Represents a command bound to a target callable."""
+
     def __new__(cls, target, *args, **kwargs):
         overrides = getattr(target, 'cli2', {})
         cls = overrides.get('cls', cls)
@@ -51,6 +53,7 @@ class Command(EntryPoint, dict):
         EntryPoint.__init__(self, outfile=outfile)
 
     def setargs(self):
+        """Reset arguments."""
         for name, param in self.sig.parameters.items():
             overrides = getattr(self.target, 'cli2_' + name, {})
             cls = overrides.get('cls', Argument)
@@ -118,6 +121,7 @@ class Command(EntryPoint, dict):
             arg.help()
 
     def parse(self, *argv):
+        """"Parse arguments into BoundArguments."""
         self.setargs()
         self.bound = self.sig.bind_partial()
         extra = []
@@ -134,9 +138,11 @@ class Command(EntryPoint, dict):
             return 'No parameters for these arguments: ' + ', '.join(extra)
 
     def call(self):
+        """Execute command target with bound arguments."""
         return self.target(*self.bound.args, **self.bound.kwargs)
 
     def __call__(self, *argv):
+        """Execute command with args from sysargs."""
         self.exit_code = 0
         error = self.parse(*argv)
         if error:
@@ -146,10 +152,13 @@ class Command(EntryPoint, dict):
             result = self.call()
         except TypeError as exc:
             self.exit_code = 1
-            rep = getattr(self.target, '__name__')
+            if hasattr(self.target, '__name__'):
+                rep = getattr(self.target, '__name__')
+            elif hasattr(self.target, '__call__'):
+                rep = '__call__'
             error = str(exc)
             if error.startswith(rep):
-                return self.help(error=error.replace(rep, self.name))
+                return self.help(error=error.replace(rep + '()', self.name))
             raise
 
         if inspect.iscoroutine(result):

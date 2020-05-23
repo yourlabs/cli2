@@ -5,6 +5,9 @@ from .colors import colors
 
 
 class Argument:
+    """
+    Class representing a bound parameter and command line argument.
+    """
     # TODO: why not split this into a bunch of simpler sub-classes now that
     # it's pretty featureful ?
     def __init__(self, cmd, param, doc=None, color=None):
@@ -98,13 +101,19 @@ class Argument:
 
     def __str__(self):
         if self.alias:
-            return (
-                '[' + self.alias[-1] + '='
-                + colors.green
-                + self.param.name.upper()
-                + colors.reset
-                + ']'
-            )
+            out = '[' + colors.orange + self.alias[-1]
+            out += colors.reset
+
+            if self.type != bool:
+                out += '=' + colors.green + self.param.name.upper()
+                out += colors.reset
+
+            if self.negates:
+                out += '|' + colors.orange + self.negates[-1]
+                out += colors.reset
+
+            out += ']'
+            return out
         elif self.param.kind == self.param.VAR_POSITIONAL:
             return (
                 '['
@@ -131,28 +140,60 @@ class Argument:
             return colors.green + self.param.name.upper() + colors.reset
 
     def help(self):
-        out = ''
-
+        """Render help for this argument."""
         if self.alias:
+            out = ''
             for alias in self.alias:
-                out += colors.greenbold + alias + colors.reset
-                out += '='
-                if self.type:
-                    out += colors.orange + self.type.__name__ + colors.reset
-                else:
-                    out += self.param.name.upper()
+                out += colors.orange + alias + colors.reset
+                if self.type != bool:
+                    out += '='
+                    out += colors.green
+                    if self.type:
+                        out += self.type.__name__
+                    else:
+                        out += self.param.name.upper()
+                out += colors.reset
                 out += ' '
+            self.cmd.print(out)
         else:
-            out += colors.greenbold + str(self) + colors.reset
+            self.cmd.print(str(self) + colors.reset)
+
+        if self.negates:
+            out = ''
+            for negate in self.negates:
+                out += colors.orange + negate + colors.reset
+                out += colors.reset
+                out += ' '
+            self.cmd.print(out)
 
         if self.param.default != self.param.empty:
-            out += '\nDefault: ' + str(self.param.default)
-        self.cmd.print(out)
+            self.cmd.print(
+                'Default: '
+                + colors.blue3
+                + str(self.param.default)
+                + colors.reset
+            )
+
+        if self.type == bool:
+            self.cmd.print(
+                'Accepted: '
+                + colors.blue3
+                + 'yes, 1, true, no, 0, false'
+                + colors.reset
+            )
 
         if self.param.kind == self.param.VAR_KEYWORD:
             self.cmd.print('Any number of named arguments, examples:')
             if self.cmd.posix:
-                self.cmd.print('--something=somearg')
+                self.cmd.print(
+                    '--'
+                    + colors.green
+                    + 'something'
+                    + colors.reset
+                    + '='
+                    + colors.green
+                    + 'somearg'
+                )
             else:
                 self.cmd.print('something=somearg')
         elif self.param.kind == self.param.VAR_POSITIONAL:
@@ -163,6 +204,7 @@ class Argument:
 
     @property
     def iskw(self):
+        """Return True if this argument is not positional."""
         if self.param.kind == self.param.KEYWORD_ONLY:
             return True
 
@@ -171,6 +213,7 @@ class Argument:
 
     @property
     def accepts(self):
+        """Return True if this argument still accepts values to bind."""
         return (
             self.param.name not in self.cmd.bound.arguments
             or self.param.kind in (
@@ -181,6 +224,7 @@ class Argument:
 
     @property
     def value(self):
+        """Return the value bound to this argument."""
         return self.cmd.bound.arguments[self.param.name]
 
     @value.setter
@@ -200,6 +244,7 @@ class Argument:
             self.cmd.bound.arguments[self.param.name] = value
 
     def cast(self, value):
+        """Cast a string argument from the CLI into a Python object."""
         if self.param.annotation == int:
             return int(value)
         if self.param.annotation == float:
@@ -225,6 +270,7 @@ class Argument:
         return value
 
     def aliasmatch(self, arg):
+        """Return True if the CLI arg matches an alias of this argument."""
         if arg == self.negate:
             return True
         if self.iskw and self.param.annotation == bool and arg in self.alias:
@@ -234,6 +280,7 @@ class Argument:
                 return True
 
     def match(self, arg):
+        """Return the value extracted from a matching CLI argument."""
         if self.aliasmatch(arg):
             if self.param.annotation != bool or '=' in arg:
                 for alias in self.alias:
@@ -245,6 +292,7 @@ class Argument:
         return arg
 
     def take(self, arg):
+        """Return False if it doesn't accept this arg, otherwise bind it."""
         if not self.accepts:
             return
 
