@@ -7,7 +7,7 @@ cli2: Dynamic CLI for Python 3
 ==============================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
    tutorial
