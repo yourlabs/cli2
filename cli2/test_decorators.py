@@ -108,3 +108,10 @@ def test_group_cmd_and_cmd():
 
     assert group['x'].target == foo
     assert Command(foo).name == 'y'
+
+
+def test_default():
+    @arg('aa', default='test')
+    def foo(aa): return aa
+    cmd = Command(foo)
+    assert cmd() == 'test'

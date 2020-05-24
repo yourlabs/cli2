@@ -137,9 +137,18 @@ class Command(EntryPoint, dict):
         if extra:
             return 'No parameters for these arguments: ' + ', '.join(extra)
 
-    def call(self):
+    def call(self, *args, **kwargs):
         """Execute command target with bound arguments."""
-        return self.target(*self.bound.args, **self.bound.kwargs)
+        return self.target(*args, **kwargs)
+
+    def argskwargs(self):
+        for name, arg in self.items():
+            if not arg.default:
+                continue
+            if name in self.bound.arguments:
+                continue
+            arg.value = arg.default
+        return self.bound.args, self.bound.kwargs
 
     def __call__(self, *argv):
         """Execute command with args from sysargs."""
@@ -148,8 +157,10 @@ class Command(EntryPoint, dict):
         if error:
             return self.help(error=error)
 
+        args, kwargs = self.argskwargs()
+
         try:
-            result = self.call()
+            result = self.call(*args, **kwargs)
         except TypeError as exc:
             self.exit_code = 1
             if hasattr(self.target, '__name__'):

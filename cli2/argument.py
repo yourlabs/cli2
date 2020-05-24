@@ -10,10 +10,11 @@ class Argument:
     """
     # TODO: why not split this into a bunch of simpler sub-classes now that
     # it's pretty featureful ?
-    def __init__(self, cmd, param, doc=None, color=None):
+    def __init__(self, cmd, param, doc=None, color=None, default=None):
         self.cmd = cmd
         self.param = param
         self.color = color
+        self.default = default
 
         self.doc = doc or ''
         if not doc:
