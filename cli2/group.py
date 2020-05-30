@@ -140,7 +140,8 @@ class Group(EntryPoint, dict):
         for name in dir(obj):
             if name == '__call__':
                 target = obj
-            elif name.startswith('__'):
+                name = type(obj).__name__
+            elif name.startswith('__' if not public else '_'):
                 continue
             else:
                 target = getattr(obj, name)
@@ -162,7 +163,7 @@ class Group(EntryPoint, dict):
                 except ValueError:
                     pass
                 else:
-                    self.add(target)
+                    self.add(target, name=name)
                 continue
 
             node = Node(name, target)

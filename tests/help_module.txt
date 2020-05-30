@@ -25,6 +25,7 @@ Represents a group of named commands
 [1;38;5;202mUNDOCUMENTED SUB-COMMANDS[0m
 [38;5;202mExampleClass[0m
 [38;5;202mExampleClassCallable[0m
+[38;5;202mexample_object_callable[0m
 [38;5;202mtest_callable_class[0m
 [38;5;202mtest_callable_object[0m
 [38;5;202mtest_class[0m
