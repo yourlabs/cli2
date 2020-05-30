@@ -171,6 +171,7 @@ class Group(EntryPoint, dict):
             node = Node(name, target)
             if node.callables:
                 self.group(name).load(target, parent=obj)
+        return self
 
     def __call__(self, *argv):
         self.exit_code = 0
