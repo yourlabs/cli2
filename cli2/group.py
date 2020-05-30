@@ -11,12 +11,13 @@ class Group(EntryPoint, dict):
     """Represents a group of named commands."""
 
     def __init__(self, name=None, doc=None, color=None, posix=False,
-                 outfile=None):
+                 outfile=None, cmdclass=None):
         self.name = name
         self.doc = doc or inspect.getdoc(self)
         self.color = color or colors.green
         self.posix = posix
         self.parent = None
+        self.cmdclass = cmdclass or Command
         EntryPoint.__init__(self, outfile=outfile)
 
         # make help a group command
@@ -24,7 +25,7 @@ class Group(EntryPoint, dict):
 
     def add(self, target, *args, **kwargs):
         """Add a new target as sub-command."""
-        cmd = Command(target, *args, **kwargs)
+        cmd = self.cmdclass(target, *args, **kwargs)
         self[cmd.name] = cmd
         return self
 
