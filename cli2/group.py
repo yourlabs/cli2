@@ -131,7 +131,7 @@ class Group(EntryPoint, dict):
                 self.print(cmd[0] + cmd[1] + colors.reset)
     help.cli2 = dict(color='green')
 
-    def load(self, obj, parent=None):
+    def load(self, obj, parent=None, public=True):
         """Load a Python object callables into sub-commands."""
         if isinstance(obj, str):
             obj = Node.factory(obj).target
