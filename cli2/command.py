@@ -173,5 +173,10 @@ class Command(EntryPoint, dict):
             raise
 
         if inspect.iscoroutine(result):
-            result = asyncio.run(result)
+            try:
+                result = asyncio.run(result)
+            except KeyboardInterrupt:
+                print('exiting')
+                import sys
+                sys.exit(1)
         return result
