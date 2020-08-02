@@ -56,7 +56,7 @@ class Group(EntryPoint, dict):
 
     def group(self, name, **kwargs):
         """Return a new sub-group."""
-        self[name] = Group(name, **kwargs)
+        self[name] = Group(name, cmdclass=self.cmdclass, **kwargs)
         return self[name]
 
     def help(self, *args, error=None, short=False):
