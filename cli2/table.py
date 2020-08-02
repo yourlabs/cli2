@@ -48,6 +48,9 @@ class Table(list):
         if sumsize > size:
             _ = sum([c.maxlength for c in self.columns[:-1]]) - len(self.columns)
             self.columns[-1].maxlength = size - _ - len(self.columns) - 1
+        elif sumsize + len(self.columns) <= size and not self.header:
+            for column in self.columns:
+                column.maxlength += 1
 
         if self.header:
             line = []
