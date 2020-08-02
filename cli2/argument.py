@@ -167,11 +167,11 @@ class Argument:
                 out += ' '
             self.cmd.print(out)
 
-        if self.param.default != self.param.empty:
+        if self.default or self.param.default != self.param.empty:
             self.cmd.print(
                 'Default: '
                 + colors.blue3
-                + str(self.param.default)
+                + str(self.default or self.param.default)
                 + colors.reset
             )
 

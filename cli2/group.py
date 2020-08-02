@@ -105,31 +105,19 @@ class Group(EntryPoint, dict):
             self.print(self.doc.strip())
             self.print()
 
-        documented = []
-        undocumented = []
-
-        for name, command in self.items():
-            doc = command.help(short=True)
-            cmd = (
-                getattr(colors, command.color, command.color),
-                name,
-                doc,
+        from .table import Table
+        table = Table(['command', 'help'], header=False, *[
+            (
+                (
+                    getattr(colors, command.color, command.color),
+                    name,
+                ),
+                command.help(short=True),
             )
-            if doc:
-                documented.append(cmd)
-            else:
-                undocumented.append(cmd)
-
-        if documented:
-            self.print('ORANGE', 'DOCUMENTED SUB-COMMANDS')
-            for cmd in documented:
-                self.print(cmd[0] + cmd[1] + colors.reset)
-                self.print(cmd[2] + '\n')
-
-        if undocumented:
-            self.print('ORANGE', 'UNDOCUMENTED SUB-COMMANDS')
-            for cmd in undocumented:
-                self.print(cmd[0] + cmd[1] + colors.reset)
+            for name, command in self.items()
+        ])
+        self.print('ORANGE', 'SUB-COMMANDS')
+        table.print(self.print)
     help.cli2 = dict(color='green')
 
     def load(self, obj, parent=None, public=True):
