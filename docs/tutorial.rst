@@ -115,25 +115,6 @@ Then, declare the command in a ``cli`` variable in ``yourcmd.py``:
     # if __name__ == '__main__':  if block not required in entry point
     cli = cli2.Command(yourcmd)
 
-Command overridding
--------------------
-
-Overriding the Command class can be useful to override how the target callable
-will be invoked. Example:
-
-.. code-block:: python
-
-    class YourThingCommand(cli2.Command):
-        def call(self, *args, **kwargs):
-            # do something
-            return self.target(*args, **kwargs)
-
-    @cli2.cmd(cls=YourThingCommand)
-    def yourthing():
-        pass
-
-    cmd = Command(yourthing)  # will be a YourThingCommand
-
 Group
 =====
 
@@ -420,6 +401,9 @@ You can also easily write an automated test:
     cmd.parse('1,2')
     assert cmd.bound.arguments == dict(ages=[1, 2])
 
+Overridding default code
+========================
+
 Argument overriding
 -------------------
 
@@ -439,6 +423,106 @@ argument, here's an example with the age argument again:
         return ages
 
     assert yourcmd('1,2') == [1, 2]
+
+Command class overriding
+------------------------
+
+Overriding the Command class can be useful to override how the target callable
+will be invoked.
+
+Example:
+
+.. code-block:: python
+
+    class YourThingCommand(cli2.Command):
+        def call(self, *args, **kwargs):
+            # do something
+            return self.target(*args, **kwargs)
+
+    @cli2.cmd(cls=YourThingCommand)
+    def yourthing():
+        pass
+
+    cmd = cli2.Command(yourthing)  # will be a YourThingCommand
+
+You may also override at the group level, basically instanciate your
+:py:class:`~cli2.group.Group`: with the ``cmdclass`` argument:
+
+.. code-block:: python
+
+    cli = cli2.Group(cmdclass=YourThingCommand)
+    cli.add(your_function)
+
+Global setup
+------------
+
+A more useful example combining all the above, suppose you have two functions
+that take a "schema" argument that is a python object of a "Schema" class of
+your own.
+
+.. code-block:: python
+
+    class Schema(dict):
+        def __init__(self, filename, syntax):
+            """ parse file with given syntax ..."""
+
+    @cli.cmd
+    def build(schema):
+        """ build schema """
+
+    @cli.cmd
+    def manifest(schema):
+        """ show schema """
+
+In this case, overriding the schema argument with custom casting won't work
+because the schema argument is built with two arguments: filename in syntax!
+
+Solution:
+
+.. code-block:: python
+
+    class YourCommand(cli2.Command):
+        def setargs(self):
+            super().setargs()
+
+            # hide the schema argument from CLI
+            del self['schema']
+
+            # create two arguments programatically
+            self['filename'] = cli2.Argument(
+                self,
+                inspect.Parameter(
+                    'filename',
+                    inspect.Parameter.POSITIONAL_ONLY,
+                ),
+                doc='Filename to use',
+            )
+            self['syntax'] = cli2.Argument(
+                self,
+                inspect.Parameter(
+                    'services',
+                    inspect.Parameter.KEYWORD_ONLY,
+                ),
+                doc='Syntax to use',
+            )
+
+        def call(self, *args, **kwargs):
+            schema = Schema(
+                self['filename'].value,
+                self['syntax'].value,
+            )
+            return self.target(schema, *args, **kwargs)
+
+    @cli.cmd
+    def build(schema):
+        """ build schema """
+
+    @cli.cmd
+    def manifest(schema):
+        """ show schema """
+
+There you go, you can automate command setup like with the creation of a schema
+argument and manipulate arguments programatically!
 
 Edge cases
 ==========
