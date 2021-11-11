@@ -1,4 +1,5 @@
 import os
+import logging
 import sys
 
 from .colors import colors
@@ -12,6 +13,15 @@ class EntryPoint:
 
     def entry_point(self):
         self.name = os.path.basename(sys.argv[0])
+
+        logging.basicConfig(
+            stream=sys.stdout,
+            level=getattr(
+                logging,
+                os.environ.get('LOG', 'info').upper(),
+            ),
+        )
+
         result = self(*sys.argv[1:])
         if result is not None:
             print(result)

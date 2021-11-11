@@ -524,6 +524,17 @@ Solution:
 There you go, you can automate command setup like with the creation of a schema
 argument and manipulate arguments programatically!
 
+Logging
+=======
+
+By default, :py:class:`~cli2.entry_point.EntryPoint`: will setup a default
+logger streaming all python logs to stdout with info level.
+
+Use the ``LOG`` environment variable to change it, ie::
+
+    LOG=debug yourcommand ...
+    LOG=error yourcommand ...
+
 Edge cases
 ==========
 
