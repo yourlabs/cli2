@@ -19,10 +19,11 @@ Demo
 
 cli2 is a little library to build CLIs, which documentation is `available on
 RTFD <https://cli2.readthedocs.io/en/latest/>`_, but it comes with its own demo
-command that may as well be useful.
+command that may as well be useful to explore Python libraries and call
+functions on the fly.
 
-Initially, cli2 was supposed to just bring Python callables on the CLI without
-even a single line of code::
+Because, initially, cli2 was supposed to just bring Python callables on the CLI
+without even a single line of code::
 
     cli2 path.to.your.callable arg1 kwarg1=value
 
@@ -37,9 +38,24 @@ Basically, when you call ``cli2 path.to.module``, it will load a Group of name
 
 When you call ``cli2 path.to.function`` it will execute the function.
 
-As a result, these two commands are strictly equivalent::
+As a result, these three commands are strictly equivalent::
 
-    cli2 cli2.test_node example_function foo=bar
     cli2 cli2.test_node.example_function foo=bar
+    cli2 cli2.test_node example_function foo=bar
 
-Your challenge is to understand why ;)
+That is because cli2 generates a group with every member of the previous group!
+
+See for yourself with::
+
+    cli2 help cli2.test_node
+
+Or just::
+
+    cli2 cli2.test_node
+
+Because cli2.test_node is not a callable but a module, cli2's cli2 CLI created
+a command Group on the fly with the module and added every callable member as
+command.
+
+When you call a group on the command line, it displays help by default to drive
+the user.
