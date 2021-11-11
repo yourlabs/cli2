@@ -21,7 +21,7 @@ class Group(EntryPoint, dict):
         EntryPoint.__init__(self, outfile=outfile)
 
         # make help a group command
-        self.cmd(self.help)
+        self.cmd(self.help, cls=Command)
 
     def add(self, target, *args, **kwargs):
         """Add a new target as sub-command."""
@@ -38,18 +38,16 @@ class Group(EntryPoint, dict):
 
     def cmd(self, *args, **kwargs):
         """Decorator to add a command with optionnal overrides."""
-        if len(args) == 1 and not kwargs:
-            # simple @group.cmd syntax
+        if len(args) == 1:
+            # simple @group.cmd syntax or direct call
             target = args[0]
-            self.add(target)
+            self.add(target, **kwargs)
             return target
         elif not args:
             def wrap(cb):
                 self.add(cb, **kwargs)
                 return cb
             return wrap
-        else:
-            raise Exception('Only kwargs are supported by Group.cmd')
 
     def arg(self, name, **kwargs):
         return arg(name, **kwargs)

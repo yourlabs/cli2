@@ -99,14 +99,22 @@ def test_posix_group():
     assert group['foo'].posix
 
 
+class TestCmd(Command):
+    pass
+
+
+def example():
+    pass
+
+
 def test_cmd_cls():
     group = Group()
-
-    class TestCmd(Command):
-        pass
-
-    @group.cmd(cls=TestCmd)
-    def example():
-        pass
-
+    group.cmd(cls=TestCmd)(example)
     assert isinstance(group['example'], TestCmd)
+
+
+def test_group_cmdclass():
+    group = Group(cmdclass=TestCmd)
+    group.cmd()(example)
+    assert isinstance(group['example'], TestCmd)
+    assert not isinstance(group['help'], TestCmd)
