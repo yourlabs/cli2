@@ -25,7 +25,7 @@ class Group(EntryPoint, dict):
 
     def add(self, target, *args, **kwargs):
         """Add a new target as sub-command."""
-        cmdclass = kwargs.pop('cmdclass', self.cmdclass)
+        cmdclass = kwargs.pop('cls', self.cmdclass)
         cmd = cmdclass(target, *args, **kwargs)
         self[cmd.name] = cmd
         return self

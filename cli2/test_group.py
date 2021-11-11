@@ -1,3 +1,4 @@
+from .command import Command
 from .group import Group
 from .test import Outfile
 
@@ -96,3 +97,16 @@ def test_posix_group():
     group.add(foo)
     assert group.posix
     assert group['foo'].posix
+
+
+def test_cmd_cls():
+    group = Group()
+
+    class TestCmd(Command):
+        pass
+
+    @group.cmd(cls=TestCmd)
+    def example():
+        pass
+
+    assert isinstance(group['example'], TestCmd)
