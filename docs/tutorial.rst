@@ -124,9 +124,9 @@ will be invoked. Example:
 .. code-block:: python
 
     class YourThingCommand(cli2.Command):
-        def call(self):
+        def call(self, *args, **kwargs):
             # do something
-            return self.target(*self.bound.args, **self.bound.kwargs)
+            return self.target(*args, **kwargs)
 
     @cli2.cmd(cls=YourThingCommand)
     def yourthing():
