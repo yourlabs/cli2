@@ -13,7 +13,8 @@ def autotest(path, cmd, ignore=None, env=None):
 
     Example::
 
-        cli2.autotest(
+        from cli2.test import autotest
+        autotest(
             'tests/djcli_save_user.txt',
             'djcli save auth.User username="test"',
         )
