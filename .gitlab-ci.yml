@@ -17,3 +17,4 @@ pytest:
 pypi:
   stage: deploy
   script: pypi-release
+  only: [tags]
