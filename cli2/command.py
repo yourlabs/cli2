@@ -95,7 +95,7 @@ class Command(EntryPoint, dict):
         self.print('ORANGE', 'SYNOPSYS')
         chain = []
         current = self
-        while current:
+        while current is not None:
             chain.insert(0, current.name)
             current = current.parent
         for arg in self.values():
