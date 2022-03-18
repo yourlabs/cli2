@@ -17,7 +17,7 @@ class Command(EntryPoint, dict):
         return super().__new__(cls, *args, **kwargs)
 
     def __init__(self, target, name=None, color=None, doc=None, posix=False,
-                 outfile=None):
+                 outfile=None, log=True):
         self.target = target
         self.posix = posix
         self.parent = None
@@ -50,7 +50,7 @@ class Command(EntryPoint, dict):
 
         self.sig = inspect.signature(target)
         self.setargs()
-        EntryPoint.__init__(self, outfile=outfile)
+        EntryPoint.__init__(self, outfile=outfile, log=log)
 
     def setargs(self):
         """Reset arguments."""
@@ -95,7 +95,7 @@ class Command(EntryPoint, dict):
         self.print('ORANGE', 'SYNOPSYS')
         chain = []
         current = self
-        while current:
+        while current is not None:
             chain.insert(0, current.name)
             current = current.parent
         for arg in self.values():
@@ -168,7 +168,8 @@ class Command(EntryPoint, dict):
             elif hasattr(self.target, '__call__'):
                 rep = '__call__'
             error = str(exc)
-            if error.startswith(rep):
+            function = error.split(' ')[0].split('.')[-1]
+            if function.startswith(rep + '('):
                 return self.help(error=error.replace(rep + '()', self.name))
             raise
 

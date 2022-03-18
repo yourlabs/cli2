@@ -1,83 +1,106 @@
+"""
+Table module for cli2.
+
+This Table module behaves like a list, and is pretty simple. Its purpose is to
+tabulate data and it's going to brute force output sizes until it finds a match.
+
+As such, it's not a good module to display really a lot of data because it
+sacrifies performance for human readability.
+"""
+
 import os
+import textwrap
 
 from .colors import colors
 
 
 class Column:
-    def __init__(self, name, maxlength=None):
-        self.name = name
-        self.maxlength = maxlength or 0
-        self.minlength = len(name)
+    def __init__(self):
+        self.maxlength = 1
+        self.minlength = 1
+
+
+# size taken by the length of every column
+def sumsize(columns):
+    sumsize = sum([c.maxlength for c in columns])
+    if len(columns) > 1:
+        # add one space in-between each column
+        sumsize += len(columns) - 1
+    return sumsize
 
 
 class Table(list):
-    def __init__(self, columns, *args, header=True):
-        self.columns = [
-            Column(**c)
-            if isinstance(c, dict)
-            else Column(c)
-            for c in columns
-        ]
-        self.header = header
+    def __init__(self, *args):
         super().__init__(args)
 
-    def print(self, print_function=None):
-        print_function = print_function or print
+    def calculate_columns(self, termsize):
+        columns = self.columns = []
 
-        # set maxlength value length and maxlength for each column based on data
         for row in self:
             for colnum, item in enumerate(row):
+                if len(columns) == colnum:
+                    column = Column()
+                    columns.append(column)
+                else:
+                    column = columns[colnum]
+
                 data = item
+
                 if isinstance(data, (list, tuple)):
                     color = data[0]
                     data = data[1]
                 else:
                     color = ''
                     data = item
+
+                minlength = max(
+                    [len(word) for word in data.split(' ')]
+                )
+                if minlength > column.minlength:
+                    column.minlength = minlength
+
                 length = len(data)
-                if length > self.columns[colnum].maxlength:
-                    self.columns[colnum].maxlength = length
+                if length > column.maxlength:
+                    column.maxlength = length
 
-        # shrink last column if necessary
-        try:
-            size = os.get_terminal_size().columns
-        except:
-            size = 80
-        sumsize = sum([c.maxlength for c in self.columns]) + len(self.columns)
-        maxsize = max([c.maxlength for c in self.columns])
-        if sumsize > size:
-            _ = sum([c.maxlength for c in self.columns[:-1]]) - len(self.columns)
-            self.columns[-1].maxlength = size - _ - len(self.columns) - 1
-        elif sumsize + len(self.columns) <= size and not self.header:
-            for column in self.columns:
-                column.maxlength += 1
+        current = -1
+        done = set()
+        while sumsize(columns) > termsize and len(done) < len(columns):
+            current = current if current >= 0 else len(columns) - 1
+            if current not in done:
+                # Let's start shrinking columns from the last
+                minlength = columns[current].minlength
+                maxlength = columns[current].maxlength
+                if maxlength - 1 > minlength:
+                    columns[current].maxlength = maxlength - 1
+                else:
+                    columns[current].maxlength = minlength
+                    done.add(columns[current])
+            current -= 1
 
-        if self.header:
-            line = []
-            for column in self.columns:
-                spaces = column.maxlength - len(column.name)
-                left = int(spaces / 2)
-                right = spaces - left
-                line.append(
-                    ' ' * left
-                    + column.name
-                    + ' ' * right
-                )
-            print_function(' '.join(line))
+        return columns
 
-            line = []
-            for column in self.columns:
-                line.append(
-                    '=' * column.maxlength
-                )
-            print_function(' '.join(line))
+    def print(self, print_function=None, termsize=None):
+        print_function = print_function or print
+        if not termsize:
+            try:
+                termsize = os.get_terminal_size().columns
+            except:
+                termsize = 80
+        columns = self.calculate_columns(termsize=termsize)
+
+        # separate columns with 2 spaces if possible
+        if sumsize(columns) + (len(columns) - 1) * 2 <= termsize:
+            numspaces = 2
+        else:
+            numspaces = 1
 
         rows = list(self)
         while rows:
             row = rows.pop(0)
             line = []
-            leftovers = [[] for c in self.columns]
-            for colnum, column in enumerate(self.columns):
+            leftovers = ['' for c in columns]
+            for colnum, column in enumerate(columns):
                 data = row[colnum]
                 if isinstance(data, (list, tuple)):
                     color = data[0]
@@ -86,22 +109,20 @@ class Table(list):
                     color = ''
                     data = row[colnum]
 
-                datawords = data.split(' ')
-                words = []
-                for dataword in datawords:
-                    if len(' '.join(words + [dataword])) <= column.maxlength:
-                        words.append(dataword)
-                    else:
-                        leftovers[colnum].append(dataword)
-                data = ' '.join(words)
-                line.append(
-                    color
-                    + data
-                    + ' ' * (column.maxlength - len(data))
-                    + colors.reset
-                )
+                wrapped = textwrap.wrap(data, column.maxlength)
+                words = wrapped[0] if wrapped else ''
+                if words == '=':
+                    words = '=' * column.maxlength
+                line.append(words)
+                if colnum + 1 < len(columns):
+                    # add spaces
+                    line[-1] += ' ' * (column.maxlength - len(words))
+                if len(wrapped) > 1:
+                    leftovers[colnum] = ' '.join(wrapped[1:])
+                if color:
+                    line[-1] = color + line[-1] + colors.reset
             for leftover in leftovers:
                 if len(leftover):
-                    rows.insert(0, [' '.join(l) for l in leftovers])
+                    rows.insert(0, leftovers)
                     break
-            print_function(' '.join(line))
+            print_function((' ' * numspaces).join(line))

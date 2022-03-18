@@ -20,4 +20,4 @@ Call cli2.test_node.example_function with args=['x'] and kwargs=dict(y='z')
     cli2 cli2.test_node.example_function x y=z
 
 [1;38;5;202mSUB-COMMANDS[0m
-[38;5;10mhelp [0m Get help for a dotted path [0m
+[38;5;10mhelp[0m  Get help for a dotted path

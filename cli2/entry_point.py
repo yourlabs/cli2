@@ -6,21 +6,23 @@ from .colors import colors
 
 
 class EntryPoint:
-    def __init__(self, *args, outfile=None, **kwargs):
+    def __init__(self, *args, outfile=None, log=True, **kwargs):
         self.outfile = outfile or sys.stdout
         self.exit_code = 0
+        self.log = log
         super().__init__(*args, **kwargs)
 
     def entry_point(self):
         self.name = os.path.basename(sys.argv[0])
 
-        logging.basicConfig(
-            stream=sys.stdout,
-            level=getattr(
-                logging,
-                os.environ.get('LOG', 'info').upper(),
-            ),
-        )
+        if self.log:
+            logging.basicConfig(
+                stream=sys.stdout,
+                level=getattr(
+                    logging,
+                    os.environ.get('LOG', 'info').upper(),
+                ),
+            )
 
         result = self(*sys.argv[1:])
         if result is not None:

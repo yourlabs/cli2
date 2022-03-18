@@ -535,6 +535,20 @@ Use the ``LOG`` environment variable to change it, ie::
     LOG=debug yourcommand ...
     LOG=error yourcommand ...
 
+Or, disable this default feature with ``log=False``::
+
+    cli = cli2.Group(log=False)
+
+Tables
+======
+
+cli2 also offers a simple table rendering data that will do it's best to word
+wrap cell data so that it fits in the terminal. Example:
+
+.. code-block:: python
+
+    cli2.Table(*rows).print()
+
 Edge cases
 ==========
 
