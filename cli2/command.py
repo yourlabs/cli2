@@ -168,7 +168,8 @@ class Command(EntryPoint, dict):
             elif hasattr(self.target, '__call__'):
                 rep = '__call__'
             error = str(exc)
-            if error.startswith(rep):
+            function = error.split(' ')[0].split('.')[-1]
+            if function.startswith(rep + '('):
                 return self.help(error=error.replace(rep + '()', self.name))
             raise
 
