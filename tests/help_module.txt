@@ -10,22 +10,22 @@ cli2 help cli2.test_node SUB-COMMAND
 Test cases for cli2.Node
 
 [1;38;5;202mSUB-COMMANDS[0m
-[38;5;10mhelp                   [0m Get help for a command or group                         [0m
-[38;5;202mExampleClass           [0m                                                         [0m
-[38;5;202mExampleClassCallable   [0m                                                         [0m
-[38;5;202mNode                   [0m A Python node, used to browse python module for         [0m
-                       [0m programatically callables                               [0m
-[38;5;199mexample_function       [0m Example function docstring where the first sentence over[0m
-                       [0m unfortunnately spreads the next line                    [0m
-[38;5;10mexample_object         [0m Represents a group of named commands                    [0m
-[38;5;202mexample_object_callable[0m                                                         [0m
-[38;5;202mtest_callable_class    [0m                                                         [0m
-[38;5;202mtest_callable_object   [0m                                                         [0m
-[38;5;202mtest_class             [0m                                                         [0m
-[38;5;202mtest_dict              [0m                                                         [0m
-[38;5;202mtest_eq                [0m                                                         [0m
-[38;5;202mtest_function          [0m                                                         [0m
-[38;5;202mtest_list              [0m                                                         [0m
-[38;5;202mtest_module            [0m                                                         [0m
-[38;5;202mtest_object            [0m                                                         [0m
-[38;5;202mtest_unknown           [0m                                                         [0m
+[38;5;10mhelp                   [0m Get help for a command or group
+[38;5;202mExampleClass           [0m 
+[38;5;202mExampleClassCallable   [0m 
+[38;5;202mNode                   [0m A Python node, used to browse python module
+                        programatically for callables
+[38;5;199mexample_function       [0m Example function docstring where the first sentence
+                        unfortunnately spreads over the next line
+[38;5;10mexample_object         [0m Represents a group of named commands
+[38;5;202mexample_object_callable[0m 
+[38;5;202mtest_callable_class    [0m 
+[38;5;202mtest_callable_object   [0m 
+[38;5;202mtest_class             [0m 
+[38;5;202mtest_dict              [0m 
+[38;5;202mtest_eq                [0m 
+[38;5;202mtest_function          [0m 
+[38;5;202mtest_list              [0m 
+[38;5;202mtest_module            [0m 
+[38;5;202mtest_object            [0m 
+[38;5;202mtest_unknown           [0m 

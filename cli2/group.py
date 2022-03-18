@@ -104,7 +104,7 @@ class Group(EntryPoint, dict):
             self.print()
 
         from .table import Table
-        table = Table(['command', 'help'], header=False, *[
+        table = Table(*[
             (
                 (
                     getattr(colors, command.color, command.color),
