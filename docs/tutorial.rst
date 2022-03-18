@@ -535,6 +535,10 @@ Use the ``LOG`` environment variable to change it, ie::
     LOG=debug yourcommand ...
     LOG=error yourcommand ...
 
+Or, disable this default feature with ``log=False``::
+
+    cli = cli2.Group(log=False)
+
 Tables
 ======
 

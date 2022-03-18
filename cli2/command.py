@@ -17,7 +17,7 @@ class Command(EntryPoint, dict):
         return super().__new__(cls, *args, **kwargs)
 
     def __init__(self, target, name=None, color=None, doc=None, posix=False,
-                 outfile=None):
+                 outfile=None, log=True):
         self.target = target
         self.posix = posix
         self.parent = None
@@ -50,7 +50,7 @@ class Command(EntryPoint, dict):
 
         self.sig = inspect.signature(target)
         self.setargs()
-        EntryPoint.__init__(self, outfile=outfile)
+        EntryPoint.__init__(self, outfile=outfile, log=log)
 
     def setargs(self):
         """Reset arguments."""
