@@ -175,7 +175,7 @@ class Argument:
                 + colors.reset
             )
 
-        if self.type == bool:
+        if self.type == bool and not self.negates:
             self.cmd.print(
                 'Accepted: '
                 + colors.blue3
