@@ -33,6 +33,28 @@ class Table(list):
     def __init__(self, *args):
         super().__init__(args)
 
+    @classmethod
+    def factory(cls, *items):
+        self = cls()
+        first = True
+        keys = None
+        kind = None
+        for item in items:
+            if not kind:
+                kind = type(item)
+            elif kind != type(item):
+                raise Exception('Data contains different types')
+
+            if isinstance(item, (list, tuple)):
+                self.append([str(item) for item in item])
+            elif isinstance(item, dict):
+                if first:
+                    self.append([key for key in item.keys()])
+                    self.append(['=' for key in item.keys()])
+                    first = False
+                self.append([str(value) for value in item.values()])
+        return self
+
     def calculate_columns(self, termsize):
         columns = self.columns = []
 

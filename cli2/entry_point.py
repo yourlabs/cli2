@@ -3,6 +3,7 @@ import logging
 import sys
 
 from .colors import colors
+from .table import Table
 
 
 class EntryPoint:
@@ -12,8 +13,9 @@ class EntryPoint:
         self.log = log
         super().__init__(*args, **kwargs)
 
-    def entry_point(self):
-        self.name = os.path.basename(sys.argv[0])
+    def entry_point(self, *args):
+        args = args or sys.argv
+        self.name = os.path.basename(args[0])
 
         if self.log:
             logging.basicConfig(
@@ -24,9 +26,17 @@ class EntryPoint:
                 ),
             )
 
-        result = self(*sys.argv[1:])
+        result = self(*args[1:])
         if result is not None:
-            print(result)
+            if isinstance(result, (list, tuple)):
+                try:
+                    table = Table.factory(*result)
+                except:
+                    print(result)
+                else:
+                    table.print()
+            else:
+                print(result)
         sys.exit(self.exit_code)
 
     def print(self, *args, sep=' ', end='\n', file=None, color=None):
