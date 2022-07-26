@@ -128,7 +128,8 @@ class Command(EntryPoint, dict):
         for current in argv:
             taken = False
             for arg in self.values():
-                if taken := arg.take(current):
+                taken = arg.take(current)
+                if taken:
                     break
 
             if not taken:
