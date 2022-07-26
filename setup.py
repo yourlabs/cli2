@@ -19,7 +19,7 @@ setup(
     include_package_data=True,
     license='MIT',
     keywords='cli',
-    python_requires='>=3.8',
+    python_requires='>=3.6',
     entry_points={
         'console_scripts': [
             'cli2 = cli2.cli:main.entry_point',
