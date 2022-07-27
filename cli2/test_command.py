@@ -310,6 +310,17 @@ def test_kwarg_priority():
         cmd['missing'].value
 
 
+def test_kwargs_find_their_values():
+    def foo(*a, b: str='', c: str='', **d):
+        """docstring"""
+    cmd = Command(foo)
+    cmd.parse('c=3', 'e=5', '1', 'b=2')
+    assert cmd['a'].value == ['1']
+    assert cmd['b'].value == '2'
+    assert cmd['c'].value == '3'
+    assert cmd['d'].value == dict(e='5')
+
+
 def test_kwarg_priority_doesnt_break_positional():
     def foo(missing, **kwarg):
         return missing

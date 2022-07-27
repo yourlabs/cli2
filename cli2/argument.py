@@ -297,6 +297,10 @@ class Argument:
         if not self.accepts:
             return
 
+        if self.aliasmatch(arg):
+            self.value = self.cast(self.match(arg))
+            return True
+
         if self.param.kind == self.param.VAR_KEYWORD:
             if arg.startswith('**{') and arg.endswith('}'):
                 self.cmd.bound.arguments[self.param.name] = json.loads(arg[2:])
