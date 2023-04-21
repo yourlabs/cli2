@@ -75,6 +75,8 @@ class Table(list):
                     color = ''
                     data = item
 
+                data = str(data)
+
                 minlength = max(
                     [len(word) for word in data.split(' ')]
                 )
@@ -130,6 +132,7 @@ class Table(list):
                 else:
                     color = ''
                     data = row[colnum]
+                data = str(data)
 
                 wrapped = textwrap.wrap(data, column.maxlength)
                 words = wrapped[0] if wrapped else ''

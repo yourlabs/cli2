@@ -120,3 +120,12 @@ def test_factory_dicts():
         1  2
         2  3
     ''')
+
+
+def test_nonstring():
+    table = cli2.Table(
+        [1, False],
+    )
+    assert_table_output(table, 9, '''
+        1  False
+    ''')
