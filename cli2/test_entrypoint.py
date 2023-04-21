@@ -8,6 +8,7 @@ def test_output_list_dicts(mocker):
         dict(a=1, b=2),
         dict(a=2, b=3),
     ]
+
     def list_output():
         return result
     cmd = Command(list_output)

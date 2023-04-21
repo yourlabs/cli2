@@ -2,7 +2,8 @@
 Table module for cli2.
 
 This Table module behaves like a list, and is pretty simple. Its purpose is to
-tabulate data and it's going to brute force output sizes until it finds a match.
+tabulate data and it's going to brute force output sizes until it finds a
+match.
 
 As such, it's not a good module to display really a lot of data because it
 sacrifies performance for human readability.
@@ -37,7 +38,6 @@ class Table(list):
     def factory(cls, *items):
         self = cls()
         first = True
-        keys = None
         kind = None
         for item in items:
             if not kind:
@@ -69,10 +69,8 @@ class Table(list):
                 data = item
 
                 if isinstance(data, (list, tuple)):
-                    color = data[0]
                     data = data[1]
                 else:
-                    color = ''
                     data = item
 
                 data = str(data)
@@ -109,7 +107,7 @@ class Table(list):
         if not termsize:
             try:
                 termsize = os.get_terminal_size().columns
-            except:
+            except:  # noqa
                 termsize = 80
         columns = self.calculate_columns(termsize=termsize)
 

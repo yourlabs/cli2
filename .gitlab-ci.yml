@@ -2,7 +2,7 @@ image: yourlabs/python
 
 qa:
   stage: test
-  script: pip install -e git+https://gitlab.com/pycqa/flake8.git#egg=flake8 flake8
+  script: flake8
 
 pytest:
   stage: test

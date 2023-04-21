@@ -262,7 +262,7 @@ def test_weird_pattern():
 
 
 class Foo:
-    def __call__(self, a: int, b: list, c : bool = False, *d, e=None, **f):
+    def __call__(self, a: int, b: list, c: bool = False, *d, e=None, **f):
         self.a = a
         self.b = b
         self.c = c
@@ -310,7 +310,7 @@ def test_kwarg_priority():
 
 
 def test_kwargs_find_their_values():
-    def foo(*a, b: str='', c: str='', **d):
+    def foo(*a, b: str = '', c: str = '', **d):
         """docstring"""
     cmd = Command(foo)
     cmd.parse('c=3', 'e=5', '1', 'b=2')

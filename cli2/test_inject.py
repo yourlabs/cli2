@@ -60,6 +60,7 @@ def test_syntaxes(kwargs, command, expected):
     ]
     for kind in kinds:
         kwargs['kind'] = kind
+
         class TestCommand(Command):
             def setargs(self):
                 super().setargs()
@@ -88,6 +89,7 @@ def test_syntaxes(kwargs, command, expected):
 
 def test_call():
     sentinel = mock.sentinel.test_call
+
     class TestCommand(Command):
         def setargs(self):
             super().setargs()

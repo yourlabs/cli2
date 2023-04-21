@@ -49,7 +49,7 @@ def autotest(path, cmd, ignore=None, env=None):
         ])
 
     for r in ignore or []:
-        fixture = re.compile(r).sub(f'redacted', fixture)
+        fixture = re.compile(r).sub('redacted', fixture)
 
     exists = os.path.exists(path)
     if REWRITE and exists:

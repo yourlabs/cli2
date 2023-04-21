@@ -1,5 +1,4 @@
 import cli2
-import pytest
 import textwrap
 
 
@@ -10,7 +9,7 @@ def test_calculate_columns():
     )
 
     # large term
-    columns =    table.calculate_columns(termsize=80)
+    columns = table.calculate_columns(termsize=80)
     assert columns[0].minlength == 4
     assert columns[0].maxlength == 8
     assert columns[1].minlength == 3

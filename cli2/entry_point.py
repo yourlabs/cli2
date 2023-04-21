@@ -31,7 +31,7 @@ class EntryPoint:
             if isinstance(result, (list, tuple)):
                 try:
                     table = Table.factory(*result)
-                except:
+                except:  # noqa
                     print(result)
                 else:
                     table.print()
