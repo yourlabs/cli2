@@ -1,4 +1,4 @@
-image: yourlabs/python-arch
+image: yourlabs/python
 
 qa:
   stage: test
