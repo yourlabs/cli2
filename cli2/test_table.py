@@ -3,7 +3,7 @@ import textwrap
 
 
 def test_calculate_columns():
-    table = cli2.Table(
+    table = cli2.Table(  # noqa
         ['a', 'b'],
         ['foo test', 'bar'],
     )
