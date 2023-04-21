@@ -110,8 +110,7 @@ def test_keyword_only():
 
     cmd.parse('x')
     assert cmd['one'].value == ['x']
-    with pytest.raises(KeyError):
-        cmd['two'].value
+    assert cmd['two'].value is None
 
 
 def test_bool():

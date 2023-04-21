@@ -10,14 +10,12 @@ class Argument:
     """
     # TODO: why not split this into a bunch of simpler sub-classes now that
     # it's pretty featureful ?
-    def __init__(self, cmd, param, doc=None, color=None, default=None):
+    def __init__(self, cmd, param, doc=None, color=None, **kwargs):
         self.cmd = cmd
         self.param = param
         self.color = color
-        self.default = default
-
-        if default is None and param.default != param.empty:
-            self.default = param.default
+        # Let default be set to None :)
+        self.default = kwargs.pop('default', param.default)
 
         self.doc = doc or ''
         if not doc:
@@ -170,7 +168,10 @@ class Argument:
                 out += ' '
             self.cmd.print(out)
 
-        if self.default or self.param.default != self.param.empty:
+        if (
+            self.default != self.param.empty
+            or self.param.default != self.param.empty
+        ):
             self.cmd.print(
                 'Default: '
                 + colors.blue3
@@ -229,11 +230,19 @@ class Argument:
     @property
     def value(self):
         """Return the value bound to this argument."""
-        return self.cmd.bound.arguments[self.param.name]
+        try:
+            return self.cmd.bound.arguments[self.param.name]
+        except KeyError:
+            if self.default != self.param.empty:
+                return self.default
+            raise
 
     @value.setter
     def value(self, value):
-        if self.param.kind == self.param.VAR_POSITIONAL:
+        if value == self.param.empty:
+            # the getter will return the default or raise
+            return
+        elif self.param.kind == self.param.VAR_POSITIONAL:
             self.cmd.bound.arguments.setdefault(self.param.name, [])
             self.cmd.bound.arguments[self.param.name].append(value)
         elif self.param.kind == self.param.VAR_KEYWORD:
