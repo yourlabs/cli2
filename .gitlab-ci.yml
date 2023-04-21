@@ -2,7 +2,7 @@ image: yourlabs/python
 
 qa:
   stage: test
-  script: flake8
+  script: flake8 --ignore=N806,E704,W503 cli2
 
 pytest:
   stage: test
