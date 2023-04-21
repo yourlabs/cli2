@@ -16,6 +16,9 @@ class Argument:
         self.color = color
         self.default = default
 
+        if default is None and param.default != param.empty:
+            self.default = param.default
+
         self.doc = doc or ''
         if not doc:
             for _param in cmd.parsed.params:
