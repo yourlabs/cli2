@@ -401,6 +401,31 @@ You can also easily write an automated test:
     cmd.parse('1,2')
     assert cmd.bound.arguments == dict(ages=[1, 2])
 
+Logging
+=======
+
+By default, :py:class:`~cli2.entry_point.EntryPoint`: will setup a default
+logger streaming all python logs to stdout with info level.
+
+Use the ``LOG`` environment variable to change it, ie::
+
+    LOG=debug yourcommand ...
+    LOG=error yourcommand ...
+
+Or, disable this default feature with ``log=False``::
+
+    cli = cli2.Group(log=False)
+
+Tables
+======
+
+cli2 also offers a simple table rendering data that will do it's best to word
+wrap cell data so that it fits in the terminal. Example:
+
+.. code-block:: python
+
+    cli2.Table(*rows).print()
+
 Overridding default code
 ========================
 
@@ -524,30 +549,10 @@ Solution:
 There you go, you can automate command setup like with the creation of a schema
 argument and manipulate arguments programatically!
 
-Logging
-=======
+Check `cli2/test_inject.py` for edge cases and more fun examples!
 
-By default, :py:class:`~cli2.entry_point.EntryPoint`: will setup a default
-logger streaming all python logs to stdout with info level.
-
-Use the ``LOG`` environment variable to change it, ie::
-
-    LOG=debug yourcommand ...
-    LOG=error yourcommand ...
-
-Or, disable this default feature with ``log=False``::
-
-    cli = cli2.Group(log=False)
-
-Tables
-======
-
-cli2 also offers a simple table rendering data that will do it's best to word
-wrap cell data so that it fits in the terminal. Example:
-
-.. code-block:: python
-
-    cli2.Table(*rows).print()
+.. literalinclude:: ../cli2/test_inject.py
+   :language: python
 
 Edge cases
 ==========
