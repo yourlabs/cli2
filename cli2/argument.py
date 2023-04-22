@@ -232,10 +232,11 @@ class Argument:
         """Return the value bound to this argument."""
         try:
             return self.cmd.bound.arguments[self.param.name]
-        except KeyError:
+        except KeyError as exc:
             if self.default != self.param.empty:
                 return self.default
-            raise
+            msg = f'{self.param.name} has no CLI bound value nor default'
+            raise ValueError(msg) from exc
 
     @value.setter
     def value(self, value):
