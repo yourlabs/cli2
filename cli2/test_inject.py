@@ -23,7 +23,7 @@ with open(__file__, 'r') as f:
             # default should not be enabled
             dict(),
             [],
-            KeyError,
+            ValueError,
         ),
         # test bools
         (
@@ -108,7 +108,7 @@ def test_call():
     cmd = TestCommand(lambda: None)
     assert cmd() is None
 
-    # we don't want no KeyError though
+    # we don't want no ValueError though
     class TestCommand2(TestCommand):
         def call(self, *args, **kwargs):
             return self['test'].value

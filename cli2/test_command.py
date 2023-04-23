@@ -89,7 +89,7 @@ def test_vararg_after_kwarg():
 
     cmd.parse('x')
     assert cmd['one'].value == 'x'
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):
         cmd['two'].value
 
 
@@ -305,7 +305,7 @@ def test_kwarg_priority():
         """docstring"""
     cmd = Command(foo)
     cmd.parse('foo=bar')
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):
         cmd['missing'].value
 
 
