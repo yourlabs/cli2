@@ -22,7 +22,7 @@ Default: [38;5;81mNone[0m
 Default: [38;5;81mFalse[0m
 
 [[38;5;10mARGS[0m]...[0m
-Any number of un-named arguments with equal sign
+Any number of un-named arguments
 
 [38;5;202m-f[0m=[38;5;10mFOO[0m [38;5;202m--foo[0m=[38;5;10mFOO[0m 
 Default: [38;5;81mNone[0m

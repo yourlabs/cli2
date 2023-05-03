@@ -202,7 +202,7 @@ class Argument:
             else:
                 self.cmd.print('something=somearg')
         elif self.param.kind == self.param.VAR_POSITIONAL:
-            self.cmd.print('Any number of un-named arguments with equal sign')
+            self.cmd.print('Any number of un-named arguments')
 
         if self.doc:
             self.cmd.print(self.doc)
