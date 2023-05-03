@@ -10,7 +10,7 @@ over the next line.
 
 [1;38;5;202mPOSITIONAL ARGUMENTS[0m
 [[38;5;10mARGS[0m]...[0m
-Any number of un-named arguments with equal sign
+Any number of un-named arguments
 All arguments you want but this line will spread over multiple lines just for the sake of it
 
 [1;38;5;202mNAMED ARGUMENTS[0m
