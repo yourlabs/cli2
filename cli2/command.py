@@ -121,7 +121,7 @@ class Command(EntryPoint, dict):
             arg.help()
 
     def parse(self, *argv):
-        """"Parse arguments into BoundArguments."""
+        """Parse arguments into BoundArguments."""
         self.setargs()
         self.bound = self.sig.bind_partial()
         extra = []
