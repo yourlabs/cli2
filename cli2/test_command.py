@@ -94,14 +94,16 @@ def test_vararg_after_kwarg():
 
 
 def test_positional_only_looksahead():
-    def foo(one=None, /, *two, three=None):  # noqa
+    def foo(one=None, /, *two, three=None, **kwargs):  # noqa
         return (one, two)
     cmd = Command(foo)
 
-    cmd.parse('three=z', 'x', 'y')
+    cmd.parse('y.-7=e', 'three=z', 'x', 'y')
     assert cmd['one'].value == 'x'
     assert cmd['two'].value == ['y']
     assert cmd['three'].value == 'z'
+    # make sure it takes weird keywords too
+    assert cmd['kwargs'].value['y.-7'] == 'e'
 
 
 def test_keyword_only():
