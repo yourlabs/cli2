@@ -285,7 +285,7 @@ class Argument:
 
     def aliasmatch(self, arg):
         """Return True if the CLI arg matches an alias of this argument."""
-        if arg == self.negate:
+        if arg in self.negates:
             return True
         if self.iskw and self.param.annotation == bool and arg in self.alias:
             return True
