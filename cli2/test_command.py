@@ -141,12 +141,12 @@ def test_bool_flag():
 
 
 def test_bool_flag_posix():
-    def foo(hi: bool = None): return hi
+    def foo(fuzz=None, hi: bool = None): return hi
     cmd = Command(foo, posix=True)
+    assert cmd('-nh') is False
+    assert cmd('--no-hi') is False
     assert cmd('--hi') is True
     assert cmd('-h') is True
-    assert cmd('--no-hi') is False
-    assert cmd('-nh') is False
 
 
 def test_bool_flag_negate():
