@@ -1,4 +1,5 @@
 import inspect
+import textwrap
 
 from .colors import colors
 from .command import Command
@@ -13,7 +14,10 @@ class Group(EntryPoint, dict):
     def __init__(self, name=None, doc=None, color=None, posix=False,
                  outfile=None, cmdclass=None, log=True):
         self.name = name
-        self.doc = doc or inspect.getdoc(self)
+        if doc:
+            self.doc = textwrap.dedent(doc).strip()
+        else:
+            self.doc = inspect.getdoc(self)
         self.color = color or colors.green
         self.posix = posix
         self.parent = None

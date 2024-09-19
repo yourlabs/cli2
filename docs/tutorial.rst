@@ -219,6 +219,36 @@ Python object or as dotted python path, all the following work:
     group.load('your_module')
     group.load('your_module.your_object')
 
+Injecting CLIs from submodules
+------------------------------
+
+You don't need to declare all your commands in a single script because ny
+script can declare a :py:cls:`~cli2.group.Group` that can be imported in the
+main CLI.
+
+For example, in `foo.py`:
+
+.. code-block:: python
+
+    cli = cli2.Group()
+
+    @cli.cmd
+    def foo():
+        pass
+
+You can load it in another main CLI script, `cli.py`:
+
+.. code-block:: python
+
+    from . import foo
+
+    cli = cli2.Group()
+    cli['foo'] = foo.cli
+
+    @cli.cmd
+    def bar():
+        pass
+
 Argument
 ========
 

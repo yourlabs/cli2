@@ -54,6 +54,23 @@ def test_help():
     group('help', 'lol')
     assert 'not found' in group.outfile
 
+    group.group(
+        "test",
+        doc="""
+        Le Lorem Ipsum est simplement du faux texte employé dans la composition
+        et la mise en page avant impression. Le Lorem Ipsum est le faux texte
+
+        standard de l'imprimerie depuis les années 1500, quand un imprimeur
+        anonyme assembla ensemble des morceaux de texte pour réaliser un livre
+        applications de mise en page de texte, comme Aldus PageMaker.
+        """
+    )
+    group.outfile.reset()
+    group('help')
+    assert group.outfile.out.endswith("avant impression\n")
+    group.outfile.reset()
+    group('help', 'test')
+
 
 def test_help_nested():
     def c(): 'cdoc'
