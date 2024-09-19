@@ -223,7 +223,7 @@ Injecting CLIs from submodules
 ------------------------------
 
 You don't need to declare all your commands in a single script because ny
-script can declare a :py:cls:`~cli2.group.Group` that can be imported in the
+script can declare a :py:class:`~cli2.group.Group` that can be imported in the
 main CLI.
 
 For example, in `foo.py`:
