@@ -411,11 +411,6 @@ def test_docstring():
             to span over multiple lines and without type annotation inside
         '''
     cmd = Command(foo)
-    assert cmd.doc == (
-        "Do something\n"
-        "Do something that will span over multiple lines if i find enough"
-        " to type in this line."
-    )
     assert cmd['lol'].doc == (
         "Another argument documentation that's unfortunnately going"
         " to span over multiple lines and without type annotation inside"

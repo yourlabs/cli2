@@ -7,6 +7,13 @@ def yourcmd(somearg, x=None, verbose: bool = False, *args, foo=None, **kwargs):
     """
     Your own command.
 
+    - Some List
+    - Other Item
+
+    Example code:
+
+        example indented code
+
     :param somearg: It's some string argument that this function will return
     """
     return (somearg, x, verbose, args, foo, kwargs)

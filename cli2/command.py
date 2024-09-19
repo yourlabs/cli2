@@ -41,7 +41,7 @@ class Command(EntryPoint, dict):
             if self.parsed.long_description:
                 if self.doc:
                     self.doc += '\n'
-                self.doc += self.parsed.long_description.replace('\n', ' ')
+                self.doc += self.parsed.long_description
 
         if color:
             self.color = color
