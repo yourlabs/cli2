@@ -161,6 +161,24 @@ class Command(EntryPoint, dict):
 
         args, kwargs = self.argskwargs()
 
+        required = [
+            arg
+            for arg in self.values()
+            if arg.default == inspect._empty
+            and arg.param.kind not in (
+                arg.param.VAR_KEYWORD,
+                arg.param.VAR_POSITIONAL,
+            )
+        ]
+        if len(args) < len(required):
+            missing = [
+                arg.param.name
+                for arg in required[len(args):]
+            ]
+            error = f'Missing args: {", ".join(missing)}'
+            self.help(error=error)
+            sys.exit(1)
+
         try:
             result = self.call(*args, **kwargs)
             if inspect.iscoroutine(result):
