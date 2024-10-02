@@ -192,10 +192,10 @@ class Command(EntryPoint, dict):
             error = str(exc)
             function = error.split(' ')[0].split('.')[-1]
             if function.startswith(rep + '('):
-                return self.help(error=error.replace(rep + '()', self.name))
+                self.help(error=error.replace(rep + '()', self.name))
+                sys.exit(1)
             raise
         except KeyboardInterrupt:
             print('exiting')
             sys.exit(1)
-
         return result
