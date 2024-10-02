@@ -157,6 +157,7 @@ class Command(EntryPoint, dict):
         self.exit_code = 0
         error = self.parse(*argv)
         if error:
+            self.exit_code = 1
             return self.help(error=error)
 
         args, kwargs = self.argskwargs()
