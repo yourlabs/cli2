@@ -18,8 +18,6 @@ from with ease:
   in charge of deciding if it wants to take an argument as well as casting it
   into a Python value.
 
-You probably won't care about the latter even for custom use cases.
-
 Command
 =======
 
@@ -45,6 +43,8 @@ Create a command from any callable:
 Running the script without argument will show the generated help:
 
 .. image:: example.png
+
+Also, passing `--help` will display help for a command.
 
 Complex signature
 -----------------
