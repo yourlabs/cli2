@@ -135,3 +135,10 @@ def test_group_cmdclass():
     group.cmd()(example)
     assert isinstance(group['example'], CommandSubject)
     assert not isinstance(group['help'], CommandSubject)
+
+
+def test_inject():
+    outer = Group(name="outer")
+    inner = Group()
+    outer["inner"] = inner
+    assert inner.name == "inner"

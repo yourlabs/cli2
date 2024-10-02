@@ -35,6 +35,8 @@ class Group(EntryPoint, dict):
         return self
 
     def __setitem__(self, key, value):
+        if isinstance(value, Group):
+            value.name = key
         value.posix = self.posix
         value.parent = self
         value.outfile = self.outfile
