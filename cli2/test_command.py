@@ -506,3 +506,19 @@ def test_arg():
     cmd = TestCommand(lambda foo: True)
     cmd.arg('bar', position=0)
     assert list(cmd.keys()) == ['bar', 'foo']
+
+
+def test_helphack():
+    class TestCommand(Command):
+        def help(self):
+            self.help_shown = True
+    def foo(*one): return one
+    cmd = TestCommand(foo)
+    cmd('a', 'b', '--help')
+    assert cmd.exit_code == 1
+    assert getattr(cmd, 'help_shown', False)
+
+    cmd = TestCommand(foo, help_hack=False)
+    cmd('a', 'b', '--help')
+    assert cmd.exit_code == 0
+    assert not getattr(cmd, 'help_shown', False)

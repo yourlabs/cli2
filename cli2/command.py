@@ -18,10 +18,11 @@ class Command(EntryPoint, dict):
         return super().__new__(cls, *args, **kwargs)
 
     def __init__(self, target, name=None, color=None, doc=None, posix=False,
-                 outfile=None, log=True):
+                 help_hack=True, outfile=None, log=True):
         self.target = target
         self.posix = posix
         self.parent = None
+        self.help_hack = help_hack
 
         overrides = getattr(target, 'cli2', {})
         for key, value in overrides.items():
@@ -153,6 +154,10 @@ class Command(EntryPoint, dict):
 
     def __call__(self, *argv):
         """Execute command with args from sysargs."""
+        if self.help_hack and '--help' in argv:
+            self.exit_code = 1
+            return self.help()
+
         self.exit_code = 0
         error = self.parse(*argv)
         if error:
