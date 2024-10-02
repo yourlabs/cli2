@@ -49,6 +49,7 @@ class Command(EntryPoint, dict):
         elif 'color' not in overrides:
             self.color = 'orange'
 
+        self.positions = dict()
         self.sig = inspect.signature(target)
         self.setargs()
         EntryPoint.__init__(self, outfile=outfile, log=log)
@@ -203,6 +204,21 @@ class Command(EntryPoint, dict):
 
     @property
     def ordered(self):
+        """
+        Order the parameters by priority.
+        """
+        return {key: self[key] for key in self.keys()}
+
+    def values(self):
+        """ Return ordered values """
+        return self.ordered.values()
+
+    def items(self):
+        """ Return ordered items """
+        return self.ordered.items()
+
+    def keys(self):
+        """ Return ordered keys """
         order = (
             inspect.Parameter.POSITIONAL_ONLY,
             inspect.Parameter.POSITIONAL_OR_KEYWORD,
@@ -210,21 +226,69 @@ class Command(EntryPoint, dict):
             inspect.Parameter.KEYWORD_ONLY,
             inspect.Parameter.VAR_KEYWORD,
         )
-        ordered = dict()
+        keys = []
         for kind in order:
             for name, arg in super().items():
+                if name in self.positions:
+                    continue
                 if arg.param.kind == kind:
-                    ordered[name] = arg
-        return ordered
-
-    def values(self):
-        return self.ordered.values()
-
-    def items(self):
-        return self.ordered.items()
-
-    def keys(self):
-        return self.ordered.keys()
+                    keys.append(name)
+        for key, position in self.positions.items():
+            keys.insert(position, key)
+        return keys
 
     def __iter__(self):
         return self.ordered.__iter__()
+
+    def arg(
+        self,
+        name,
+        *,
+        kind: str = None,
+        position: int = None,
+        doc=None,
+        color=None,
+        default=inspect.Parameter.empty,
+        annotation=inspect.Parameter.empty,
+    ):
+        """
+        Inject new :py:class:`~cli2.argument.Argument` into this command.
+
+        The new argument will appear in documentation, but won't be bound to
+        the callable: it will only be avalaible in `self`.
+
+        For example, you are deleting an "http_client" argument in
+        :py:meth:`setargs()` so that it doesn't appear to the CLI user, to whom
+        you want to expose a couple of arguments such as "base_url" and
+        "ssl_verify" that you are adding programatically with this method, so
+        that you can use `self['base_url'].value` and
+        `self['ssl_verify'].value` in to generate a "http_client" argument in
+        :py:meth:`call()`.
+
+        The tutorial has a more comprehensive example in the "CLI only
+        arguments" section.
+
+        :param name: Name of the argument to add
+        :param kind: Name of the inspect parameter kind
+        :param position: Position of the argument in the CLI
+        :param doc: Documentation for the argument
+        :param color: Color of the argument
+        :param default: Default value for the argument
+        :param annotation: Type of argument
+        """
+        self[name] = Argument(
+            self,
+            inspect.Parameter(
+                name,
+                kind=getattr(
+                    inspect.Parameter,
+                    kind or "POSITIONAL_OR_KEYWORD",
+                ),
+                default=default,
+                annotation=annotation,
+            ),
+            doc=doc,
+            color=color,
+        )
+        if position is not None:
+            self.positions[name] = position
