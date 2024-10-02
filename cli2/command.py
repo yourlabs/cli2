@@ -1,5 +1,6 @@
 import asyncio
 import inspect
+import sys
 
 from docstring_parser import parse
 
@@ -162,6 +163,8 @@ class Command(EntryPoint, dict):
 
         try:
             result = self.call(*args, **kwargs)
+            if inspect.iscoroutine(result):
+                result = asyncio.run(result)
         except TypeError as exc:
             self.exit_code = 1
             if hasattr(self.target, '__name__'):
@@ -173,12 +176,8 @@ class Command(EntryPoint, dict):
             if function.startswith(rep + '('):
                 return self.help(error=error.replace(rep + '()', self.name))
             raise
+        except KeyboardInterrupt:
+            print('exiting')
+            sys.exit(1)
 
-        if inspect.iscoroutine(result):
-            try:
-                result = asyncio.run(result)
-            except KeyboardInterrupt:
-                print('exiting')
-                import sys
-                sys.exit(1)
         return result
