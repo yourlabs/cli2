@@ -188,19 +188,6 @@ class Command(EntryPoint, dict):
             result = self.call(*self.bound.args, **self.bound.kwargs)
             if inspect.iscoroutine(result):
                 result = asyncio.run(result)
-        except TypeError as exc:
-            # keeping this as fallback for now, in case the above missing
-            # detection doesn't work
-            self.exit_code = 1
-            if hasattr(self.target, '__name__'):
-                rep = getattr(self.target, '__name__')
-            elif hasattr(self.target, '__call__'):
-                rep = '__call__'
-            error = str(exc)
-            function = error.split(' ')[0].split('.')[-1]
-            if function.startswith(rep + '('):
-                return self.help(error=error.replace(rep + '()', self.name))
-            raise
         except KeyboardInterrupt:
             print('exiting')
             sys.exit(1)
