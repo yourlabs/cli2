@@ -508,8 +508,8 @@ You may also override at the group level, basically instanciate your
     cli = cli2.Group(cmdclass=YourThingCommand)
     cli.add(your_function)
 
-Global setup
-------------
+CLI only arguments
+------------------
 
 A more useful example combining all the above, suppose you have two functions
 that take a "schema" argument that is a python object of a "Schema" class of
@@ -544,20 +544,15 @@ Solution:
             del self['schema']
 
             # create two arguments programatically
-            self['filename'] = cli2.Argument(
-                self,
-                inspect.Parameter(
-                    'filename',
-                    inspect.Parameter.POSITIONAL_ONLY,
-                ),
-                doc='Filename to use',
+            self.arg(
+                'filename',
+                position=0,
+                kind='POSITIONAL_ONLY',
+                doc='File to use',
             )
-            self['syntax'] = cli2.Argument(
-                self,
-                inspect.Parameter(
-                    'services',
-                    inspect.Parameter.KEYWORD_ONLY,
-                ),
+            self.arg(
+                'syntax',
+                kind='KEYWORD_ONLY',
                 doc='Syntax to use',
             )
 
