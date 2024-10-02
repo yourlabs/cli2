@@ -204,3 +204,31 @@ class Command(EntryPoint, dict):
             print('exiting')
             sys.exit(1)
         return result
+
+    @property
+    def ordered(self):
+        order = (
+            inspect.Parameter.POSITIONAL_ONLY,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            inspect.Parameter.VAR_POSITIONAL,
+            inspect.Parameter.KEYWORD_ONLY,
+            inspect.Parameter.VAR_KEYWORD,
+        )
+        ordered = dict()
+        for kind in order:
+            for name, arg in super().items():
+                if arg.param.kind == kind:
+                    ordered[name] = arg
+        return ordered
+
+    def values(self):
+        return self.ordered.values()
+
+    def items(self):
+        return self.ordered.items()
+
+    def keys(self):
+        return self.ordered.keys()
+
+    def __iter__(self):
+        return self.ordered.__iter__()
