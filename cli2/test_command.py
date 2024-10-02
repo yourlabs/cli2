@@ -1,5 +1,7 @@
+import inspect
 import pytest
 
+from .argument import Argument
 from .command import Command
 from .test import autotest, Outfile
 
@@ -443,3 +445,54 @@ def test_print_bold(mocker):
 ])
 def test_help(name, command, env):
     autotest(f'tests/{name}.txt', command, env)
+
+
+def test_arg_reorder():
+    class TestCommand(Command):
+        def call(self, *args, **kwargs):
+            return (args, kwargs)
+
+    cmd = TestCommand(lambda: True)
+    cmd['vk'] = Argument(
+        cmd,
+        inspect.Parameter(
+            'vk',
+            inspect.Parameter.VAR_KEYWORD,
+        )
+    )
+    cmd['vargs'] = Argument(
+        cmd,
+        inspect.Parameter(
+            'varg',
+            inspect.Parameter.VAR_POSITIONAL,
+        )
+    )
+    cmd['kwarg'] = Argument(
+        cmd,
+        inspect.Parameter(
+            'kwarg',
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+        )
+    )
+    cmd['kw'] = Argument(
+        cmd,
+        inspect.Parameter(
+            'kw',
+            inspect.Parameter.KEYWORD_ONLY,
+        )
+    )
+    cmd['arg'] = Argument(
+        cmd,
+        inspect.Parameter(
+            'arg',
+            inspect.Parameter.POSITIONAL_ONLY,
+        )
+    )
+    assert list(cmd.keys()) == ['arg', 'kwarg', 'vargs', 'kw', 'vk']
+    cmd.parse('a')
+    assert cmd['arg'].value == 'a'
+
+    cmd.parse('a', 'b', 'c', 'd')
+    assert cmd['arg'].value == 'a'
+    assert cmd['kwarg'].value == 'b'
+    assert cmd['vargs'].value == ['c', 'd']
