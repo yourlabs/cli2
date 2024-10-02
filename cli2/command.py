@@ -161,6 +161,29 @@ class Command(EntryPoint, dict):
 
         args, kwargs = self.argskwargs()
 
+        required = [
+            arg
+            for arg in self.values()
+            if arg.default == inspect._empty
+            and arg.param.name not in kwargs
+            and arg.param.kind not in (
+                arg.param.VAR_KEYWORD,
+                arg.param.VAR_POSITIONAL,
+            )
+        ]
+        if len(args) < len(required):
+            missing = [
+                arg.param.name
+                for arg in required[len(args):]
+            ]
+            error = (
+                f'missing {len(missing)} required argument'
+                f'{"s" if len(missing) > 1 else ""}'
+                f': {", ".join(missing)}'
+            )
+            self.exit_code = 1
+            return self.help(error=error)
+
         try:
             result = self.call(*args, **kwargs)
             if inspect.iscoroutine(result):
@@ -174,8 +197,7 @@ class Command(EntryPoint, dict):
             error = str(exc)
             function = error.split(' ')[0].split('.')[-1]
             if function.startswith(rep + '('):
-                self.help(error=error.replace(rep + '()', self.name))
-                sys.exit(1)
+                return self.help(error=error.replace(rep + '()', self.name))
             raise
         except KeyboardInterrupt:
             print('exiting')
