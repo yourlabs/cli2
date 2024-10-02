@@ -139,18 +139,16 @@ class Command(EntryPoint, dict):
         if extra:
             return 'No parameters for these arguments: ' + ', '.join(extra)
 
-    def call(self, *args, **kwargs):
-        """Execute command target with bound arguments."""
-        return self.target(*args, **kwargs)
-
-    def argskwargs(self):
         for name, arg in self.items():
             if not arg.default:
                 continue
             if name in self.bound.arguments:
                 continue
             arg.value = arg.default
-        return self.bound.args, self.bound.kwargs
+
+    def call(self, *args, **kwargs):
+        """Execute command target with bound arguments."""
+        return self.target(*args, **kwargs)
 
     def __call__(self, *argv):
         """Execute command with args from sysargs."""
@@ -160,22 +158,20 @@ class Command(EntryPoint, dict):
             self.exit_code = 1
             return self.help(error=error)
 
-        args, kwargs = self.argskwargs()
-
         required = [
             arg
             for arg in self.values()
             if arg.default == inspect._empty
-            and arg.param.name not in kwargs
+            and arg.param.name not in self.bound.kwargs
             and arg.param.kind not in (
                 arg.param.VAR_KEYWORD,
                 arg.param.VAR_POSITIONAL,
             )
         ]
-        if len(args) < len(required):
+        if len(self.bound.args) < len(required):
             missing = [
                 arg.param.name
-                for arg in required[len(args):]
+                for arg in required[len(self.bound.args):]
             ]
             error = (
                 f'missing {len(missing)} required argument'
@@ -186,7 +182,7 @@ class Command(EntryPoint, dict):
             return self.help(error=error)
 
         try:
-            result = self.call(*args, **kwargs)
+            result = self.call(*self.bound.args, **self.bound.kwargs)
             if inspect.iscoroutine(result):
                 result = asyncio.run(result)
         except TypeError as exc:
