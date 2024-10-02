@@ -499,13 +499,11 @@ def test_arg_reorder():
 
 
 def test_arg():
-    class TestCommand(Command):
-        def call(self, *args, **kwargs):
-            return (args, kwargs)
-
-    cmd = TestCommand(lambda foo: True)
+    cmd = Command(lambda foo: foo)
     cmd.arg('bar', position=0)
     assert list(cmd.keys()) == ['bar', 'foo']
+    assert cmd('bar', 'foo') == 'foo'
+    assert cmd['bar'].value == 'bar'
 
 
 def test_helphack():

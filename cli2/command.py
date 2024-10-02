@@ -164,21 +164,18 @@ class Command(EntryPoint, dict):
             self.exit_code = 1
             return self.help(error=error)
 
-        required = [
-            arg
-            for arg in self.values()
-            if arg.default == inspect._empty
-            and arg.param.name not in self.bound.kwargs
-            and arg.param.kind not in (
-                arg.param.VAR_KEYWORD,
-                arg.param.VAR_POSITIONAL,
+        missing = [
+            name
+            for name, arg in self.items()
+            if name not in self.bound.arguments
+            and name not in self.bound.kwargs
+            and arg.param.default == arg.param.empty
+            and arg.param.kind in (
+                arg.param.POSITIONAL_ONLY,
+                arg.param.POSITIONAL_OR_KEYWORD,
             )
         ]
-        if len(self.bound.args) < len(required):
-            missing = [
-                arg.param.name
-                for arg in required[len(self.bound.args):]
-            ]
+        if missing:
             error = (
                 f'missing {len(missing)} required argument'
                 f'{"s" if len(missing) > 1 else ""}'
@@ -192,6 +189,8 @@ class Command(EntryPoint, dict):
             if inspect.iscoroutine(result):
                 result = asyncio.run(result)
         except TypeError as exc:
+            # keeping this as fallback for now, in case the above missing
+            # detection doesn't work
             self.exit_code = 1
             if hasattr(self.target, '__name__'):
                 rep = getattr(self.target, '__name__')
