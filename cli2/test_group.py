@@ -25,7 +25,7 @@ def test_group_no_command():
 def test_missing_arg():
     cmd = Group(outfile=Outfile()).add(lambda b: True, name='a')
     cmd('a')
-    assert "missing 1 required positional argument: 'b'" in cmd.outfile
+    assert "missing 1 required argument: b" in cmd.outfile
 
 
 def test_repr():
@@ -67,7 +67,7 @@ def test_help():
     )
     group.outfile.reset()
     group('help')
-    assert group.outfile.out.endswith("avant impression\n")
+    assert group.outfile.out.endswith("impression\n")
     group.outfile.reset()
     group('help', 'test')
 

@@ -332,7 +332,7 @@ def test_kwarg_priority_doesnt_break_positional():
 
     # can't call foo("foo=bar") as such:
     cmd('foo=bar')
-    assert "required positional argument: 'missing'" in cmd.outfile
+    assert "missing 1 required argument: missing" in cmd.outfile
 
     # needs to specify missing by name
     assert cmd('missing=foo=bar') == 'foo=bar'

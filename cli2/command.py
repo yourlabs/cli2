@@ -157,9 +157,33 @@ class Command(EntryPoint, dict):
         self.exit_code = 0
         error = self.parse(*argv)
         if error:
+            self.exit_code = 1
             return self.help(error=error)
 
         args, kwargs = self.argskwargs()
+
+        required = [
+            arg
+            for arg in self.values()
+            if arg.default == inspect._empty
+            and arg.param.name not in kwargs
+            and arg.param.kind not in (
+                arg.param.VAR_KEYWORD,
+                arg.param.VAR_POSITIONAL,
+            )
+        ]
+        if len(args) < len(required):
+            missing = [
+                arg.param.name
+                for arg in required[len(args):]
+            ]
+            error = (
+                f'missing {len(missing)} required argument'
+                f'{"s" if len(missing) > 1 else ""}'
+                f': {", ".join(missing)}'
+            )
+            self.exit_code = 1
+            return self.help(error=error)
 
         try:
             result = self.call(*args, **kwargs)
@@ -179,5 +203,4 @@ class Command(EntryPoint, dict):
         except KeyboardInterrupt:
             print('exiting')
             sys.exit(1)
-
         return result
