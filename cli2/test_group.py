@@ -142,3 +142,12 @@ def test_inject():
     inner = Group()
     outer["inner"] = inner
     assert inner.name == "inner"
+
+
+def test_group_cmdclass_override():
+    class MyCmd(Command):
+        pass
+
+    outer = Group(name="outer")
+    inner = outer.group("test", cmdclass=MyCmd)
+    assert inner.cmdclass == MyCmd
