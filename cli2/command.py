@@ -141,7 +141,10 @@ class Command(EntryPoint, dict):
         if extra:
             return 'No parameters for these arguments: ' + ', '.join(extra)
 
-        for name, arg in self.items():
+        for name, arg in self.items(factories=None):
+            if arg.factory:
+                arg.value = arg.factory_value()
+                continue
             if not arg.default:
                 continue
             if name in self.bound.arguments:
@@ -193,23 +196,36 @@ class Command(EntryPoint, dict):
             sys.exit(1)
         return result
 
-    @property
-    def ordered(self):
+    def ordered(self, factories=False):
         """
         Order the parameters by priority.
+
+        :param factories: Show only arguments with factory.
         """
-        return {key: self[key] for key in self.keys()}
+        return {key: self[key] for key in self.keys(factories=factories)}
 
-    def values(self):
-        """ Return ordered values """
-        return self.ordered.values()
+    def values(self, factories=False):
+        """
+        Return ordered values.
 
-    def items(self):
-        """ Return ordered items """
-        return self.ordered.items()
+        :param factories: Show only arguments with factory.
+        """
+        return self.ordered(factories=factories).values()
 
-    def keys(self):
-        """ Return ordered keys """
+    def items(self, factories=False):
+        """
+        Return ordered items.
+
+        :param factories: Show only arguments with factory.
+        """
+        return self.ordered(factories=factories).items()
+
+    def keys(self, factories=False):
+        """
+        Return ordered keys.
+
+        :param factories: Show only arguments with factory.
+        """
         order = (
             inspect.Parameter.POSITIONAL_ONLY,
             inspect.Parameter.POSITIONAL_OR_KEYWORD,
@@ -220,6 +236,8 @@ class Command(EntryPoint, dict):
         keys = []
         for kind in order:
             for name, arg in super().items():
+                if factories is False and arg.factory:
+                    continue
                 if name in self.positions:
                     continue
                 if arg.param.kind == kind:
@@ -229,7 +247,7 @@ class Command(EntryPoint, dict):
         return keys
 
     def __iter__(self):
-        return self.ordered.__iter__()
+        return self.ordered().__iter__()
 
     def arg(
         self,

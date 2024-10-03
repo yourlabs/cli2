@@ -115,6 +115,18 @@ Then, declare the command in a ``cli`` variable in ``yourcmd.py``:
     # if __name__ == '__main__':  if block not required in entry point
     cli = cli2.Command(yourcmd)
 
+Method commands
+---------------
+
+We've seen how to expose functions to the CLI. If you want to expose methods of
+an object, constructed based on CLI arguments, see the example in
+example_obj.py:
+
+.. literalinclude:: ../example_obj.py
+   :language: python
+
+The rest of the tutorial will describe each part used in there.
+
 Group
 =====
 
@@ -251,6 +263,31 @@ You can load it in another main CLI script, `cli.py`:
 
 Argument
 ========
+
+Factory
+-------
+
+You may want some arguments to have automatically computed values instead of
+being exposed to the user CLI. This is what argument factories are for:
+
+.. code-block:: python
+
+    class Foo:
+        @cli2.arg('auto', factory=lambda: 'autoval')
+        @cli2.arg('self', factory=lambda cmd, arg: Foo())
+        def test(self, auto, arg):
+            return auto, arg
+
+    cli2.Command(Foo.test)
+
+This command will only expose the `arg` argument to the user.  Both self and
+auto will have the result of the lambda passed as factory.
+
+If the factory callback takes an `arg` argument, then the
+:py:class:`~cli2.argument.Argument` object will be passed.
+
+If the factory callback takes an `cmd` argument, then the
+:py:class:`~cli2.command.Command` object will be passed.
 
 Aliases
 -------

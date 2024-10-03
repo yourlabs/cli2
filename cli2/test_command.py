@@ -1,6 +1,7 @@
 import inspect
 import pytest
 
+from .decorators import arg
 from .argument import Argument
 from .command import Command
 from .test import autotest, Outfile
@@ -521,3 +522,14 @@ def test_helphack():
     cmd('a', 'b', '--help')
     assert cmd.exit_code == 0
     assert not getattr(cmd, 'help_shown', False)
+
+
+def test_factory():
+    class Foo:
+        @arg('self', factory=lambda cmd, arg: Foo())
+        @arg('auto', factory=lambda: 'autoval')
+        def test(self, auto, arg):
+            return auto, arg
+
+    cmd = Command(Foo.test)
+    assert cmd('hello') == ('autoval', 'hello')
