@@ -1,3 +1,4 @@
+import inspect
 import re
 import json
 
@@ -10,12 +11,14 @@ class Argument:
     """
     # TODO: why not split this into a bunch of simpler sub-classes now that
     # it's pretty featureful ?
-    def __init__(self, cmd, param, doc=None, color=None, **kwargs):
+    def __init__(self, cmd, param, doc=None, color=None, factory=None,
+                 **kwargs):
         self.cmd = cmd
         self.param = param
         self.color = color
         # Let default be set to None :)
         self.default = kwargs.pop('default', param.default)
+        self.factory = factory
 
         self.doc = doc or ''
         if not doc:
@@ -226,6 +229,23 @@ class Argument:
                 self.param.VAR_KEYWORD,
             )
         )
+
+    def factory_value(self):
+        """
+        Run the factory function and return the value.
+
+        If the factory function takes a `cmd` argument, it will pass the
+        command object.
+
+        If the factory function takes an `arg` argument, it will pass self.
+        """
+        kwargs = dict()
+        sig = inspect.signature(self.factory)
+        if 'cmd' in sig.parameters:
+            kwargs['cmd'] = self.cmd
+        if 'arg' in sig.parameters:
+            kwargs['arg'] = self
+        return self.factory(**kwargs)
 
     @property
     def value(self):
