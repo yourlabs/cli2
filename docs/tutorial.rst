@@ -73,6 +73,9 @@ In this case, help will look like this:
 
 .. image:: example2posix.png
 
+.. warning:: I still don't use the POSIX mode, it's far from perfect, but I'll
+             gladly try to fix bugs!
+
 Testing
 -------
 
