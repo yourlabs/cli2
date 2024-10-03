@@ -18,6 +18,19 @@ from with ease:
   in charge of deciding if it wants to take an argument as well as casting it
   into a Python value.
 
+Also, despite this package name which certainly reminds some female genitalia
+parts (maybe intentionally), we're going to be kind of gay with CLIs and
+require very pretty outputs, so `cli2` also provides a couple of helper
+modules:
+
+- :py:mod:`~cli2.colors`, available in the `cli2.c` namespace, provides a bunch
+  of arbitrary ANSI color codes which I like.
+- :py:mod:`cli2.display` provides a :py:func:`~cli2.display.print` function
+  you're supposed to be able to throw anything at, it will try to prettify any
+  command result with colored YAML output. **To disable colors in output, set
+  `NO_COLORS=1` environment variable!**
+  Python's standard `difflib` module's `unified_diff` method.
+
 Command
 =======
 
@@ -72,6 +85,9 @@ of command lines, you just need to enable the posix attribute:
 In this case, help will look like this:
 
 .. image:: example2posix.png
+
+.. warning:: I still don't use the POSIX mode, it's far from perfect, but I'll
+             gladly try to fix bugs!
 
 Testing
 -------

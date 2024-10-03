@@ -1,3 +1,19 @@
+"""
+Define a bunch of arbitrary color ANSI color codes.
+
+This module is available in the `cli2.c` namespace.
+
+Example:
+
+.. code-block:: python
+
+    import cli2
+    print(f'{cli2.c.green2bold}OK{cli2.c.reset}')
+
+See the following for details.
+"""
+
+
 colors = dict(
     cyan='\u001b[38;5;51m',
     cyan1='\u001b[38;5;87m',
