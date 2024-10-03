@@ -5,7 +5,11 @@ setup(
     name='cli2',
     versioning='dev',
     setup_requires='setupmeta',
-    install_requires=['docstring_parser'],
+    install_requires=[
+        'docstring_parser',
+        'yaml',
+        'pygments',
+    ],
     extras_require=dict(
         test=[
             'freezegun',

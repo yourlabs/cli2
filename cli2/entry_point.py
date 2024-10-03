@@ -3,7 +3,7 @@ import logging
 import sys
 
 from .colors import colors
-from .table import Table
+from . import display
 
 
 class EntryPoint:
@@ -28,14 +28,9 @@ class EntryPoint:
 
         result = self(*args[1:])
         if result is not None:
-            if isinstance(result, (list, tuple)):
-                try:
-                    table = Table.factory(*result)
-                except:  # noqa
-                    print(result)
-                else:
-                    table.print()
-            else:
+            try:
+                display.print(result)
+            except:
                 print(result)
         sys.exit(self.exit_code)
 
