@@ -1,9 +1,9 @@
 command: cli2 cli2.test_node.example_function
 retcode: 0
 stdout:
+[37m    [39;49;00m[94mYou have called example_function with[39;49;00m:[37m[39;49;00m
+[37m[39;49;00m
+[37m    [39;49;00margs=()[37m[39;49;00m
+[37m    [39;49;00mkwargs={}[37m[39;49;00m
+[37m    [39;49;00m[37m[39;49;00m
 
-    You have called example_function with:
-
-    args=()
-    kwargs={}
-    

@@ -25,6 +25,20 @@ Decorators
 .. automodule:: cli2.decorators
    :members:
 
+Display
+-------
+
+.. automodule:: cli2.display
+   :members:
+
+Colors
+------
+
+.. automodule:: cli2.colors
+   :members:
+
+.. literalinclude:: ../cli2/colors.py
+   :language: python
 
 Node
 ----

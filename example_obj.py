@@ -12,7 +12,7 @@ class ClientCommand(cli2.Command):
         return Client(self['base_url'].value)
 
 
-cli = cli2.Group(name="test", cmdclass=MethodCommand)
+cli = cli2.Group(name="test", cmdclass=ClientCommand)
 
 
 class Client:
@@ -21,11 +21,11 @@ class Client:
 
     @cli.cmd
     def get(self, arg):
-        return 'GET' + self.base_url + 'arg'
+        return ('GET', self.base_url, arg)
 
     @cli.cmd
     def post(self, arg):
-        return 'POST' + self.base_url + 'arg'
+        return ('POST', self.base_url, arg)
 
 
 if __name__ == '__main__':

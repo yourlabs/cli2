@@ -1,4 +1,8 @@
 command: cli2 cli2.test_node.example_object.example_method a b=c
 retcode: 0
 stdout:
-(('a',), {'b': 'c'})
+[36m!!python/tuple[39;49;00m[37m[39;49;00m
+-[37m [39;49;00m[36m!!python/tuple[39;49;00m[37m[39;49;00m
+[37m    [39;49;00m-[37m [39;49;00ma[37m[39;49;00m
+-[37m   [39;49;00m[94mb[39;49;00m:[37m [39;49;00mc[37m[39;49;00m
+
