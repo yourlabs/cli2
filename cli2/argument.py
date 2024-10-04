@@ -230,23 +230,6 @@ class Argument:
             )
         )
 
-    def factory_value(self):
-        """
-        Run the factory function and return the value.
-
-        If the factory function takes a `cmd` argument, it will pass the
-        command object.
-
-        If the factory function takes an `arg` argument, it will pass self.
-        """
-        kwargs = dict()
-        sig = inspect.signature(self.factory)
-        if 'cmd' in sig.parameters:
-            kwargs['cmd'] = self.cmd
-        if 'arg' in sig.parameters:
-            kwargs['arg'] = self
-        return self.factory(**kwargs)
-
     @property
     def value(self):
         """Return the value bound to this argument."""
@@ -382,3 +365,20 @@ class Argument:
         if value is not None:
             self.value = self.cast(value)
             return True
+
+    def factory_value(self):
+        """
+        Run the factory function and return the value.
+
+        If the factory function takes a `cmd` argument, it will pass the
+        command object.
+
+        If the factory function takes an `arg` argument, it will pass self.
+        """
+        kwargs = dict()
+        sig = inspect.signature(self.factory)
+        if 'cmd' in sig.parameters:
+            kwargs['cmd'] = self.cmd
+        if 'arg' in sig.parameters:
+            kwargs['arg'] = self
+        return self.factory(**kwargs)
