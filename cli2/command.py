@@ -143,7 +143,14 @@ class Command(EntryPoint, dict):
 
         for name, arg in self.items(factories=None):
             if arg.factory:
-                arg.value = arg.factory_value()
+                value = arg.factory_value()
+                if inspect.iscoroutine(value):
+                    if sys.version_info.minor < 11:
+                        print("async factories not supported with py<3.11")
+                        sys.exit(1)
+                    arg.value = asyncio.run(value)
+                else:
+                    arg.value = value
                 continue
             if not arg.default:
                 continue
@@ -191,6 +198,13 @@ class Command(EntryPoint, dict):
             result = self.call(*self.bound.args, **self.bound.kwargs)
             if inspect.iscoroutine(result):
                 result = asyncio.run(result)
+                if inspect.isasyncgen(result):
+                    async def runner(value):
+                        results = []
+                        async for result in value:
+                            results.append(result)
+                        return results
+                    result = asyncio.run(runner(result))
         except KeyboardInterrupt:
             print('exiting')
             sys.exit(1)

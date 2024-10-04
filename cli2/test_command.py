@@ -525,11 +525,22 @@ def test_helphack():
 
 
 def test_factory():
+    async def get_stuff():
+        return 'stuff'
+
     class Foo:
         @arg('self', factory=lambda cmd, arg: Foo())
         @arg('auto', factory=lambda: 'autoval')
-        def test(self, auto, arg):
-            return auto, arg
+        @arg('afact', factory=get_stuff)
+        @arg('afact2', factory=get_stuff)
+        async def test(self, auto, arg, afact, afact2):
+            yield auto, arg, afact, afact2
 
-    cmd = Command(Foo.test)
-    assert cmd('hello') == ('autoval', 'hello')
+    class AsyncCommand(Command):
+        async def call(self, *args, **kwargs):
+            result = super().call(*args, **kwargs)
+            await get_stuff()
+            return result
+
+    cmd = AsyncCommand(Foo.test)
+    assert cmd('hello') == [('autoval', 'hello', 'stuff', 'stuff')]
