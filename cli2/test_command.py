@@ -350,7 +350,14 @@ def test_extra():
 def test_asyncio():
     async def test():
         return 'foo'
-    assert Command(test)() == 'foo'
+
+    class AsyncCommand(Command):
+        async def post_call(self):
+            return 'hi'
+
+    cmd = AsyncCommand(test)
+    assert cmd() == 'foo'
+    assert cmd.post_result == 'hi'
 
 
 def test_aliases():
@@ -524,11 +531,14 @@ def test_helphack():
     assert not getattr(cmd, 'help_shown', False)
 
 
-def test_generator():
+def test_generator(capsys):
     def foo():
         yield 'foo'
     cmd = Command(foo)
-    assert cmd() == ['foo']
+    result = cmd()
+    assert result is None
+    captured = capsys.readouterr()
+    assert captured.out == 'foo\x1b[37m\x1b[39;49;00m\n\n'
 
 
 def test_factory():
@@ -552,14 +562,14 @@ def test_factory_async():
         @arg('afact', factory=get_stuff)
         @arg('afact2', factory=get_stuff)
         async def test(self, auto, arg, afact, afact2):
-            yield auto, arg, afact, afact2
+            return auto, arg, afact, afact2
 
     class AsyncCommand(Command):
         async def post_call(self):
             yield 'hello'
 
     cmd = AsyncCommand(Foo.test)
-    assert cmd('hello') == [('autoval', 'hello', 'stuff', 'stuff')]
+    assert cmd('hello') == ('autoval', 'hello', 'stuff', 'stuff')
     assert cmd.post_result == ['hello']
 
 
@@ -572,3 +582,13 @@ def test_async_resolve():
 
     cmd = Command(test)
     cmd()
+
+
+def test_async_yield(capsys):
+    async def async_yield():
+        yield 'foo'
+
+    cmd = Command(async_yield)
+    assert cmd() is None
+    captured = capsys.readouterr()
+    assert captured.out == 'foo\x1b[37m\x1b[39;49;00m\n\n'
