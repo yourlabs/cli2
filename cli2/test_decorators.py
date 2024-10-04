@@ -75,11 +75,11 @@ def test_arg():
 def test_arg_cls():
     @arg('x', cls=MyArgument)
     def foo(x):
-        return x
+        return dict(result=x)
 
     command = Command(foo)
     assert isinstance(command['x'], MyArgument)
-    assert command('1,2') == [1, 2]
+    assert command('1,2') == dict(result=[1, 2])
 
 
 def test_group_cmd():

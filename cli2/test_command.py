@@ -18,12 +18,12 @@ def test_int():
 
 
 def test_vararg():
-    def foo(*one): return one
+    def foo(*one): return dict(result=one)
     cmd = Command(foo)
     cmd.parse('a', 'b')
     assert cmd['one'].value == ['a', 'b']
     assert cmd['one'].accepts
-    assert cmd('a', 'b') == ('a', 'b')
+    assert cmd('a', 'b') == dict(result=('a', 'b'))
 
 
 def test_kwarg():
@@ -51,12 +51,12 @@ def test_varkwarg():
 
 def test_skip():
     def foo(a=None, b=None, c=None):
-        return (a, b, c)
+        return dict(result=(a, b, c))
     cmd = Command(foo)
-    assert cmd('b=x') == (None, 'x', None)
+    assert cmd('b=x') == dict(result=(None, 'x', None))
 
     cmd = Command(foo, posix=True)
-    assert cmd('-b=x') == (None, 'x', None)
+    assert cmd('-b=x') == dict(result=(None, 'x', None))
 
 
 def test_nested_typeerror():
@@ -70,12 +70,17 @@ def test_nested_typeerror():
 
 
 def test_vararg_varkwarg_natural():
-    def foo(*one, **two): return (one, two)
+    def foo(*one, **two): return dict(result=(one, two))
     cmd = Command(foo)
     cmd.parse('x', 'y', 'a=b', 'c=d')
     assert cmd['one'].value == ['x', 'y']
     assert cmd['two'].value == dict(a='b', c='d')
-    assert cmd('x', 'y', 'a=b', 'c=d') == (('x', 'y'), dict(a='b', c='d'))
+    assert cmd('x', 'y', 'a=b', 'c=d') == dict(
+        result=(
+            ('x', 'y'),
+            dict(a='b', c='d'),
+        )
+    )
 
 
 def test_vararg_varkwarg_asterisk():
@@ -201,19 +206,19 @@ def test_further_search():
 
 
 def test_list():
-    def foo(one: list = None): return one
+    def foo(one: list = None): return dict(result=(one))
     cmd = Command(foo)
-    assert cmd['one'].match('one=[1]') == '[1]'
+    assert cmd['one'].match('one=[1,2]') == '[1,2]'
 
-    cmd.parse('one=[1]')
-    assert cmd['one'].value == [1]
+    cmd.parse('one=[1,2]')
+    assert cmd['one'].value == [1, 2]
     assert not cmd['one'].accepts
 
-    assert cmd('one=[1]') == [1]
-    assert cmd('[1]') == [1]
+    assert cmd('one=[1,2]') == dict(result=[1, 2])
+    assert cmd('[1,2]') == dict(result=[1, 2])
 
     # simple syntax for simple list of strings
-    assert cmd('one=a,b') == ['a', 'b']
+    assert cmd('one=a,b') == dict(result=['a', 'b'])
 
 
 def test_dict():
@@ -242,28 +247,28 @@ def test_override():
 
 
 def test_cast_override():
-    def foo(one): return one
+    def foo(one): return dict(result=one)
     foo.cli2_one = dict(cast=lambda v: [int(i) for i in v.split(',')])
     cmd = Command(foo)
     cmd.parse('1,2')
     assert cmd['one'].value == [1, 2]
-    assert cmd('1,2') == [1, 2]
+    assert cmd('1,2') == dict(result=[1, 2])
 
 
 def test_weird_pattern():
     # show off our algorithms weakness, while it's still fresh in my head :)
     def foo(a=None, b=None):
-        return (a, b)
+        return dict(result=(a, b))
     cmd = Command(foo)
 
     cmd.parse('b=x')
     assert cmd['b'].value == 'x'
-    assert cmd('b=x') == (None, 'x')
+    assert cmd('b=x') == dict(result=(None, 'x'))
 
     cmd = Command(foo)
     cmd.parse('a=b=x')
     assert cmd['a'].value == 'b=x'
-    assert cmd('a=b=x') == ('b=x', None)
+    assert cmd('a=b=x') == dict(result=('b=x', None))
 
 
 class Foo:
@@ -350,7 +355,14 @@ def test_extra():
 def test_asyncio():
     async def test():
         return 'foo'
-    assert Command(test)() == 'foo'
+
+    class AsyncCommand(Command):
+        async def post_call(self):
+            return 'hi'
+
+    cmd = AsyncCommand(test)
+    assert cmd() == 'foo'
+    assert cmd.post_result == 'hi'
 
 
 def test_aliases():
@@ -524,12 +536,64 @@ def test_helphack():
     assert not getattr(cmd, 'help_shown', False)
 
 
+def test_generator(capsys):
+    def foo():
+        yield 'foo'
+    cmd = Command(foo)
+    result = cmd()
+    assert result is None
+    captured = capsys.readouterr()
+    assert captured.out == 'foo\x1b[37m\x1b[39;49;00m\n\n'
+
+
 def test_factory():
     class Foo:
         @arg('self', factory=lambda cmd, arg: Foo())
         @arg('auto', factory=lambda: 'autoval')
         def test(self, auto, arg):
-            return auto, arg
+            return dict(result=(auto, arg))
 
     cmd = Command(Foo.test)
-    assert cmd('hello') == ('autoval', 'hello')
+    assert cmd('hello') == dict(result=('autoval', 'hello'))
+
+
+def test_factory_async():
+    async def get_stuff():
+        return 'stuff'
+
+    class Foo:
+        @arg('self', factory=lambda cmd, arg: Foo())
+        @arg('auto', factory=lambda: 'autoval')
+        @arg('afact', factory=get_stuff)
+        @arg('afact2', factory=get_stuff)
+        async def test(self, auto, arg, afact, afact2):
+            return auto, arg, afact, afact2
+
+    class AsyncCommand(Command):
+        async def post_call(self):
+            yield 'hello'
+
+    cmd = AsyncCommand(Foo.test)
+    assert cmd('hello') == ('autoval', 'hello', 'stuff', 'stuff')
+    assert cmd.post_result == ['hello']
+
+
+def test_async_resolve():
+    async def foo():
+        yield 'bar'
+
+    async def test():
+        return foo()
+
+    cmd = Command(test)
+    cmd()
+
+
+def test_async_yield(capsys):
+    async def async_yield():
+        yield 'foo'
+
+    cmd = Command(async_yield)
+    assert cmd() is None
+    captured = capsys.readouterr()
+    assert captured.out == 'foo\x1b[37m\x1b[39;49;00m\n\n'
