@@ -524,7 +524,25 @@ def test_helphack():
     assert not getattr(cmd, 'help_shown', False)
 
 
+def test_generator():
+    def foo():
+        yield 'foo'
+    cmd = Command(foo)
+    assert cmd() == ['foo']
+
+
 def test_factory():
+    class Foo:
+        @arg('self', factory=lambda cmd, arg: Foo())
+        @arg('auto', factory=lambda: 'autoval')
+        def test(self, auto, arg):
+            return auto, arg
+
+    cmd = Command(Foo.test)
+    assert cmd('hello') == ('autoval', 'hello')
+
+
+def test_factory_async():
     async def get_stuff():
         return 'stuff'
 

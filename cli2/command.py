@@ -53,6 +53,7 @@ class Command(EntryPoint, dict):
         self.positions = dict()
         self.sig = inspect.signature(target)
         self.setargs()
+        self.async_resolve_args = set()
         EntryPoint.__init__(self, outfile=outfile, log=log)
 
     def setargs(self):
@@ -85,12 +86,19 @@ class Command(EntryPoint, dict):
         else:
             raise Exception('Only kwargs are supported by Group.cmd')
 
-    def help(self, error=None, short=False):
+    def help(self, error=None, short=False, missing=None):
         """Show help for a command."""
         if short:
             if self.doc:
                 return self.doc.replace('\n', ' ').split('.')[0]
             return ''
+
+        if missing:
+            error = (
+                f'missing {len(missing)} required argument'
+                f'{"s" if len(missing) > 1 else ""}'
+                f': {", ".join(missing)}'
+            )
 
         if error:
             self.print('RED', 'ERROR: ' + colors.reset + error, end='\n\n')
@@ -143,14 +151,10 @@ class Command(EntryPoint, dict):
 
         for name, arg in self.items(factories=None):
             if arg.factory:
-                value = arg.factory_value()
-                if inspect.iscoroutine(value):
-                    if sys.version_info.minor < 11:
-                        print("async factories not supported with py<3.11")
-                        sys.exit(1)
-                    arg.value = asyncio.run(value)
+                if self.async_function(arg.factory):
+                    arg.value = 'to_be_computed'
                 else:
-                    arg.value = value
+                    arg.value = arg.factory_value()
                 continue
             if not arg.default:
                 continue
@@ -158,42 +162,41 @@ class Command(EntryPoint, dict):
                 continue
             arg.value = arg.default
 
-    def async_resolve(self, result):
+    def async_function(self, function):
+        """ Return True if function is async """
+        return (
+            inspect.iscoroutinefunction(function)
+            or inspect.isasyncgenfunction(function)
+        )
+
+    def async_mode(self):
+        """ Return True if any callable we'll deal with is async """
+        for arg in self.values():
+            if self.async_function(arg.factory):
+                return True
+        if (
+            self.async_function(self.target)
+            or self.async_function(self.post_call)
+        ):
+            return True
+
+    async def async_resolve(self, result):
         """ Recursively resolve awaitables. """
-
-        async def async_result(result):
-            while inspect.iscoroutine(result):
-                result = await result
-
-            if inspect.isasyncgen(result):
-                results = []
-                async for _ in result:
-                    results.append(await async_result(_))
-                return results
-
-            return result
-
-        if inspect.iscoroutine(result) or inspect.isasyncgen(result):
-            result = asyncio.run(async_result(result))
+        while inspect.iscoroutine(result):
+            result = await result
+        if inspect.isasyncgen(result):
+            results = []
+            async for _ in result:
+                results.append(await self.async_resolve(_))
+            return results
         return result
 
     def call(self, *args, **kwargs):
         """Execute command target with bound arguments."""
         return self.target(*args, **kwargs)
 
-    def __call__(self, *argv):
-        """Execute command with args from sysargs."""
-        if self.help_hack and '--help' in argv:
-            self.exit_code = 1
-            return self.help()
-
-        self.exit_code = 0
-        error = self.parse(*argv)
-        if error:
-            self.exit_code = 1
-            return self.help(error=error)
-
-        missing = [
+    def missing(self):
+        return [
             name
             for name, arg in self.items()
             if name not in self.bound.arguments
@@ -204,24 +207,62 @@ class Command(EntryPoint, dict):
                 arg.param.POSITIONAL_OR_KEYWORD,
             )
         ]
-        if missing:
-            error = (
-                f'missing {len(missing)} required argument'
-                f'{"s" if len(missing) > 1 else ""}'
-                f': {", ".join(missing)}'
-            )
+
+    def __call__(self, *argv):
+        """Execute command with args from sysargs."""
+        self.exit_code = 0
+
+        if self.help_hack and '--help' in argv:
+            self.exit_code = 1
+            return self.help()
+
+        if self.async_mode():
+            return asyncio.run(self.async_call(*argv))
+
+        error = self.parse(*argv)
+        if error:
             self.exit_code = 1
             return self.help(error=error)
 
+        missing = self.missing()
+        if missing:
+            self.exit_code = 1
+            return self.help(missing=missing)
+
         try:
-            result = self.async_resolve(
-                self.call(*self.bound.args, **self.bound.kwargs),
-            )
+            result = self.call(*self.bound.args, **self.bound.kwargs)
+            if inspect.isgenerator(result):
+                result = [r for r in result]
         except KeyboardInterrupt:
             print('exiting')
             sys.exit(1)
         finally:
-            self.post_result = self.async_resolve(self.post_call())
+            self.post_result = self.post_call()
+        return result
+
+    async def async_call(self, *argv):
+        """ Call with async stuff in single event loop """
+        error = self.parse(*argv)
+        if error:
+            self.exit_code = 1
+            return self.help(error=error)
+
+        missing = self.missing()
+        if missing:
+            self.exit_code = 1
+            return self.help(missing=missing)
+
+        for name, arg in self.items(factories=True):
+            arg.value = await self.async_resolve(arg.factory_value())
+
+        try:
+            result = self.call(*self.bound.args, **self.bound.kwargs)
+            result = await self.async_resolve(result)
+        except KeyboardInterrupt:
+            print('exiting')
+            sys.exit(1)
+        finally:
+            self.post_result = await self.async_resolve(self.post_call())
         return result
 
     def ordered(self, factories=False):
@@ -266,11 +307,15 @@ class Command(EntryPoint, dict):
             for name, arg in super().items():
                 if factories is False and arg.factory:
                     continue
+                if factories is True and not arg.factory:
+                    continue
                 if name in self.positions:
                     continue
                 if arg.param.kind == kind:
                     keys.append(name)
         for key, position in self.positions.items():
+            if factories and not self[key].factory:
+                continue
             keys.insert(position, key)
         return keys
 
