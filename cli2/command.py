@@ -4,6 +4,7 @@ import sys
 
 from docstring_parser import parse
 
+from . import display
 from .argument import Argument
 from .colors import colors
 from .entry_point import EntryPoint
@@ -53,7 +54,6 @@ class Command(EntryPoint, dict):
         self.positions = dict()
         self.sig = inspect.signature(target)
         self.setargs()
-        self.async_resolve_args = set()
         EntryPoint.__init__(self, outfile=outfile, log=log)
 
     def setargs(self):
@@ -177,15 +177,24 @@ class Command(EntryPoint, dict):
         ):
             return True
 
-    async def async_resolve(self, result):
+    async def async_resolve(self, result, output=False):
         """ Recursively resolve awaitables. """
         while inspect.iscoroutine(result):
             result = await result
         if inspect.isasyncgen(result):
             results = []
             async for _ in result:
-                results.append(await self.async_resolve(_))
-            return results
+                if output:
+                    if (
+                        not inspect.iscoroutine(_)
+                        and not inspect.isasyncgen(_)
+                    ):
+                        display.print(_)
+                    else:
+                        await self.async_resolve(_, output=output)
+                else:
+                    results.append(await self.async_resolve(_))
+            return None if output else results
         return result
 
     def call(self, *args, **kwargs):
@@ -229,7 +238,9 @@ class Command(EntryPoint, dict):
         try:
             result = self.call(*self.bound.args, **self.bound.kwargs)
             if inspect.isgenerator(result):
-                result = [r for r in result]
+                for _ in result:
+                    display.print(_)
+                result = None
         except KeyboardInterrupt:
             print('exiting')
             sys.exit(1)
@@ -254,7 +265,7 @@ class Command(EntryPoint, dict):
 
         try:
             result = self.call(*self.bound.args, **self.bound.kwargs)
-            result = await self.async_resolve(result)
+            result = await self.async_resolve(result, output=True)
         except KeyboardInterrupt:
             print('exiting')
             sys.exit(1)
