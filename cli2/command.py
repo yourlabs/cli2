@@ -143,13 +143,39 @@ class Command(EntryPoint, dict):
 
         for name, arg in self.items(factories=None):
             if arg.factory:
-                arg.value = arg.factory_value()
+                value = arg.factory_value()
+                if inspect.iscoroutine(value):
+                    if sys.version_info.minor < 11:
+                        print("async factories not supported with py<3.11")
+                        sys.exit(1)
+                    arg.value = asyncio.run(value)
+                else:
+                    arg.value = value
                 continue
             if not arg.default:
                 continue
             if name in self.bound.arguments:
                 continue
             arg.value = arg.default
+
+    def async_resolve(self, result):
+        """ Recursively resolve awaitables. """
+
+        async def async_result(result):
+            while inspect.iscoroutine(result):
+                result = await result
+
+            if inspect.isasyncgen(result):
+                results = []
+                async for _ in result:
+                    results.append(await async_result(_))
+                return results
+
+            return result
+
+        if inspect.iscoroutine(result) or inspect.isasyncgen(result):
+            result = asyncio.run(async_result(result))
+        return result
 
     def call(self, *args, **kwargs):
         """Execute command target with bound arguments."""
@@ -188,12 +214,14 @@ class Command(EntryPoint, dict):
             return self.help(error=error)
 
         try:
-            result = self.call(*self.bound.args, **self.bound.kwargs)
-            if inspect.iscoroutine(result):
-                result = asyncio.run(result)
+            result = self.async_resolve(
+                self.call(*self.bound.args, **self.bound.kwargs),
+            )
         except KeyboardInterrupt:
             print('exiting')
             sys.exit(1)
+        finally:
+            self.post_result = self.async_resolve(self.post_call())
         return result
 
     def ordered(self, factories=False):
@@ -301,3 +329,9 @@ class Command(EntryPoint, dict):
         )
         if position is not None:
             self.positions[name] = position
+
+    def post_call(self):
+        """
+        Implement your cleaner here
+        """
+        pass
