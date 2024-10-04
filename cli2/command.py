@@ -144,6 +144,8 @@ class Command(EntryPoint, dict):
         for name, arg in self.items(factories=None):
             if arg.factory:
                 arg.value = arg.factory_value()
+                if inspect.iscoroutine(arg.value):
+                    arg.value = asyncio.run(arg.factory_value())
                 continue
             if not arg.default:
                 continue

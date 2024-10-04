@@ -525,11 +525,15 @@ def test_helphack():
 
 
 def test_factory():
+    async def get_stuff():
+        return 'stuff'
+
     class Foo:
         @arg('self', factory=lambda cmd, arg: Foo())
         @arg('auto', factory=lambda: 'autoval')
-        def test(self, auto, arg):
-            return auto, arg
+        @arg('afact', factory=get_stuff)
+        def test(self, auto, arg, afact):
+            return auto, arg, afact
 
     cmd = Command(Foo.test)
-    assert cmd('hello') == ('autoval', 'hello')
+    assert cmd('hello') == ('autoval', 'hello', 'stuff')
