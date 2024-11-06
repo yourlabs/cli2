@@ -47,3 +47,7 @@ def test_print():
     fixture = 'a: 1'
     test(Response())
     test(fixture)
+
+    class Test(dict):
+        pass
+    test(Test(a=1))

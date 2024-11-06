@@ -29,6 +29,9 @@ def highlight(string, lexer):
 
 def yaml_dump(data):
     import yaml
+    if isinstance(data, dict):
+        # ensure that objects inheriting from dict render nicely
+        data = dict(data)
     return yaml.dump(data, indent=4, width=float('inf'))
 
 
