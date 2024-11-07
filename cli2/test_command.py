@@ -4,7 +4,7 @@ import pytest
 from .decorators import arg
 from .argument import Argument
 from .command import Command
-from .test import autotest, Outfile
+from .test import autotest, console_reset, fixture_test, Outfile
 
 
 def test_int():
@@ -536,14 +536,14 @@ def test_helphack():
     assert not getattr(cmd, 'help_shown', False)
 
 
-def test_generator(capsys):
+def test_generator():
     def foo():
-        yield 'foo'
+        yield dict(foo=1)
     cmd = Command(foo)
+    console_reset()
     result = cmd()
     assert result is None
-    captured = capsys.readouterr()
-    assert captured.out == 'foo\x1b[37m\x1b[39;49;00m\n\n'
+    fixture_test('generator')
 
 
 def test_factory():
@@ -589,11 +589,11 @@ def test_async_resolve():
     cmd()
 
 
-def test_async_yield(capsys):
+def test_async_yield():
     async def async_yield():
-        yield 'foo'
+        yield dict(foo=1)
 
     cmd = Command(async_yield)
+    console_reset()
     assert cmd() is None
-    captured = capsys.readouterr()
-    assert captured.out == 'foo\x1b[37m\x1b[39;49;00m\n\n'
+    fixture_test('async_yield')

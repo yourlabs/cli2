@@ -6,6 +6,15 @@ anything, as well as a pretty diff printer.
 """
 import os
 
+from rich.console import Console
+from rich.syntax import Syntax
+
+
+console_kwargs = dict()
+if os.getenv('CI'):
+    console_kwargs['force_terminal'] = True
+console = Console(**console_kwargs)
+
 
 NO_COLOR = bool(os.getenv('NO_COLOR', ''))
 _print = print
@@ -15,16 +24,7 @@ def highlight(string, lexer):
     if NO_COLOR:
         return string
 
-    try:
-        import pygments
-        import pygments.lexers
-        import pygments.formatters
-    except ImportError:
-        return string
-
-    formatter = pygments.formatters.TerminalFormatter()
-    lexer = getattr(pygments.lexers, lexer + 'Lexer')()
-    return pygments.highlight(string, lexer, formatter)
+    return Syntax(string, lexer)
 
 
 def yaml_dump(data):
@@ -33,10 +33,6 @@ def yaml_dump(data):
         # ensure that objects inheriting from dict render nicely
         data = dict(data)
     return yaml.dump(data, indent=4, width=float('inf'))
-
-
-def yaml_highlight(yaml_string):
-    return highlight(yaml_string, 'Yaml')
 
 
 def print(*args, **kwargs):
@@ -77,12 +73,7 @@ def print(*args, **kwargs):
             pass
 
         string = arg if isinstance(arg, str) else yaml_dump(arg)
-        _print(yaml_highlight(string), **kwargs)
-
-
-def diff_highlight(diff):
-    output = '\n'.join([line.rstrip() for line in diff if line.strip()])
-    return highlight(output, 'Diff')
+        console.print(highlight(string.strip(), 'yaml'), **kwargs)
 
 
 def diff(diff, **kwargs):
@@ -95,4 +86,7 @@ def diff(diff, **kwargs):
         # pretty print a diff
         cli2.diff(difflib.unified_diff(old, new))
     """
-    _print(diff_highlight(diff), **kwargs)
+    string = "\n".join([
+        line.strip() for line in diff if line.strip()
+    ])
+    console.print(highlight(string, 'diff'), **kwargs)
