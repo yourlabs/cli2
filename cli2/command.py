@@ -1,13 +1,20 @@
 import asyncio
+import cli2
 import inspect
 import sys
 
 from docstring_parser import parse
+from rich.console import Console
+from rich.traceback import install
 
 from . import display
 from .argument import Argument
 from .colors import colors
 from .entry_point import EntryPoint
+
+
+console = Console()
+install(show_locals=True, suppress=[cli2])
 
 
 class Command(EntryPoint, dict):

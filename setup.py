@@ -8,7 +8,7 @@ setup(
     install_requires=[
         'docstring_parser',
         'pyyaml',
-        'pygments',
+        'rich',
     ],
     extras_require=dict(
         test=[
