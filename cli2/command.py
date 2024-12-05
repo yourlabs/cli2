@@ -278,8 +278,14 @@ class Command(EntryPoint, dict):
             self.exit_code = 1
             return self.help(missing=missing)
 
-        for name, arg in self.items(factories=True):
-            arg.value = await self.async_resolve(arg.factory_value())
+        factories = self.values(factories=True)
+        if factories:
+            results = await asyncio.gather(*[
+                self.async_resolve(arg.factory_value())
+                for arg in factories
+            ])
+            for _, arg in enumerate(factories):
+                arg.value = results[_]
 
         try:
             result = self.call(*self.bound.args, **self.bound.kwargs)
