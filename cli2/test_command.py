@@ -546,14 +546,27 @@ def test_generator():
     fixture_test('generator')
 
 
-def test_factory():
+async def async_factory():
+    return 'autoval'
+
+
+def non_async_factory():
+    return 'autoval'
+
+
+@pytest.mark.parametrize('factory, isasync', (
+    (async_factory, True),
+    (non_async_factory, False),
+))
+def test_factory(factory, isasync):
     class Foo:
         @arg('self', factory=lambda cmd, arg: Foo())
-        @arg('auto', factory=lambda: 'autoval')
+        @arg('auto', factory=factory)
         def test(self, auto, arg):
             return dict(result=(auto, arg))
 
     cmd = Command(Foo.test)
+    assert cmd.async_mode() == isasync
     assert cmd('hello') == dict(result=('autoval', 'hello'))
 
 

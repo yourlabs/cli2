@@ -187,6 +187,11 @@ class Command(EntryPoint, dict):
         ):
             return True
 
+        for name, arg in self.items(factories=True):
+            if arg.factory and self.async_function(arg.factory):
+                return True
+        return False
+
     async def async_resolve(self, result, output=False):
         """ Recursively resolve awaitables. """
         while inspect.iscoroutine(result):
