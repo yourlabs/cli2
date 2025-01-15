@@ -1,10 +1,7 @@
-import cli2
-import io
+import copy
 import os
 import re
 import subprocess
-from pathlib import Path
-from rich.console import Console
 
 
 REWRITE = os.getenv('FIXTURE_REWRITE') or os.getenv('TEST_REWRITE')
@@ -22,10 +19,11 @@ def autotest(path, cmd, ignore=None, env=None):
             'djcli save auth.User username="test"',
         )
     """
-    environ = os.environ.copy()
+    environ = copy.copy(os.environ)
     if env:
         for key, value in env.items():
             environ[key] = value
+    environ['FORCE_TERMSIZE'] = '1'
     environ['PATH'] = ':'.join([
         environ.get('HOME', '') + '/.local/bin',
         environ.get('PATH', '')
@@ -113,33 +111,3 @@ class Outfile:
 
     def reset(self):
         self.__init__()
-
-
-def fixture_test(name):
-    output = cli2.display.console.file.getvalue().encode('utf8')
-    fixture_test = Path(__file__).parent.parent / f'tests/test_{name}'
-    if fixture_test.exists() and not os.getenv('FIXTURE_REWRITE'):
-        with fixture_test.open('rb') as f:
-            expected = f.read()
-    else:
-        with fixture_test.open('wb') as f:
-            f.write(output)
-        raise Exception(f'{fixture_test} written')
-
-    import difflib
-    diff = difflib.unified_diff(
-        expected.decode('utf8').split('\n'),
-        output.decode('utf8').split('\n'),
-        fromfile=str(fixture_test),
-        tofile='actual_output',
-    )
-    diff = '\n'.join(diff)
-    if diff:
-        raise type('DiffFound', (Exception,), {})('\n' + diff)
-
-
-def console_reset():
-    cli2.display.console = Console(
-        file=io.StringIO(),
-        force_terminal=True,
-    )

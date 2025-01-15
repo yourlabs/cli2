@@ -1,7 +1,9 @@
 command: cli2 cli2.test_node.example_function
 retcode: 0
 stdout:
-[91;40mYou have called example_function with[0m[97;40m:[0m[40m                    [0m
-[40m                                                          [0m
-[97;40m    [0m[40margs=()                                               [0m
-[97;40m    [0m[40mkwargs={}                                             [0m
+[37m    [39;49;00m[94mYou have called example_function with[39;49;00m:[37m[39;49;00m
+[37m[39;49;00m
+[37m    [39;49;00margs=()[37m[39;49;00m
+[37m    [39;49;00mkwargs={}[37m[39;49;00m
+[37m    [39;49;00m[37m[39;49;00m
+

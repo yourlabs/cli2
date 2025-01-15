@@ -4,7 +4,7 @@ import pytest
 from .decorators import arg
 from .argument import Argument
 from .command import Command
-from .test import autotest, console_reset, fixture_test, Outfile
+from .test import autotest, Outfile
 
 
 def test_int():
@@ -536,14 +536,14 @@ def test_helphack():
     assert not getattr(cmd, 'help_shown', False)
 
 
-def test_generator():
+def test_generator(capsys):
     def foo():
-        yield dict(foo=1)
+        yield 'foo'
     cmd = Command(foo)
-    console_reset()
     result = cmd()
     assert result is None
-    fixture_test('generator')
+    captured = capsys.readouterr()
+    assert captured.out == 'foo\x1b[37m\x1b[39;49;00m\n\n'
 
 
 async def async_factory():
@@ -602,26 +602,25 @@ def test_async_resolve():
     cmd()
 
 
-def test_async_yield():
+def test_async_yield(capsys):
     async def async_yield():
-        yield dict(foo=1)
+        yield 'foo'
 
     cmd = Command(async_yield)
-    console_reset()
     assert cmd() is None
-    fixture_test('async_yield')
+    captured = capsys.readouterr()
+    assert captured.out == 'foo\x1b[37m\x1b[39;49;00m\n\n'
 
 
-def test_async_iter():
+def test_async_iter(capsys):
     class Foo:
         async def __aiter__(self):
-            yield dict(foo=1)
-            yield dict(foo=2)
+            yield 'foo'
 
     async def async_iter():
         return Foo()
 
     cmd = Command(async_iter)
-    console_reset()
     assert cmd() is None
-    fixture_test('async_iter')
+    captured = capsys.readouterr()
+    assert captured.out == 'foo\x1b[37m\x1b[39;49;00m\n\n'
