@@ -610,3 +610,18 @@ def test_async_yield():
     console_reset()
     assert cmd() is None
     fixture_test('async_yield')
+
+
+def test_async_iter():
+    class Foo:
+        async def __aiter__(self):
+            yield dict(foo=1)
+            yield dict(foo=2)
+
+    async def async_iter():
+        return Foo()
+
+    cmd = Command(async_iter)
+    console_reset()
+    assert cmd() is None
+    fixture_test('async_iter')

@@ -192,11 +192,14 @@ class Command(EntryPoint, dict):
                 return True
         return False
 
+    def async_iter(self, obj):
+        return inspect.isasyncgen(obj) or hasattr(obj, '__aiter__')
+
     async def async_resolve(self, result, output=False):
         """ Recursively resolve awaitables. """
         while inspect.iscoroutine(result):
             result = await result
-        if inspect.isasyncgen(result):
+        if self.async_iter(result):
             results = []
             async for _ in result:
                 if output:
