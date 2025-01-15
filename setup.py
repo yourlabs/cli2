@@ -15,6 +15,7 @@ setup(
             'freezegun',
             'pytest',
             'pytest-cov',
+            'pytest-mock',
         ],
     ),
     author='James Pic',
