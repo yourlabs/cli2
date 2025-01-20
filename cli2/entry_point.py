@@ -60,3 +60,16 @@ class EntryPoint:
             chain.insert(0, current.name)
             current = current.parent
         return " ".join(chain)
+
+    @property
+    def doc_short(self):
+        """
+        Return the first sentence of the documentation.
+        """
+        tokens = []
+        for token in self.doc.replace("\n", " ").split(" "):
+            tokens.append(token)
+            if token.endswith("."):
+                tokens[-1] = tokens[-1][:-1]
+                break
+        return " ".join(tokens)
