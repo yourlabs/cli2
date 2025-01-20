@@ -1,5 +1,5 @@
-import os
 import logging
+import os
 import sys
 
 from .colors import colors
@@ -48,3 +48,15 @@ class EntryPoint:
             msg = color + msg + colors.reset
 
         print(msg, end=end, file=file or self.outfile, flush=True)
+
+    @property
+    def path(self):
+        """
+        Return the CLI sub-command path.
+        """
+        current = self
+        chain = []
+        while current is not None:
+            chain.insert(0, current.name)
+            current = current.parent
+        return " ".join(chain)
