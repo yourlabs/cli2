@@ -16,8 +16,6 @@ def yourcmd(somearg, x=None, verbose: bool = False, *args, foo=None, **kwargs):
 
     :param somearg: It's some string argument that this function will return
     """
-    if somearg == 'exception':
-        raise Exception()
     return (somearg, x, verbose, args, foo, kwargs)
 
 
