@@ -67,9 +67,10 @@ class EntryPoint:
         Return the first sentence of the documentation.
         """
         tokens = []
-        for token in self.doc.replace("\n", " ").split(" "):
-            tokens.append(token)
-            if token.endswith("."):
-                tokens[-1] = tokens[-1][:-1]
+        for line in self.doc.split('\n'):
+            if not line.strip():
                 break
-        return " ".join(tokens)
+            tokens.append(line)
+        if tokens and tokens[-1].endswith('.'):
+            tokens[-1] = tokens[-1][:-1]
+        return ' '.join(tokens) if tokens else ''
