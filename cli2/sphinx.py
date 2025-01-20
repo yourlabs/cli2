@@ -46,6 +46,51 @@ def synopsys_arg(arg):
         return arg.param.name.upper()
 
 
+class Table(docutils.nodes.table):
+    def __init__(self, headers):
+        super().__init__()
+        self['classes'] = ['align-left']
+        self.tgroup = docutils.nodes.tgroup(cols=2)
+        self.tgroup += docutils.nodes.colspec()
+        self.tgroup += docutils.nodes.colspec()
+        self += self.tgroup
+
+        thead = docutils.nodes.thead()
+        self.tgroup += thead
+
+        header_row = docutils.nodes.row()
+        for header in headers:
+            cell = docutils.nodes.entry()
+            cell += docutils.nodes.paragraph(text=header)
+            header_row += cell
+
+        thead += header_row
+
+        self.tbody = docutils.nodes.tbody()
+        self.tgroup += self.tbody
+
+    def colspec(self, *args, **kwargs):
+        self.tgroup += docutils.nodes.colspec(*args, **kwargs)
+
+        self.header_row = docutils.nodes.row()
+        for arg in args:
+            self.colspec()
+
+        for arg in args:
+            cell = docutils.nodes.entry()
+            cell += docutils.nodes.paragraph(text=arg)
+            self.header_row += cell
+        self.thead += self.header_row
+
+    def row(self, *cells):
+        row = docutils.nodes.row()
+        for cell in cells:
+            entry = docutils.nodes.entry()
+            entry += cell
+            row += entry
+        self.tbody += row
+
+
 class ObjectDescription(directives.ObjectDescription):
     def rst_nodes(self, rst):
         return parsing.nested_parse_to_nodes(
@@ -102,12 +147,14 @@ class Cli2Group(ObjectDescription):
             if len(name) > longest:
                 longest = len(name)
 
-        rst = ['**SUB-COMMANDS**']
+        table = Table(headers=('Sub-Command', 'Help'))
         for name, command in self.command.items():
-            rst.append(f'\n:cli2:cmd:`~{self.command_name} {name}`')
-            rst.append(command.doc_short)
+            table.row(
+                self.rst_nodes(f':cli2:cmd:`~{self.command_name} {name}`'),
+                self.rst_nodes(command.doc_short),
+            )
 
-        self.nodes += self.rst_nodes("\n".join(rst))
+        self.nodes[1] += table
         return self.nodes
 
 
@@ -116,7 +163,7 @@ class Cli2Command(ObjectDescription):
         chain = [self.command_name]
         for name, arg in self.command.items():
             chain.append(synopsys_arg(arg))
-        return "\n".join(chain)
+        return " ".join(chain)
 
     @functools.cached_property
     def description(self):
@@ -139,62 +186,75 @@ class Cli2Command(ObjectDescription):
 
     def run(self) -> list[nodes.Node]:
         self.nodes = super().run()
-        self.nodes[1][0][0].children = self.rst_nodes(self.synopsys())
+        self.nodes[1][0][0].children = self.rst_nodes(f'``{self.synopsys()}``')
         if self.description:
-            self.nodes[1].children += self.rst_nodes(self.description)
-        self.nodes[1] += self.rst_nodes('**ARGUMENTS**')
+            self.nodes[1][1] += self.rst_nodes(self.description)
+
+        table = Table(headers=('Argument', 'Help'))
+
         for name, argument in self.command.items():
-            self.nodes[1].children += self.rst_nodes(
-                f'    .. cli2:argument:: {self.command_name} {name}'
+            table.row(
+                self.rst_nodes(f'``{synopsys_arg(argument)}``'),
+                self.rst_nodes(
+                    f'.. cli2:argument:: {self.command_name} {name}',
+                ),
             )
+        self.nodes[1][1] += table
         return self.nodes
 
 
 class Cli2Argument(ObjectDescription):
     def run(self):
-        self.nodes = super().run()
+        super().run()
 
-        self.nodes[1][0][0][0] = docutils.nodes.Text(
-            synopsys_arg(self.argument)
-        )
+        node = docutils.nodes.container()
+        node.attributes['ids'] = self.nodes[1][0].attributes['ids']
 
-        fields = dict()
+        self.nodes = [node]
+
+        argument_doc = []
+
         if self.argument.doc:
-            fields['description'] = self.argument.doc
+            argument_doc += [self.argument.doc, '']
+
+        def field(name, value):
+            argument_doc.append(f'- **{name}**: {value}')
+
+        field('Required', not self.argument.iskw)
 
         if len(self.argument.alias) > 1:
-            fields['alias'] = ', '.join([
-                f'``{x}``' for x in self.argument.alias
-            ])
+            field('Aliases', f'``{'``, ``'.join(self.argument.alias)}``')
 
         if self.argument.negates:
-            fields['negates'] = ', '.join([
-                f'``{x}``' for x in self.argument.negates
-            ])
+            field('Negates', f'``{'``, ``'.join(self.argument.negates)}``')
 
         if self.argument.type:
-            fields['type'] = self.argument.type.__name__
+            field('Type', self.argument.type.__name__)
 
         if self.argument.default != inspect._empty:
-            fields['default'] = self.argument.default
+            field('Default', self.argument.default)
 
         if self.argument.type == bool and not self.argument.negates:
-            fields['accepted'] = 'yes, 1, true, no, 0, false'
+            field('Accepted', 'yes, 1, true, no, 0, false')
 
         if self.argument.param.kind == self.argument.param.VAR_KEYWORD:
             if self.argument.cmd.posix:
-                ex = '--something=somevalue'
+                ex = '--something=somevalue --other=foo'
             else:
-                ex = 'something=somevalue'
-            fields['usage'] = f'Any number of named arguments, example: {ex}'
+                ex = 'something=somevalue other=foo'
+            field(
+                'Usage',
+                f'Any number of named self.arguments, ie.: ``{ex}``'
+            )
 
         elif self.argument.param.kind == self.argument.param.VAR_POSITIONAL:
-            fields['usage'] = 'Any number of un-named arguments'
+            if self.argument.cmd.posix:
+                ex = '--something --other'
+            else:
+                ex = 'something other'
+            field('usage', f'Any un-named arguments, ie.: ``{ex}``')
 
-        self.nodes[1][0][0].children += self.rst_nodes("\n".join([
-            f":{name}: {value}" for name, value in fields.items()
-        ]))
-
+        self.nodes += self.rst_nodes('\n'.join(argument_doc))
         return self.nodes
 
     @functools.cached_property

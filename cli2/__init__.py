@@ -22,7 +22,7 @@ def retrieve(path):
     ]
 
     if not matches:
-        raise Exception(f'Entry point {name} not installed')
+        raise Exception(f'Entry point {path} not installed')
 
     # take the first entry point, navigate up to the target sub-command
     obj = matches[0].load().__self__
