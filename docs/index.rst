@@ -17,7 +17,7 @@ Example Sphinx
 --------------
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 6
    :caption: Example documentation generated with cli2.sphinx extension:
 
    example

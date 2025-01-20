@@ -232,48 +232,44 @@ class Cli2Auto(SphinxDirective):
             textwrap.dedent(rst).strip(),
         )
 
-    def run(self):
-        section_node = docutils.nodes.section()
-        section_node['ids'].append(docutils.nodes.make_id(self.command_name))
+    def _run(self, group=None):
+        def section_node(name):
+            section_node = docutils.nodes.section()
+            section_node['ids'].append(docutils.nodes.make_id(name))
+            title_node = docutils.nodes.title(text=name)
+            section_node += title_node
+            value = cli2.retrieve(name)
+            if isinstance(value, cli2.Group):
+                section_node += self.rst_nodes(
+                    f'.. cli2:group:: {name}'
+                )
 
-        # Add a title to the section
-        title_node = docutils.nodes.title(text=f'{self.command_name}')
-        section_node += title_node
+            elif isinstance(value, cli2.Command):
+                section_node += self.rst_nodes(
+                    f'.. cli2:command:: {name}'
+                )
+            return section_node
 
-        if isinstance(self.command, cli2.Group):
-            section_node += self.rst_nodes(
-                f'.. cli2:group:: {self.command_name}'
-            )
+        result = []
+        result.append(section_node(group.path))
 
-        result = [section_node]
+        group = group or self.command
+        groups = []
+        for key, value in group.items():
+            if key == 'help':
+                continue
 
-        groups = [self.command]
-        while groups:
-            group = groups.pop()
-            for key, value in group.items():
-                if key == 'help':
-                    continue
+            if isinstance(value, cli2.Group):
+                groups.append(value)
+            else:
+                result[0] += section_node(value.path)
 
-                section_node = docutils.nodes.section()
-                section_node['ids'].append(docutils.nodes.make_id(group.path))
-
-                # Add a title to the section
-                title_node = docutils.nodes.title(text=f'{value.path}')
-                section_node += title_node
-
-                if isinstance(value, cli2.Group):
-                    section_node += self.rst_nodes(
-                        f'.. cli2:group:: {value.path}'
-                    )
-                    groups.append(value)
-
-                elif isinstance(value, cli2.Command):
-                    section_node += self.rst_nodes(
-                        f'.. cli2:command:: {value.path}'
-                    )
-                result.append(section_node)
-
+        for group in groups:
+            result[0] += self._run(group)
         return result
+
+    def run(self):
+        return self._run(self.command)
 
 
 class Cli2CommandRole(roles.XRefRole):
