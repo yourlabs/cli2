@@ -255,7 +255,7 @@ class Cli2Auto(SphinxDirective):
                     continue
 
                 section_node = docutils.nodes.section()
-                section_node['ids'].append(docutils.nodes.make_id(key))
+                section_node['ids'].append(docutils.nodes.make_id(group.path))
 
                 # Add a title to the section
                 title_node = docutils.nodes.title(text=f'{value.path}')
