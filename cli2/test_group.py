@@ -67,7 +67,7 @@ def test_help():
     )
     group.outfile.reset()
     group('help')
-    assert group.outfile.out.endswith("impression\n")
+    assert group.outfile.out.endswith("le faux texte\n")
     group.outfile.reset()
     group('help', 'test')
 
