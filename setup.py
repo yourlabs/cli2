@@ -28,6 +28,7 @@ setup(
     entry_points={
         'console_scripts': [
             'cli2 = cli2.cli:main.entry_point',
+            'cli2-example = cli2.example_obj:cli.entry_point',
         ],
     },
 )

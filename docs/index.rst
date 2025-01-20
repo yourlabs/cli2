@@ -13,6 +13,15 @@ cli2: Dynamic CLI for Python 3
    tutorial
    api
 
+Example Sphinx
+--------------
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Example documentation generated with cli2.sphinx extension:
+
+   example
+
 Indices and tables
 ==================
 

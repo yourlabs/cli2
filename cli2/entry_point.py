@@ -1,5 +1,5 @@
-import os
 import logging
+import os
 import sys
 
 from .colors import colors
@@ -48,3 +48,28 @@ class EntryPoint:
             msg = color + msg + colors.reset
 
         print(msg, end=end, file=file or self.outfile, flush=True)
+
+    @property
+    def path(self):
+        """
+        Return the CLI sub-command path.
+        """
+        current = self
+        chain = []
+        while current is not None:
+            chain.insert(0, current.name)
+            current = current.parent
+        return " ".join(chain)
+
+    @property
+    def doc_short(self):
+        """
+        Return the first sentence of the documentation.
+        """
+        tokens = []
+        for token in self.doc.replace("\n", " ").split(" "):
+            tokens.append(token)
+            if token.endswith("."):
+                tokens[-1] = tokens[-1][:-1]
+                break
+        return " ".join(tokens)

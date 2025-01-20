@@ -41,6 +41,7 @@ release = '2.1.0'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
+    'cli2.sphinx',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

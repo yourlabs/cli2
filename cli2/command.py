@@ -90,7 +90,7 @@ class Command(EntryPoint, dict):
         """Show help for a command."""
         if short:
             if self.doc:
-                return self.doc.replace('\n', ' ').split('.')[0]
+                return self.doc_short
             return ''
 
         if missing:

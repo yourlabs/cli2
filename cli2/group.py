@@ -86,7 +86,7 @@ class Group(EntryPoint, dict):
 
         if short:
             if self.doc:
-                return self.doc.replace('\n', ' ').split('.')[0]
+                return self.doc_short
             return ''
 
         if error:
