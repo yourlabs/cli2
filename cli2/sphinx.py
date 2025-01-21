@@ -173,13 +173,22 @@ class Cli2Command(ObjectDescription):
     @functools.cached_property
     def description(self):
         rst = inspect.getdoc(self.command.target)
+        doc = []
+
+        if self.command.target.__class__.__name__ == 'function':
+            ref = '.'.join([
+                self.command.target.__module__,
+                self.command.target.__qualname__,
+            ])
+            doc.append(f'- **Function**: :py:func:`{ref}`')
+
         if rst:
-            doc = [
+            doc += [
                 line
                 for line in rst.split("\n")
                 if not line.startswith(':param')
             ]
-            return "\n".join(doc).strip()
+        return "\n".join(doc).strip()
 
     @functools.cached_property
     def command(self):
