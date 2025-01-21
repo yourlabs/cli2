@@ -141,6 +141,11 @@ class Cli2Group(ObjectDescription):
 
     def run(self) -> list[nodes.Node]:
         self.nodes = super().run()
+        self.nodes[1][0][0].children = self.rst_nodes(
+            f'``{self.command.path}``',
+        )
+        if self.command.doc:
+            self.nodes[1][1] += self.rst_nodes(self.command.doc)
 
         longest = 0
         for name, command in self.command.items():
@@ -190,16 +195,17 @@ class Cli2Command(ObjectDescription):
         if self.description:
             self.nodes[1][1] += self.rst_nodes(self.description)
 
-        table = Table(headers=('Argument', 'Help'))
+        if self.command.items():
+            table = Table(headers=('Argument', 'Help'))
 
-        for name, argument in self.command.items():
-            table.row(
-                self.rst_nodes(f'``{synopsys_arg(argument)}``'),
-                self.rst_nodes(
-                    f'.. cli2:argument:: {self.command_name} {name}',
-                ),
-            )
-        self.nodes[1][1] += table
+            for name, argument in self.command.items():
+                table.row(
+                    self.rst_nodes(f'``{synopsys_arg(argument)}``'),
+                    self.rst_nodes(
+                        f'.. cli2:argument:: {self.command_name} {name}',
+                    ),
+                )
+            self.nodes[1][1] += table
         return self.nodes
 
 
