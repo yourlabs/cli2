@@ -5,14 +5,19 @@ import cli2
 class ClientCommand(cli2.Command):
     def setargs(self):
         super().setargs()
-        self.arg('base_url', kind='KEYWORD_ONLY', default='http://example.com')
-        self['self'].factory = self.get_client
+        if 'self' in self:
+            self.arg(
+                'base_url',
+                kind='KEYWORD_ONLY',
+                default='http://example.com',
+            )
+            self['self'].factory = self.get_client
 
     def get_client(self):
         return Client(self['base_url'].value)
 
 
-cli = cli2.Group(cmdclass=ClientCommand)
+cli = cli2.Group(cmdclass=ClientCommand, doc="blabla")
 
 
 class Client:
@@ -51,6 +56,16 @@ class Client:
         :param verbose: Enable verbose mode
         """
         pass
+
+
+@cli.cmd
+def noarg():
+    """ oo """
+
+
+@cli.cmd
+def nodoc():
+    pass
 
 
 nested = cli.group("nested", doc="Nested group")
