@@ -29,6 +29,7 @@ setup(
         'console_scripts': [
             'cli2 = cli2.cli:main.entry_point',
             'cli2-example = cli2.example_obj:cli.entry_point',
+            'cli2-example-nesting = cli2.example_nesting:cli.entry_point',
         ],
     },
 )
