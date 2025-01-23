@@ -349,18 +349,19 @@ class Cli2Auto(SphinxDirective):
 
 class XRefRole(roles.XRefRole):
     def run(self):
-        """ Apparently Sphinx doesn't like spaces in ids very much"""
+        if self.target.startswith("~"):
+            self.target = self.target[1:]
+            self.text = self.text[1:]
+            self.title = self.title.split(" ")[-1]
+
+        # Apparently Sphinx doesn't like spaces in ids very much
         self.target = self.target.replace(' ', '-')
+
         return super().run()
 
 
 class Cli2CommandRole(XRefRole):
-    def run(self):
-        if self.target.startswith("~"):
-            self.target = self.target[1:]
-            self.text = self.target[1:]
-            self.title = self.target.split(" ")[-1]
-        return super().run()
+    pass
 
 
 class Cli2ArgumentRole(XRefRole):
@@ -419,7 +420,7 @@ class Cli2Domain(domains.Domain):
         """
         Resolve a cross-reference.
         """
-        target_name = f"cli2.{target}"
+        target_name = f"cli2.{target.replace(' ', '-')}"
         if target_name in self.data['objects']:
             return nodes.make_refnode(
                 builder, fromdocname, self.data['objects'][target_name],

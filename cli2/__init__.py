@@ -27,6 +27,7 @@ def retrieve(path):
     # take the first entry point, navigate up to the target sub-command
     obj = matches[0].load().__self__
     obj.name = name
+    obj.parent = None
     for arg in path.split(" ")[1:]:
         obj = obj[arg]
     return obj
