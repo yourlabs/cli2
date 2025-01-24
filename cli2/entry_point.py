@@ -1,4 +1,3 @@
-import logging
 import os
 import sys
 
@@ -18,13 +17,8 @@ class EntryPoint:
         self.name = os.path.basename(args[0])
 
         if self.log:
-            logging.basicConfig(
-                stream=sys.stdout,
-                level=getattr(
-                    logging,
-                    os.environ.get('LOG', 'info').upper(),
-                ),
-            )
+            from .logging import configure
+            configure()
 
         result = self(*args[1:])
         if result is not None:

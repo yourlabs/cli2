@@ -32,7 +32,6 @@ def factories(*args, **args_overrides):
     args_overrides.setdefault('cls', '__class__')
 
     def _(cls):
-        print(cls)
         for key, value in args_overrides.items():
             arg(key, factory=value)(cls)
 
@@ -51,7 +50,6 @@ def factories(*args, **args_overrides):
                         callback = getattr(cls, value)
                     if not callback:
                         callback = specials.get(value, value)
-                    print(obj)
                     arg(key, factory=callback)(obj)
         return cls
 

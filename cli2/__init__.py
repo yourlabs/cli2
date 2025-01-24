@@ -4,6 +4,10 @@ from .colors import colors as c
 import importlib.metadata
 
 from .command import Command
+try:
+    from .client import Client
+except ImportError:
+    pass
 from .decorators import arg, cmd, factories
 from .display import diff, print
 from .group import Group

@@ -11,6 +11,7 @@ cli2: Dynamic CLI for Python 3
    :caption: Contents:
 
    tutorial
+   client
    api
 
 Example Sphinx
