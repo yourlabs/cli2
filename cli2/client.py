@@ -26,6 +26,12 @@ class Paginator:
         self.per_page = None
         self.initialized = False
 
+    async def list(self):
+        result = []
+        async for item in self:
+            result.append(item)
+        return result
+
     async def initialize(self, response=None):
         """
         This method is called once when we get the first response.
@@ -62,7 +68,10 @@ class Paginator:
 
         :param response: Response to parse
         """
-        data = response.json()
+        try:
+            data = response.json()
+        except json.JSONDecodeError:
+            return []
         if isinstance(data, list):
             return [self.model(item) for item in data]
         elif isinstance(data, dict):
@@ -99,11 +108,10 @@ class Paginator:
         while items := await self.page_items(page):
             for item in items:
                 yield item
-            break
 
-            page += 1
             if page == self.page_end:
                 break
+            page += 1
 
 
 class Client:
@@ -255,7 +263,7 @@ class Client:
         models.append(model_class)
         return model_class
 
-    def paginate(self, url, params, model=None):
+    def paginate(self, url, params=None, model=None):
         """
         Return a paginator to iterate over results
 
@@ -263,7 +271,7 @@ class Client:
         :param params: GET parameters
         :param model: Model class to cast for items
         """
-        return self.paginator(self, url, params, model)
+        return self.paginator(self, url, params or {}, model or dict)
 
     def pagination_initialize(self, data):
         """
