@@ -8,6 +8,7 @@ from . import display
 from .argument import Argument
 from .colors import colors
 from .entry_point import EntryPoint
+from .asyncio import async_resolve
 
 
 class Command(EntryPoint, dict):
@@ -194,29 +195,6 @@ class Command(EntryPoint, dict):
                 return True
         return False
 
-    def async_iter(self, obj):
-        return inspect.isasyncgen(obj) or hasattr(obj, '__aiter__')
-
-    async def async_resolve(self, result, output=False):
-        """ Recursively resolve awaitables. """
-        while inspect.iscoroutine(result):
-            result = await result
-        if self.async_iter(result):
-            results = []
-            async for _ in result:
-                if output:
-                    if (
-                        not inspect.iscoroutine(_)
-                        and not inspect.isasyncgen(_)
-                    ):
-                        display.print(_)
-                    else:
-                        await self.async_resolve(_, output=output)
-                else:
-                    results.append(await self.async_resolve(_))
-            return None if output else results
-        return result
-
     def call(self, *args, **kwargs):
         """Execute command target with bound arguments."""
         return self.target(*args, **kwargs)
@@ -286,7 +264,7 @@ class Command(EntryPoint, dict):
         factories = self.values(factories=True)
         if factories:
             results = await asyncio.gather(*[
-                self.async_resolve(arg.factory_value())
+                async_resolve(arg.factory_value())
                 for arg in factories
             ])
             for _, arg in enumerate(factories):
@@ -294,12 +272,12 @@ class Command(EntryPoint, dict):
 
         try:
             result = self.call(*self.bound.args, **self.bound.kwargs)
-            result = await self.async_resolve(result, output=True)
+            result = await async_resolve(result, output=True)
         except KeyboardInterrupt:
             print('exiting')
             sys.exit(1)
         finally:
-            self.post_result = await self.async_resolve(self.post_call())
+            self.post_result = await async_resolve(self.post_call())
         return result
 
     def ordered(self, factories=False):
