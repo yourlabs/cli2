@@ -4,7 +4,11 @@ from .colors import colors as c
 import importlib.metadata
 
 from .command import Command
-from .decorators import arg, cmd
+try:
+    from .client import Client
+except ImportError:
+    pass
+from .decorators import arg, cmd, factories
 from .display import diff, print
 from .group import Group
 from .node import Node
@@ -27,6 +31,7 @@ def retrieve(path):
     # take the first entry point, navigate up to the target sub-command
     obj = matches[0].load().__self__
     obj.name = name
+    obj.parent = None
     for arg in path.split(" ")[1:]:
         obj = obj[arg]
     return obj

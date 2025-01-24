@@ -154,7 +154,10 @@ class Argument:
                     out += '='
                     out += colors.green
                     if self.type:
-                        out += self.type.__name__
+                        if isinstance(self.type, str):
+                            out += self.type
+                        else:
+                            out += self.type.__name__
                     else:
                         out += self.param.name.upper()
                 out += colors.reset

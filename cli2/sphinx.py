@@ -120,7 +120,7 @@ class ObjectDescription(directives.ObjectDescription):
         """
         Define a cross-reference target and add it to the index.
         """
-        target_name = f"cli2.{name}"
+        target_name = f"cli2.{name.replace(' ', '-')}"
         if target_name not in self.objects:
             self.objects[target_name] = self.env.docname
             signode['ids'].append(target_name)
@@ -347,16 +347,24 @@ class Cli2Auto(SphinxDirective):
         return self._run(self.command)
 
 
-class Cli2CommandRole(roles.XRefRole):
+class XRefRole(roles.XRefRole):
     def run(self):
         if self.target.startswith("~"):
             self.target = self.target[1:]
-            self.text = self.target[1:]
-            self.title = self.target.split(" ")[-1]
+            self.text = self.text[1:]
+            self.title = self.title.split(" ")[-1]
+
+        # Apparently Sphinx doesn't like spaces in ids very much
+        self.target = self.target.replace(' ', '-')
+
         return super().run()
 
 
-class Cli2ArgumentRole(roles.XRefRole):
+class Cli2CommandRole(XRefRole):
+    pass
+
+
+class Cli2ArgumentRole(XRefRole):
     @functools.cached_property
     def command_name(self):
         return " ".join(self.target.split(" ")[:-1])
@@ -398,7 +406,7 @@ class Cli2Domain(domains.Domain):
         argument=Cli2Argument,
     )
     roles = dict(
-        grp=roles.XRefRole(),
+        grp=XRefRole(),
         cmd=Cli2CommandRole(),
         arg=Cli2ArgumentRole(),
     )
@@ -412,7 +420,7 @@ class Cli2Domain(domains.Domain):
         """
         Resolve a cross-reference.
         """
-        target_name = f"cli2.{target}"
+        target_name = f"cli2.{target.replace(' ', '-')}"
         if target_name in self.data['objects']:
             return nodes.make_refnode(
                 builder, fromdocname, self.data['objects'][target_name],

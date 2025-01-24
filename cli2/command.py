@@ -8,6 +8,7 @@ from . import display
 from .argument import Argument
 from .colors import colors
 from .entry_point import EntryPoint
+from .asyncio import async_resolve
 
 
 class Command(EntryPoint, dict):
@@ -53,8 +54,20 @@ class Command(EntryPoint, dict):
 
         self.positions = dict()
         self.sig = inspect.signature(target)
-        self.setargs()
         EntryPoint.__init__(self, outfile=outfile, log=log)
+        self.args_set = False
+        self.args_setting = False
+
+    def __getitem__(self, key):
+        self._setargs()
+        return super().__getitem__(key)
+
+    def _setargs(self):
+        if self.args_set or self.args_setting:
+            return
+        self.args_setting = True
+        self.setargs()
+        self.args_set = True
 
     def setargs(self):
         """Reset arguments."""
@@ -88,6 +101,7 @@ class Command(EntryPoint, dict):
 
     def help(self, error=None, short=False, missing=None):
         """Show help for a command."""
+        self._setargs()
         if short:
             if self.doc:
                 return self.doc_short
@@ -133,7 +147,7 @@ class Command(EntryPoint, dict):
 
     def parse(self, *argv):
         """Parse arguments into BoundArguments."""
-        self.setargs()
+        self._setargs()
         self.bound = self.sig.bind_partial()
         extra = []
         for current in argv:
@@ -184,29 +198,6 @@ class Command(EntryPoint, dict):
             if arg.factory and self.async_function(arg.factory):
                 return True
         return False
-
-    def async_iter(self, obj):
-        return inspect.isasyncgen(obj) or hasattr(obj, '__aiter__')
-
-    async def async_resolve(self, result, output=False):
-        """ Recursively resolve awaitables. """
-        while inspect.iscoroutine(result):
-            result = await result
-        if self.async_iter(result):
-            results = []
-            async for _ in result:
-                if output:
-                    if (
-                        not inspect.iscoroutine(_)
-                        and not inspect.isasyncgen(_)
-                    ):
-                        display.print(_)
-                    else:
-                        await self.async_resolve(_, output=output)
-                else:
-                    results.append(await self.async_resolve(_))
-            return None if output else results
-        return result
 
     def call(self, *args, **kwargs):
         """Execute command target with bound arguments."""
@@ -277,7 +268,7 @@ class Command(EntryPoint, dict):
         factories = self.values(factories=True)
         if factories:
             results = await asyncio.gather(*[
-                self.async_resolve(arg.factory_value())
+                async_resolve(arg.factory_value())
                 for arg in factories
             ])
             for _, arg in enumerate(factories):
@@ -285,12 +276,12 @@ class Command(EntryPoint, dict):
 
         try:
             result = self.call(*self.bound.args, **self.bound.kwargs)
-            result = await self.async_resolve(result, output=True)
+            result = await async_resolve(result, output=True)
         except KeyboardInterrupt:
             print('exiting')
             sys.exit(1)
         finally:
-            self.post_result = await self.async_resolve(self.post_call())
+            self.post_result = await async_resolve(self.post_call())
         return result
 
     def ordered(self, factories=False):
@@ -323,6 +314,7 @@ class Command(EntryPoint, dict):
 
         :param factories: Show only arguments with factory.
         """
+        self._setargs()
         order = (
             inspect.Parameter.POSITIONAL_ONLY,
             inspect.Parameter.POSITIONAL_OR_KEYWORD,

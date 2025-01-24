@@ -9,13 +9,20 @@ setup(
         'docstring_parser',
         'pyyaml',
         'pygments',
+        'structlog',
     ],
     extras_require=dict(
+        client=[
+            'httpx',
+            'truststore',
+        ],
         test=[
             'freezegun',
             'pytest',
             'pytest-cov',
             'pytest-mock',
+            'pytest-asyncio',
+            'pytest-httpx',
         ],
     ),
     author='James Pic',
@@ -29,6 +36,9 @@ setup(
         'console_scripts': [
             'cli2 = cli2.cli:main.entry_point',
             'cli2-example = cli2.example_obj:cli.entry_point',
+            'cli2-example-nesting = cli2.example_nesting:cli.entry_point',
+            'cli2-example-client = cli2.example_client:cli.entry_point',
+            'cli2-example-client-complex = cli2.example_client_complex:cli.entry_point',
         ],
     },
 )
