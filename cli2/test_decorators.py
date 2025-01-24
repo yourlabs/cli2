@@ -1,7 +1,7 @@
 from .argument import Argument
 from .command import Command
 from .group import Group
-from .decorators import cmd, arg
+from .decorators import cmd, arg, factories
 
 
 class YourThingCommand(Command):
@@ -115,3 +115,51 @@ def test_default():
     def foo(aa): return aa
     cmd = Command(foo)
     assert cmd() == 'test'
+
+
+def test_factories_simple():
+    @factories
+    class Foo:
+        def bar(self, a):
+            return a
+
+        @classmethod
+        def x(cls, b):
+            return b
+
+    assert Foo.bar.cli2_self['factory']
+    assert Foo.x.cli2_cls['factory']
+
+    bar = Command(Foo.bar)
+    assert bar.keys() == ['a']
+    assert bar(1) == 1
+
+    foo = Command(Foo.x)
+    assert foo.keys() == ['b']
+    assert foo(1) == 1
+
+
+def test_factories_args():
+    @factories(a=lambda: 1, b='factory')
+    class Foo:
+        @classmethod
+        async def factory(cls):
+            return 'fact'
+
+        def bar(self, a):
+            return a
+
+        @classmethod
+        def x(cls, b):
+            return b
+
+    assert Foo.bar.cli2_self['factory']
+    assert Foo.x.cli2_cls['factory']
+
+    bar = Command(Foo.bar)
+    assert not bar.keys()
+    assert bar() == 1
+
+    foo = Command(Foo.x)
+    assert not foo.keys()
+    assert foo() == 'fact'

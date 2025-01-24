@@ -4,7 +4,7 @@ from .colors import colors as c
 import importlib.metadata
 
 from .command import Command
-from .decorators import arg, cmd
+from .decorators import arg, cmd, factories
 from .display import diff, print
 from .group import Group
 from .node import Node

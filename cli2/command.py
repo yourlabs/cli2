@@ -53,11 +53,19 @@ class Command(EntryPoint, dict):
 
         self.positions = dict()
         self.sig = inspect.signature(target)
-        self.setargs()
         EntryPoint.__init__(self, outfile=outfile, log=log)
+        self.args_set = False
+
+    def __getitem__(self, key):
+        self.setargs()
+        return super().__getitem__(key)
 
     def setargs(self):
         """Reset arguments."""
+        if self.args_set:
+            return
+
+        self.args_set = True
         for name, param in self.sig.parameters.items():
             overrides = getattr(self.target, 'cli2_' + name, {})
             cls = overrides.get('cls', Argument)
@@ -88,6 +96,7 @@ class Command(EntryPoint, dict):
 
     def help(self, error=None, short=False, missing=None):
         """Show help for a command."""
+        self.setargs()
         if short:
             if self.doc:
                 return self.doc_short
@@ -323,6 +332,7 @@ class Command(EntryPoint, dict):
 
         :param factories: Show only arguments with factory.
         """
+        self.setargs()
         order = (
             inspect.Parameter.POSITIONAL_ONLY,
             inspect.Parameter.POSITIONAL_OR_KEYWORD,
