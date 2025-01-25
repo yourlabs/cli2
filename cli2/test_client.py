@@ -43,8 +43,7 @@ async def test_token(httpx_mock):
     httpx_mock.add_response(url='http://lol', method='POST', json=[1])
     client = NoToken()
     assert (await client.post('http://lol')).json() == [1]
-    with pytest.raises(AttributeError):
-        client.token
+    assert client.token
 
 
 @pytest.mark.asyncio

@@ -315,14 +315,14 @@ class Model:
 
         :param params: GET URL parameters
         """
-        return cls.paginate(**params)
+        return cls.paginate(self.url_list, **params)
 
     @classmethod
-    def paginate(cls, **params):
+    def paginate(cls, url, **params):
         """
         Return a :py:class:`Paginator` based on :py:attr:`url_list`
         """
-        return cls.paginator(cls.client, cls.url_list, params, cls)
+        return cls.paginator(cls.client, url, params, cls)
 
     @classmethod
     def pagination_initialize(cls, paginator, data):
@@ -389,11 +389,13 @@ class Client:
         if truststore:
             self._client_kwargs.setdefault('verify', truststore.SSLContext)
 
+        self.logger = structlog.get_logger('cli2')
+        self.token_getting = False
+        self.token = None
+
         for model in self.models:
             model = type(model.__name__, (model,), dict(client=self))
             setattr(self, model.__name__, model)
-
-        self.logger = structlog.get_logger('cli2')
 
     @property
     def client(self):
@@ -426,9 +428,35 @@ class Client:
             except httpx.RemoteProtocolError:
                 # enforce getting a new awaitable
                 del self.client
+                del self.token
                 tries -= 1
                 if not tries:
                     raise
+
+    async def token_get(self):
+        """
+        Authentication dance to get a token.
+
+        This method will automatically be called by :py:meth:`request` if it
+        finds out that :py:attr:`token` is None.
+
+        This is going to depend on the API you're going to consume, basically
+        it's very client-specific.
+
+        By default, this method does nothing. Implement it to your likings.
+
+        This method is supposed to return the token, but doesn't do anything
+        with it by itself: it's up to you to call something like:
+
+        .. code-block::
+
+            async def token_get(self):
+                response = await self.post('/login', dict(...))
+                token = response.json()['token']
+                self.client.headers['token'] = f'Bearer {token}'
+                return token
+        """
+        raise NotImplementedError()
 
     async def request(self, method, url, **kwargs):
         """
@@ -439,16 +467,12 @@ class Client:
 
         If your client defines an asyncio semaphore, it will respect it.
         """
-        if (
-            # we don't have a token
-            not getattr(self, 'token', None)
-            # but we do have a token_get implementation
-            and getattr(self, 'token_get', None)
-            # and we're not in the process of getting a token
-            and not getattr(self, 'token_getting', None)
-        ):
+        if not self.token and not self.token_getting:
             self.token_getting = True
-            self.token = await self.token_get()
+            try:
+                self.token = await self.token_get()
+            except NotImplementedError:
+                self.token = True
             self.token_getting = False
 
         log = self.logger.bind(method=method, url=url)
