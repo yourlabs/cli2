@@ -22,7 +22,7 @@ cli.cmd(GitHubClient.get, doc='Try get /events')
 
 
 @GitHubClient.model
-class GitHubEvent(dict):
+class GitHubEvent(cli2.Model):
     @classmethod
     @cli.cmd
     async def find(cls, **params):

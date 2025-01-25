@@ -624,3 +624,25 @@ def test_async_iter(capsys):
     assert cmd() is None
     captured = capsys.readouterr()
     assert captured.out == 'foo\x1b[37m\x1b[39;49;00m\n\n'
+
+
+def test_class_method():
+    def factory():
+        return Foo()
+
+    class Foo:
+        @classmethod
+        @arg('cls', factory=factory)
+        def bar(cls, foo):
+            return foo
+
+        @classmethod
+        def foo(cls, foo):
+            return foo
+
+    cmd = Command(Foo.bar)
+    assert cmd['cls'].factory == factory
+    assert cmd('x') == 'x'
+
+    cmd = Command(Foo.foo)
+    assert cmd('a') == 'a'

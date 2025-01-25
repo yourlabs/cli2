@@ -21,10 +21,20 @@ class Command(EntryPoint, dict):
 
     def __init__(self, target, name=None, color=None, doc=None, posix=False,
                  help_hack=True, outfile=None, log=True):
-        self.target = target
         self.posix = posix
         self.parent = None
         self.help_hack = help_hack
+
+        self.target = target
+        self.sig = inspect.signature(target)
+        if inspect.ismethod(target):
+            # let's allow overwriting a bound method's __self__
+            func_sig = inspect.signature(target.__func__)
+            self_name = [*func_sig.parameters.keys()][0]
+            overrides = getattr(self.target.__func__, f'cli2_{self_name}', {})
+            if 'factory' in overrides:
+                self.target = target.__func__
+                self.sig = inspect.signature(target.__func__)
 
         overrides = getattr(target, 'cli2', {})
         for key, value in overrides.items():
@@ -35,7 +45,7 @@ class Command(EntryPoint, dict):
         elif 'name' not in overrides:
             self.name = getattr(target, '__name__', type(target).__name__)
 
-        self.parsed = parse(inspect.getdoc(target))
+        self.parsed = parse(inspect.getdoc(self.target))
         if doc:
             self.doc = doc
         elif 'doc' not in overrides:
@@ -53,7 +63,6 @@ class Command(EntryPoint, dict):
             self.color = 'orange'
 
         self.positions = dict()
-        self.sig = inspect.signature(target)
         EntryPoint.__init__(self, outfile=outfile, log=log)
         self.args_set = False
         self.args_setting = False
