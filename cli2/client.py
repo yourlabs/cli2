@@ -1,5 +1,7 @@
+import copy
 import json
 import httpx
+import math
 import structlog
 
 try:
@@ -14,17 +16,103 @@ from .decorators import factories
 class Paginator:
     """
     Generic pagination class.
+
+    You don't have to override that class to do basic paginator customization,
+    instead, you can also implement pagination specifics into:
+
+    - the :py:class:`~Client` class with the
+      :py:meth:`~Client.pagination_initialize` and
+      :py:meth:`~Client.pagination_parameters` methods
+
+    - or also, per model, in the :py:class:`~Model` class with the
+      :py:meth:`~Model.pagination_initialize` and
+      :py:meth:`~Model.pagination_parameters` methods
+
+    Refer to :py:meth:`pagination_parameters` and
+    :py:meth:`pagination_initialize` for details.
+
+    .. py:attribute:: total_pages
+
+        Total number of pages.
+
+    .. py:attribute:: total_items
+
+        Total number of items.
+
+    .. py:attribute:: per_page
+
+        Number of items per page
+
+    .. py:attribute:: url
+
+        The URL to query
+
+    .. py:attribute:: url
+
+        The URL to query
+
+    .. py:attribute:: params
+
+        Dictionnary of GET parameters
+
+    .. py:attribute:: model
+
+        :py:class:`Model` class or ``dict`` by default.
     """
 
-    def __init__(self, client, url, params, model=None):
+    def __init__(self, client, url, params=None, model=None):
+        """
+        Initialize a paginator object with a client on a URL with parameters.
+
+        :param client: :py:class:`Client` object
+        :param url: URL to query
+        :param params: Dictionnary of GET parameters
+        :params model: Model class, can be a dict, or :py:class:`Model`
+        """
         self.client = client
         self.url = url
-        self.params = params
-        self.model = model or None
+        self.params = params or {}
+        self.model = model or dict
         self.page_start = 1
-        self.page_end = None
         self.per_page = None
         self.initialized = False
+
+        self._total_pages = None
+        self._total_items = None
+        self._reverse = False
+
+    def reverse(self):
+        """
+        Return a copy of this :py:class:`Paginator` object to iterate in
+        reverse order.
+
+        For this to work, :py:meth:`pagination_initialize` **must** set
+        :py:attr:`per_page` and either of :py:attr:`total_pages` or
+        :py:attr:`total_items`, which is up to you to implement.
+        """
+        obj = copy.deepcopy(self)
+        obj._reverse = True
+        return obj
+
+    @property
+    def total_items(self):
+        return self._total_items
+
+    @total_items.setter
+    def total_items(self, value):
+        self._total_items = value
+
+    @property
+    def total_pages(self):
+        if self._total_pages:
+            return self._total_pages
+        if self.total_items and self.per_page:
+            self._total_pages = math.ceil(self.total_items / self.per_page)
+            return self._total_pages
+
+    @total_pages.setter
+    def total_pages(self, value):
+        self._total_pages = value
 
     async def list(self):
         result = []
@@ -35,10 +123,6 @@ class Paginator:
     async def initialize(self, response=None):
         """
         This method is called once when we get the first response.
-
-        It will call :py:meth:`pagination_initialize` which you are free to
-        implement in either the Pagination class or the
-        :py:cls:`~cli2.client.Client` class.
 
         :param response: First response object
         """
@@ -51,16 +135,38 @@ class Paginator:
             self.initialized = True
             return
 
-        self.page_end, self.per_page = self.pagination_initialize(data)
+        self.pagination_initialize(data)
         self.initialized = True
 
     def pagination_initialize(self, data):
         """
-        Return last page number and number of items per page as tuple.
+        Initialize paginator based on the data of the first response.
+
+        If at least, you can set :py:attr:`total_items` or
+        :py:attr:`total_pages`, :py:attr:`per_page` would also be nice.
 
         :param data: Data of the first response
         """
-        return self.client.pagination_initialize(data)
+        try:
+            self.model.pagination_initialize
+        except AttributeError:
+            return self.client.pagination_initialize(self, data)
+        else:
+            return self.model.pagination_initialize(self, data)
+
+    def pagination_parameters(self, page_number):
+        """
+        Return GET parameters for a given page.
+
+        Calls :py:meth:`Model.pagination_parameters` if possible otherwise
+        :py:meth:`Client.pagination_parameters`.
+        """
+        try:
+            self.model.pagination_parameters
+        except AttributeError:
+            return self.client.pagination_parameters(self, page_number)
+        else:
+            return self.model.pagination_parameters(self, page_number)
 
     def response_items(self, response):
         """
@@ -73,11 +179,15 @@ class Paginator:
         except json.JSONDecodeError:
             return []
         if isinstance(data, list):
-            return [self.model(item) for item in data]
+            items = [self.model(item) for item in data]
         elif isinstance(data, dict):
             for key, value in data.items():
                 if isinstance(value, list):
-                    return [self.model(item) for item in value]
+                    items = [self.model(item) for item in value]
+                    break
+        if not self.per_page:
+            self.per_page = len(items)
+        return items
 
     async def page_items(self, page_number):
         """
@@ -94,7 +204,7 @@ class Paginator:
         :param page_number: Page number to get the items from
         """
         params = self.params.copy()
-        params["page"] = page_number
+        params.update(self.pagination_parameters(page_number))
         response = await self.client.get(self.url, params=params)
         if not self.initialized:
             await self.initialize(response)
@@ -104,21 +214,168 @@ class Paginator:
         """
         Asynchronous iterator.
         """
-        page = self.page_start
+        if self._reverse and not self.total_pages:
+            first_page_response = await self.page(1)
+            page = self.total_pages
+        else:
+            page = self.page_start
+
         while items := await self.page_items(page):
+            if self._reverse:
+                items = reversed(items)
             for item in items:
                 yield item
 
-            if page == self.page_end:
-                break
-            page += 1
+            if self._reverse:
+                page -= 1
+                if not page:
+                    break
+                if page == 1:
+                    # use cached first page response
+                    items = self.response_items(first_page_response)
+                    for item in reversed(items):
+                        yield item
+                    break
+            else:
+                if page == self.total_pages:
+                    break
+                page += 1
+
+
+class Model:
+    """
+
+    You should never call this class directly, instead, get it from the
+    :py:class:`Client` object after decorating your model classes with a
+    client as such:
+
+    .. code-block:: python
+
+
+
+    .. py:attribute:: paginator
+
+        :py:class:`Paginator` class, you can leave it by default and just
+        implement :py:meth:`pagination_initialize` and
+        :py:meth:`pagination_parameters`.
+
+    .. py:attribute:: url_list
+
+        The URL to get the list of objects, you're supposed to configure it as
+        a model attribute in your model subclass.
+
+    .. py:attribute:: url_detail
+
+        The URL to get the details of an object, you're supposed to configure
+        it as a model attribute in your model subclass.
+    """
+    paginator = Paginator
+    url_list = None
+    url_detail = '{cls.url_list}/{self.id}'
+
+    def __init_subclass__(cls, **kwargs):
+        if 'client' not in cls.__dict__:
+            cls._client_class.models.append(cls)
+
+            # we're going to want to ensure cls for Model does get the
+            # Client().ModelClass
+
+            # Which means we want to get the self factory for the Client class
+            self_overrides = getattr(cls._client_class, 'cli2_self', {})
+            self_factory = self_overrides.get('factory', None)
+            if isinstance(self_factory, str):
+                if self_factory == '__init__':
+                    def self_factory():
+                        return cls._client_class()
+                else:
+                    self_factory = getattr(cls._client_class, self_factory)
+
+            # And create a factory of our own for cls of this Model so that
+            # it calls the Client's ``self`` factory instanciated Client(),
+            # and then the Model from that object
+            async def factory():
+                result = await async_resolve(self_factory())
+                return getattr(result, cls.__name__)
+
+            factories(cls=factory)(cls)
+        super().__init_subclass__(**kwargs)
+
+    def __init__(self, data=None):
+        """
+        Instanciate a model.
+
+        :param data: JSON Data
+        """
+        self.data = data or dict()
+
+    @classmethod
+    def find(cls, **params):
+        """
+        Find objects filtered by GET params
+
+        :param params: GET URL parameters
+        """
+        return cls.paginate(**params)
+
+    @classmethod
+    def paginate(cls, **params):
+        """
+        Return a :py:class:`Paginator` based on :py:attr:`url_list`
+        """
+        return cls.paginator(cls.client, cls.url_list, params, cls)
+
+    @classmethod
+    def pagination_initialize(cls, paginator, data):
+        """
+        Implement Model-specific pagination initialization here.
+
+        Otherwise, :py:meth:`Client.pagination_initialize` will
+        take place.
+
+        Refer to :py:meth:`Paginator.pagination_initialize` for
+        details.
+        """
+        cls.client.pagination_initialize(paginator, data)
+
+    @classmethod
+    def pagination_parameters(cls, paginator, page_number):
+        """
+        Implement Model-specific pagination parameters here.
+
+        Otherwise, :py:meth:`Client.pagination_parameters` will
+        take place.
+
+        Refer to :py:meth:`Paginator.pagination_parameters` for
+        details.
+        """
+        return cls.client.pagination_parameters(paginator, page_number)
 
 
 class Client:
     """
     HTTPx Client
+
+    .. py:attribute:: paginator
+
+        :py:class:`Paginator` class, you can leave it by default and just
+        implement :py:meth:`pagination_initialize` and
+        :py:meth:`pagination_parameters`.
     """
     paginator = Paginator
+    model = Model
+    models = []
+
+    def __init_subclass__(cls, **kwargs):
+        # Registering the client class for this model
+        cls.model = type(
+            cls.model.__name__,
+            (cls.model,),
+            dict(_client_class=cls),
+        )
+        if not getattr(cls, 'cli2_self', {}):
+            factories(cls)
+        cls.models = []
+        super().__init_subclass__(**kwargs)
 
     def __init__(self, *args, **kwargs):
         """
@@ -132,7 +389,7 @@ class Client:
         if truststore:
             self._client_kwargs.setdefault('verify', truststore.SSLContext)
 
-        for model in getattr(self, '_models', []):
+        for model in self.models:
             model = type(model.__name__, (model,), dict(client=self))
             setattr(self, model.__name__, model)
 
@@ -234,6 +491,7 @@ class Client:
         """ DELETE Request """
         return await self.request('DELETE', url, *args, **kwargs)
 
+    '''
     @classmethod
     def model(cls, model_class):
         """
@@ -262,6 +520,7 @@ class Client:
         factories(cls=factory)(model_class)
         models.append(model_class)
         return model_class
+    '''
 
     def paginate(self, url, params=None, model=None):
         """
@@ -273,9 +532,19 @@ class Client:
         """
         return self.paginator(self, url, params or {}, model or dict)
 
-    def pagination_initialize(self, data):
+    def pagination_parameters(self, paginator, page_number):
         """
-        You need to implement the logic to return last_page and per_page if
-        possible based on the data you are given.
+        Implement Model-specific pagination parameters here.
+
+        Refer to :py:meth:`Paginator.pagination_parameters` for
+        details.
         """
-        return None, None
+        return dict(page=page_number)
+
+    def pagination_initialize(self, paginator, data):
+        """
+        Implement Model-specific pagination initialization here.
+
+        Refer to :py:meth:`Paginator.pagination_initialize` for
+        details.
+        """

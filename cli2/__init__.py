@@ -5,7 +5,7 @@ import importlib.metadata
 
 from .command import Command
 try:
-    from .client import Client
+    from .client import Client, Paginator
 except ImportError:
     pass
 from .decorators import arg, cmd, factories
