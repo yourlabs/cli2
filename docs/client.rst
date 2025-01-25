@@ -30,7 +30,6 @@ Start by extending a :py:class:`~cli2.client.Client`:
 
     import cli2
 
-
     class YourClient(cli2.Client):
         pass
 
@@ -48,7 +47,7 @@ Creating a Model
 ----------------
 
 Then, register a :py:class:`~cli2.client.Model` for this client by subclassing
-it's ``.model`` attribute and set the :py:attr::
+it's ``.model`` attribute.
 
 .. code-block:: python
 
