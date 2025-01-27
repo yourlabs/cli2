@@ -165,18 +165,18 @@ async def test_pagination_patterns(httpx_mock):
 
     client = Client(base_url='http://lol')
 
-    paginator = client.TotalModel.paginate()
+    paginator = client.TotalModel.find()
     await paginator.initialize()
     assert paginator.total_items == 2
     assert paginator.total_pages == 2
     assert paginator.per_page == 1
 
-    paginator = client.Pages.paginate()
+    paginator = client.Pages.find()
     await paginator.initialize()
     assert paginator.total_pages == 1
     assert paginator.per_page == 1
 
-    paginator = client.Offset.paginate()
+    paginator = client.Offset.find()
     await paginator.initialize()
     assert paginator.total_pages == 2
     assert paginator.per_page == 1

@@ -310,7 +310,7 @@ class Model:
 
         :param params: GET URL parameters
         """
-        return cls.paginate(self.url_list, **params)
+        return cls.paginate(cls.url_list, **params)
 
     @classmethod
     def paginate(cls, url, **params):
