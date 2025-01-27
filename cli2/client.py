@@ -244,14 +244,9 @@ class Paginator:
 
 class Model:
     """
-
     You should never call this class directly, instead, get it from the
     :py:class:`Client` object after decorating your model classes with a
     client as such:
-
-    .. code-block:: python
-
-
 
     .. py:attribute:: paginator
 
@@ -514,37 +509,6 @@ class Client:
     async def delete(self, url, *args, **kwargs):
         """ DELETE Request """
         return await self.request('DELETE', url, *args, **kwargs)
-
-    '''
-    @classmethod
-    def model(cls, model_class):
-        """
-        Register a model class for this client.
-
-        You will then be able to access the model class as an attribute of the
-        client object, with the ``.client`` attribute bound.
-        """
-        models = getattr(cls, '_models', None)
-        if not models:
-            models = cls._models = []
-
-        self_overrides = getattr(cls, 'cli2_self', {})
-        self_factory = self_overrides.get('factory', None)
-        if isinstance(self_factory, str):
-            if self_factory == '__init__':
-                def self_factory():
-                    return cls()
-            else:
-                self_factory = getattr(cls, self_factory)
-
-        async def factory():
-            result = await async_resolve(self_factory())
-            return getattr(result, model_class.__name__)
-
-        factories(cls=factory)(model_class)
-        models.append(model_class)
-        return model_class
-    '''
 
     def paginate(self, url, params=None, model=None):
         """
