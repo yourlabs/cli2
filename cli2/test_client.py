@@ -1,6 +1,7 @@
 import cli2
 import httpx
 import pytest
+from datetime import datetime
 
 
 class Client(cli2.Client):
@@ -240,4 +241,88 @@ async def test_cli():
 
 def test_descriptor():
     class Model(Client.model):
-        url_list = '/foo'
+        id = cli2.Field()
+        bar = cli2.Field('nested/bar')
+        foo = cli2.Field('undeclared/foo')
+
+    model = Model(data=dict(id=1, nested=dict(bar=2)))
+    assert model.data['id'] == 1
+    assert model.id == 1
+    model.id = 2
+    assert model.data['id'] == 2
+    assert model.id == 2
+
+    assert model.bar == 2
+    model.bar = 3
+    assert model.bar == 3
+    assert model.data['nested']['bar'] == 3
+
+    assert not model.foo
+    model.foo = 1
+    assert model.foo == 1
+    assert model.data['undeclared']['foo'] == 1
+
+    model = Model(foo=3)
+    assert model.foo == 3
+    assert model.data['undeclared']['foo'] == 3
+
+
+def test_jsonstring():
+    class Model(Client.model):
+        json = cli2.JSONStringField()
+
+    client = Client()
+    model = client.Model(data=dict(json='{"foo": 1}'))
+    assert model.json == dict(foo=1)
+
+    model.json['foo'] = 2
+    assert model.json == dict(foo=2)
+    assert model.data['json'] == '{"foo": 2}'
+
+    model = client.Model()
+    model.json = dict(a=1)
+    assert model.data['json'] == '{"a": 1}'
+
+
+def test_datetime():
+    class Model(Client.model):
+        dt = cli2.DateTimeField()
+
+    model = Model(dict(dt='2020-11-12T01:02:03'))
+    assert model.dt == datetime(2020, 11, 12, 1, 2, 3)
+    model.dt = datetime(2020, 10, 12, 1, 2, 3)
+    assert model.data['dt'] == '2020-10-12T01:02:03'
+
+
+def test_model_inheritance():
+    class Model(Client.model):
+        foo = cli2.Field()
+
+    class Model2(Model):
+        bar = cli2.Field()
+
+    client = Client()
+    assert [*client.Model._fields.keys()] == ['foo']
+    assert [*client.Model2._fields.keys()] == ['bar', 'foo']
+
+
+def test_relation():
+    class Child(Client.model):
+        foo = cli2.Field()
+
+    class Father(Client.model):
+        child = cli2.Related('Child')
+
+    client = Client()
+    model = client.Father(dict(child=dict(foo=1)))
+    assert model.child.foo == 1
+    assert model.data['child']['foo'] == 1
+
+    model.child.foo = 2
+    assert model.child.foo == 2
+    assert model.data['child']['foo'] == 2
+
+    new = client.Child(dict(foo=3))
+    model.child = new
+    assert model.child.foo == 3
+    assert model.data['child']['foo'] == 3

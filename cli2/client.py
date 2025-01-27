@@ -1,8 +1,13 @@
+"""
+HTTP Client boilerplate code to conquer the world.
+"""
+
 import copy
 import json
 import httpx
 import math
 import structlog
+from datetime import datetime
 
 try:
     import truststore
@@ -293,15 +298,61 @@ class Model:
                 return getattr(result, cls.__name__)
 
             factories(cls=factory)(cls)
+
+        cls._fields = dict()
+
+        def process_cl(cl):
+            for key, obj in cl.__dict__.items():
+                if not isinstance(obj, Field):
+                    continue
+
+                if not obj.data_accessor:
+                    obj.data_accessor = key
+
+                cls._fields[key] = obj
+                obj.name = key
+
+        process_cl(cls)
+
+        def process_bases(cl):
+            for base in cl.__bases__:
+                process_cl(base)
+                process_bases(base)
+
+        process_bases(cls)
+
         super().__init_subclass__(**kwargs)
 
-    def __init__(self, data=None):
+    def __init__(self, data=None, **values):
         """
         Instanciate a model.
 
         :param data: JSON Data
         """
-        self.data = data or dict()
+        self._data = data or dict()
+        self._data_updating = False
+        self._dirty_fields = []
+        self._field_cache = dict()
+
+        for key, value in values.items():
+            setattr(self, key, value)
+
+    @property
+    def data(self):
+        """
+        Just ensure we update dirty data prior to returning the data dict.
+        """
+        if self._dirty_fields and not self._data_updating:
+            self._data_updating = True
+            for field in self._dirty_fields:
+                field.clean(self)
+            self._dirty_fields = []
+            self._data_updating = False
+        return self._data
+
+    @data.setter
+    def data(self, value):
+        self._data = value
 
     @classmethod
     def find(cls, **params):
@@ -540,3 +591,301 @@ class Client:
         Refer to :py:meth:`Paginator.pagination_initialize` for
         details.
         """
+
+
+class Field:
+    """
+    Field descriptor for models.
+
+    The basic Field descriptor manages (get and set) data from within the
+    :py:attr:`Model.data` JSON.
+
+    Since sub-classes are going to convert data, we need to understand the
+    concepts of internal and external data:
+
+    - external: the Python value, this can be any kind of Python object
+    - internal: the Python representation of the JSON value, this can be any
+      Python type that will work given json.dumps
+    - internalizing: process of converting a Python value into a JSON one
+    - externalizing: process of converting a JSON value into something Python
+
+    .. py:attribute:: data_accessor
+
+        Describes how to access the Field's data inside the model's data dict.
+        If data_accessor is ``foo`` then this field will control the ``foo``
+        key in the model's data dict.
+        Use ``/`` to separate keys when nesting, if data_accessor is
+        ``foo/bar`` then it will control the ``bar`` key of the ``foo`` dict in
+        the model's data dict.
+    """
+    def __init__(self, data_accessor=None):
+        self.data_accessor = data_accessor
+
+    def __get__(self, obj, objtype=None):
+        """
+        Get the value of a field for an object.
+
+        A simple process:
+
+        - Get the internal value from :py:meth:`internal_get`
+        - Pass it through the :py:meth:`externalize` method prior to returning
+          it.
+        """
+        if obj is None:
+            return self
+
+        data = self.internal_get(obj)
+        return self.externalize(obj, data)
+
+    def __set__(self, obj, value):
+        """
+        Set the value in the internal :py:attr:`Model.json` dict.
+
+        A two-step process:
+
+        - Use :py:meth:`internalize` to convert the Python external value into
+          a Python representation of the JSON value
+        - Use :py:meth:`internal_set` to actually set the internal
+          :py:attr:`Model.data`
+        """
+        value = self.internalize(obj, value)
+        self.internal_set(obj, value)
+
+    def internal_get(self, obj):
+        """
+        Get the "raw" value from the object, which is a Python representation
+        of the JSON internal value, using :py:attr:`data_accessor`.
+        """
+        data = obj.data
+        if not isinstance(data, dict):
+            return self.__get__(data, type(data))
+
+        for key in self.data_accessor.split('/'):
+            if not data:
+                return ''
+            try:
+                data = data[key]
+            except KeyError:
+                return
+        return data
+
+    def internal_set(self, obj, value):
+        """
+        Using :py:attr:`data_accessor`, set the value in :py:attr:`Model.data`
+        """
+        parts = self.data_accessor.split('/')
+        data = obj.data
+        for number, key in enumerate(parts, start=1):
+            if number == len(parts):
+                data[key] = value
+                break
+            if key not in data:
+                data[key] = dict()
+            data = data[key]
+
+    def internalize(self, obj, value):
+        """
+        Transform external value into JSON internal value.
+
+        Any kind of processing from the Python value to the JSON value can be
+        done in this method.
+        """
+        return value
+
+    def externalize(self, obj, value):
+        """
+        Transform internal JSON value to Python value, based on
+        :py:attr:`data_accessor`.
+
+        Any kind of processing from the JSON value to the Python value can be
+        done in this method.
+        """
+        return value
+
+    def mark_dirty(self, obj):
+        """
+        Tell the model that the data must be cleaned.
+        """
+        obj._dirty_fields.append(self)
+
+    def clean(self, obj):
+        """
+        Clean the data.
+
+        Called by the Model when requested a :py:attr:`data`, this method:
+
+        - Gets the externalized value from :py:meth:`__get__`
+        - Convert it into a JSON object with :py:meth:`internalize`
+        - Uses :py:meth:`internal_set` to update :py:attr:`Model.data`
+        """
+        externalized = self.__get__(obj)
+        internalized = self.internalize(obj, externalized)
+        self.internal_set(obj, internalized)
+
+
+class MutableField(Field):
+    """
+    Base class for mutable value fields like :py:class:`JSONStringField`
+
+    Basically, this field:
+
+    - caches the externalized value, so that you can mutate it
+    - marks the field as dirty so you get the internalized mutated value that
+      next time you get the :py:attr:`Model.data`
+    """
+    def cache_set(self, obj, value):
+        """
+        Cache a computed value for obj
+
+        :param obj: Model object
+        """
+        obj._field_cache[self.name] = value
+
+    def cache_get(self, obj):
+        """
+        Return cached value for obj
+
+        :param obj: Model object
+        """
+        return obj._field_cache[self.name]
+
+    def __get__(self, obj, objtype=None):
+        """
+        Return safely mutable value.
+
+        If the value is not found in cache, externalize the internal value and
+        cache it.
+
+        Always mark the field as dirty given the cached external data may
+        mutate.
+        """
+        if not obj:
+            return super().__get__(obj, objtype)
+
+        try:
+            return self.cache_get(obj)
+        except KeyError:
+            externalized = self.externalize(obj, self.internal_get(obj))
+            self.cache_set(obj, externalized)
+            return externalized
+        finally:
+            if not obj._data_updating:
+                self.mark_dirty(obj)
+
+    def __set__(self, obj, value):
+        """
+        Cache the value prior to setting it normally.
+        """
+        self.cache_set(obj, value)
+        super().__set__(obj, value)
+
+
+class JSONStringField(MutableField):
+    """
+    Yes, some proprietary APIs have JSON fields containing JSON strings.
+
+    This Field is the cure the world needed for that disease.
+
+    .. py:attribute:: options
+
+        Options dict for json.dumps, ie. ``options=dict(indent=4)``
+    """
+    def __init__(self, *args, options=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.options = options or dict()
+
+    def internalize(self, obj, data):
+        return json.dumps(data, **self.options)
+
+    def externalize(self, obj, value):
+        return json.loads(value)
+
+
+class DateTimeField(Field):
+    """
+    JSON has no datetime object, which means different APIs will serve us
+    different formats in string variables.
+
+    Heck, I'm pretty sure there are even some APIs which use different formats.
+    This is the cure the world needed against that disease.
+
+    .. py:attr:: fmt
+
+        The datetime format for Python's strptime/strftime.
+
+    .. py:attr:: fmts
+
+        A list of formats, in case you don't have one. This list will be
+        populated with :py:attr:`default_fmts` by default.
+
+    .. py:attr:: default_fmts
+
+        A class property containing a list of formats we're going to try to
+        figure `fmt` and have this thing "work by default". Please contribute
+        to this list with different formats.
+    """
+    default_fmts = [
+        '%Y-%m-%dT%H:%M:%S',
+    ]
+
+    def __init__(self, *args, fmt=None, fmts=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fmt = fmt
+        self.fmts = fmts
+        if not self.fmt and not self.fmts:
+            self.fmts = self.default_fmts
+
+    def externalize(self, obj, value):
+        """
+        Convert the internal string into an external datetime.
+        """
+        if self.fmt:
+            return datetime.strptime(value, self.fmt)
+
+        # try a bunch of formats and hope for the best
+        for fmt in self.default_fmts:
+            try:
+                value = datetime.strptime(value, fmt)
+            except ValueError:
+                continue
+            else:
+                self.fmt = fmt
+                return value
+        raise Exception(
+            f'Could not figure how to parse {value}, use fmt option'
+        )
+
+    def internalize(self, obj, value):
+        """
+        Convert a datetime into an internal string.
+        """
+        if isinstance(value, str):
+            return value
+        if not self.fmt:
+            raise Exception('fmt required')
+        return value.strftime(self.fmt)
+
+
+class Related(MutableField):
+    """
+    Related model field.
+
+    .. py:attr:: model
+
+        *STRING* name of the related model class.
+    """
+    def __init__(self, model, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.model = model
+
+    def internalize(self, obj, data):
+        """
+        Return the related object's data.
+        """
+        return data.data
+
+    def externalize(self, obj, value):
+        """
+        Instanciate the related model class with the value.
+        """
+        return getattr(obj.client, self.model)(value)
