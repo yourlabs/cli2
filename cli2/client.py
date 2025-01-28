@@ -592,6 +592,8 @@ class Client:
 
         log.info('response', **_log)
 
+        response.raise_for_status()
+
         return response
 
     async def get(self, url, *args, **kwargs):

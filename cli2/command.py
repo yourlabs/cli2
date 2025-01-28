@@ -4,6 +4,12 @@ import sys
 
 from docstring_parser import parse
 
+try:
+    from httpx import HTTPStatusError
+except ImportError:
+    class HTTPStatusError(Exception):
+        pass
+
 from . import display
 from .argument import Argument
 from .colors import colors
