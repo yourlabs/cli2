@@ -16,7 +16,7 @@ project to another, I've refactored this stuff here:
   up your drive and I've not yet decided a solution against that**, but I just
   love this feature,
 - ``export HTTP_DEBUG=1`` for low-level HTTP Debugging output
-- a Model class system for mapping REST resources
+- **a ORM for REST resources**
 
 Tutorial
 ========
@@ -105,6 +105,119 @@ You can also customize pagination per-model, in the same fashion as we already
 can per-client, by implementing and
 :py:meth:`~cli2.client.Model.pagination_initialize`,
 :py:meth:`~cli2.client.Model.pagination_parameters` in your Model class.
+
+Fields
+------
+
+You can also define fields for your Model as such:
+
+.. code-block:: python
+
+    class YourModel(YourClient.model):
+        id = cli2.Field()
+
+You guessed it: this will may the ``id`` key of the :py:attr:`Model.data` to
+the ``.id`` property. Which allows for more interesting things as we'll see...
+
+Nested fields
+`````````````
+
+If you want to map ``data['company']['name']`` to ``company_name``, use slash
+to define a nested data accessor:
+
+.. code-block:: python
+
+    class YourModel(YourClient.model):
+        company_name = cli2.Field('company/name')
+
+You can also "pythonize" any property with a simple accessor without any slash:
+
+.. code-block:: python
+
+    class YourModel(YourClient.model):
+        company_name = cli2.Field('companyName')
+
+Custom types
+````````````
+
+The most painful stuff I've had to deal with in APIs are datetimes and, "json
+in json".
+
+The cures for that are :py:class:`JSONStringField` and :py:class:`DateTimeField`.
+
+Expressions
+```````````
+
+Sometimes, we want to filter on fields which are not available in GET
+parameters, in this case, we can filter in Python with SQL-Alchemy-like
+expressions:
+
+.. code-block:: python
+
+   foo_stuff = YourModel.find(YourModel.company_name == 'foo')
+
+You can also pass lambdas:
+
+.. code-block:: python
+
+   foo_stuff = YourModel.find(lambda item: item.company_name.lower() == 'foo')
+
+Combine ands and ors:
+
+.. code-block:: python
+
+    foo_stuff = YourModel.find(
+        (
+            # all stuff with company starting with foo
+            (lambda item: item.company_name.lower().startswith('foo'))
+            # AND ending with bar
+            & (lambda item: item.company_name.lower().endswith('bar'))
+        )
+        # OR with name test
+        | item.company_name == 'test'
+    )
+
+Parameterable
+`````````````
+
+Note that we want to delegate as much filtering as we can to the endpoint. To
+delegate a filter to the endpoint, add a :py:attr:`Field.parameter`:
+
+.. code-block:: python
+
+    class YourModel(YourClient.model):
+        name = cli2.Field(parameter='name')
+
+This will indicate to the paginator that, given the following expression:
+
+.. code-block:: python
+
+    YourModel.find(YourModel.name == 'bar')
+
+The paginator will add the ``?name=bar`` parameter to the URL.
+
+This is nice when you want to just start coding then with only expressions and
+not bother about which field is parameterable or not.
+
+This looks a bit weak and of limited use as-is, because I haven't open-sourced
+the OData part of my code yet, but that is able to generate a query string with
+nested or/and/startswith/etc. That part won't end up in the core module anyway,
+probably a ``cli2.contrib.odata`` module.
+
+And I'm sure there are several other more or less protocols out there to do
+this kind of things, so, we might as well have that here available for free.
+
+Step 3 Profit
+`````````````
+
+The previous paragraph mumbles something about a future ``cli2.contrib``
+module. Indeed, I'm planning on contributing API-specific clients in a new
+``cli2.contrib`` module, for a bunch of proprietary stuff that big corps love
+to buy, we'll have ``cli2.contrib.delphi``, ``cli2.contrib.dynatrace``, etc,
+etc
+
+Then, I'll have beautiful SDKs for everything, for making Ansible action
+plugins and CLIs.
 
 Example
 =======

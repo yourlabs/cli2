@@ -5,7 +5,8 @@ from datetime import datetime
 
 
 class Client(cli2.Client):
-    pass
+    def pagination_parameters(self, paginator, page_number):
+        return dict(page=page_number)
 
 
 raised = False
@@ -13,7 +14,7 @@ raised = False
 
 @pytest.mark.asyncio
 async def test_error(httpx_mock):
-    client = cli2.Client()
+    client = Client()
     httpx_mock.add_response(url='http://lol', json=[1])
 
     async def raises(*a, **k):
@@ -30,7 +31,7 @@ async def test_error(httpx_mock):
 
 @pytest.mark.asyncio
 async def test_token(httpx_mock):
-    class HasToken(cli2.Client):
+    class HasToken(Client):
         async def token_get(self):
             return 'token'
 
@@ -39,7 +40,7 @@ async def test_token(httpx_mock):
     assert (await client.post('http://lol')).json() == [1]
     assert client.token == 'token'
 
-    class NoToken(cli2.Client):
+    class NoToken(Client):
         pass
     httpx_mock.add_response(url='http://lol', method='POST', json=[1])
     client = NoToken()
@@ -56,7 +57,7 @@ async def test_pagination(httpx_mock, kwargs):
     httpx_mock.add_response(url='http://lol/?page=1', json=[dict(a=1)])
     httpx_mock.add_response(url='http://lol/?page=2', json=[dict(a=2)])
     httpx_mock.add_response(url='http://lol/?page=3', **kwargs)
-    client = cli2.Client(base_url='http://lol')
+    client = Client(base_url='http://lol')
     assert await client.paginate('/').list() == [dict(a=1), dict(a=2)]
 
 
@@ -68,7 +69,7 @@ async def test_pagination_initialize(httpx_mock):
     ))
     httpx_mock.add_response(url='http://lol/?page=2', json=[dict(a=2)])
 
-    class PaginatedClient(cli2.Client):
+    class PaginatedClient(Client):
         def pagination_initialize(self, paginator, data):
             paginator.total_pages = data['total_pages']
 
@@ -81,7 +82,7 @@ async def test_token_get(httpx_mock):
     httpx_mock.add_response(url='http://lol/token', json=dict(token=123))
     httpx_mock.add_response(url='http://lol/?page=1', json=[])
 
-    class TokenClient(cli2.Client):
+    class TokenClient(Client):
         async def token_get(self):
             response = await self.get('/token')
             return response.json()['token']
@@ -98,13 +99,13 @@ async def test_pagination_model(httpx_mock):
 
     httpx_mock.add_response(url='http://lol/?page=1', json=[dict(a=2)])
     httpx_mock.add_response(url='http://lol/?page=2', json=[])
-    client = cli2.Client(base_url='http://lol')
+    client = Client(base_url='http://lol')
     result = await client.paginate('/', model=Model).list()
     assert isinstance(result[0], Model)
 
 
 def test_paginator_fields():
-    paginator = cli2.Paginator(cli2.Client(), '/')
+    paginator = cli2.Paginator(Client(), '/')
     paginator.total_items = 95
     paginator.per_page = 10
     assert paginator.total_pages == 10
@@ -115,9 +116,6 @@ async def test_pagination_patterns(httpx_mock):
     # I'm dealing with APIs which have a different pagination system on
     # different resources, and on some resources no pagination at all
     # Would like to define that per model
-    class Client(cli2.Client):
-        pass
-
     class TotalModel(Client.model):
         url_list = '/foo'
 
@@ -199,9 +197,13 @@ async def test_pagination_reverse(httpx_mock):
         json=dict(total_pages=3, items=[dict(a=5)]),
     )
 
+    # test that we can reverse pagination too
     class Client(cli2.Client):
         def pagination_initialize(self, paginator, data):
             paginator.total_pages = data['total_pages']
+
+        def pagination_parameters(self, paginator, page_number):
+            return dict(page=page_number)
 
     client = Client(base_url='http://lol')
     paginator = client.paginate('/bar')
@@ -212,9 +214,6 @@ async def test_pagination_reverse(httpx_mock):
 
 @pytest.mark.asyncio
 async def test_subclass():
-    class Client(cli2.Client):
-        pass
-
     assert Client.cli2_self['factory'] == '__init__'
 
     class Model(Client.model):
@@ -326,3 +325,74 @@ def test_relation():
     model.child = new
     assert model.child.foo == 3
     assert model.data['child']['foo'] == 3
+
+
+@pytest.mark.asyncio
+async def test_python_expression(httpx_mock):
+    class Model(Client.model):
+        url_list = '/foo'
+        a = cli2.Field()
+        b = cli2.Field()
+
+        @classmethod
+        def pagination_initialize(cls, paginator, data):
+            paginator.total_pages = data['total_pages']
+
+    def mock():
+        httpx_mock.add_response(url='http://lol/foo?page=1', json=dict(
+            total_pages=2,
+            items=[dict(a=1, b=1), dict(a=2, b=2), dict(a=3, b=1)],
+        ))
+
+        httpx_mock.add_response(url='http://lol/foo?page=2', json=dict(
+            total_pages=2,
+            items=[dict(a=4, b=1), dict(a=5, b=2)],
+        ))
+
+    client = Client(base_url='http://lol')
+
+    # test equal
+    mock()
+    result = await client.Model.find(Model.b == 1).list()
+    assert [x.a for x in result] == [1, 3, 4]
+
+    # test or
+    mock()
+    result = await client.Model.find((Model.a == 1) | (Model.a == 5)).list()
+    assert [x.a for x in result] == [1, 5]
+
+    # test and
+    mock()
+    result = await client.Model.find((Model.a == 4) & (Model.b == 1)).list()
+    assert [x.a for x in result] == [4]
+
+    # test lt
+    mock()
+    result = await client.Model.find(Model.a < 3).list()
+    assert [x.a for x in result] == [1, 2]
+
+    # test gt
+    mock()
+    result = await client.Model.find(Model.a > 3).list()
+    assert [x.a for x in result] == [4, 5]
+
+    # test lambda
+    mock()
+    result = await client.Model.find(lambda obj: obj.a > 2).list()
+    assert [x.a for x in result] == [3, 4, 5]
+
+
+@pytest.mark.asyncio
+async def test_expression_parameter(httpx_mock):
+    class Model(Client.model):
+        url_list = '/foo'
+        a = cli2.Field()
+        b = cli2.Field(parameter='b')
+
+    httpx_mock.add_response(url='http://lol/foo?page=1&b=1', json=dict(
+        items=[dict(a=1, b=1), dict(a=3, b=1)],
+    ))
+    httpx_mock.add_response(url='http://lol/foo?page=2&b=1', json=dict())
+    client = Client(base_url='http://lol')
+    ones = await client.Model.find(Model.b == 1).list()
+    assert [x.a for x in ones] == [1, 3]
