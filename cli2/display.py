@@ -76,6 +76,12 @@ def print(*args, **kwargs):
         except:  # noqa
             pass
 
+        # does this wants to show specific data to cli2?
+        try:
+            arg = arg.cli2_display
+        except AttributeError:
+            pass
+
         string = arg if isinstance(arg, str) else yaml_dump(arg)
         _print(yaml_highlight(string), **kwargs)
 

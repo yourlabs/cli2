@@ -345,6 +345,10 @@ class Model:
         """
         return cls.client.pagination_parameters(paginator, page_number)
 
+    @property
+    def cli2_display(self):
+        return self.data
+
 
 class Client:
     """
