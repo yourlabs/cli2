@@ -5,8 +5,17 @@ import importlib.metadata
 
 from .command import Command
 try:
-    from .client import Client, Paginator
+    from .client import (
+        Client,
+        DateTimeField,
+        Field,
+        JSONStringField,
+        Model,
+        Paginator,
+        Related,
+    )
 except ImportError:
+    # httpx not installed
     pass
 from .decorators import arg, cmd, factories
 from .display import diff, print
