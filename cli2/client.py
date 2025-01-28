@@ -959,16 +959,16 @@ class DateTimeField(Field):
     Heck, I'm pretty sure there are even some APIs which use different formats.
     This is the cure the world needed against that disease.
 
-    .. py:attr:: fmt
+    .. py:attribute:: fmt
 
         The datetime format for Python's strptime/strftime.
 
-    .. py:attr:: fmts
+    .. py:attribute:: fmts
 
         A list of formats, in case you don't have one. This list will be
         populated with :py:attr:`default_fmts` by default.
 
-    .. py:attr:: default_fmts
+    .. py:attribute:: default_fmts
 
         A class property containing a list of formats we're going to try to
         figure `fmt` and have this thing "work by default". Please contribute
@@ -1020,7 +1020,7 @@ class Related(MutableField):
     """
     Related model field.
 
-    .. py:attr:: model
+    .. py:attribute:: model
 
         *STRING* name of the related model class.
     """
