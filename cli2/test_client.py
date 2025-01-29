@@ -1,6 +1,7 @@
 import cli2
 import httpx
 import pytest
+import textwrap
 from datetime import datetime
 
 
@@ -13,7 +14,7 @@ raised = False
 
 
 @pytest.mark.asyncio
-async def test_error(httpx_mock):
+async def test_error_remote(httpx_mock):
     client = Client()
     httpx_mock.add_response(url='http://lol', json=[1])
 
@@ -27,6 +28,26 @@ async def test_error(httpx_mock):
     assert client.client is not old_client
     assert raised
     assert response.json() == [1]
+
+
+@pytest.mark.asyncio
+async def test_error_status(httpx_mock):
+    client = Client()
+    httpx_mock.add_response(url='http://lol', status_code=403, json=[1])
+
+    async def request():
+        await client.post('http://lol', json=[2])
+    cmd = cli2.Command(request)
+    with pytest.raises(httpx.HTTPStatusError) as excinfo:
+        await cmd.async_call()
+    expected = textwrap.dedent('''
+    Request data:
+    - 2
+
+    Response data:
+    - 1
+    ''').strip()
+    assert excinfo.value.args[0].strip().endswith(expected)
 
 
 @pytest.mark.asyncio
@@ -49,14 +70,10 @@ async def test_token(httpx_mock):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('kwargs', (
-    dict(json=[]),
-    dict(status_code=400),
-))
-async def test_pagination(httpx_mock, kwargs):
+async def test_pagination(httpx_mock):
     httpx_mock.add_response(url='http://lol/?page=1', json=[dict(a=1)])
     httpx_mock.add_response(url='http://lol/?page=2', json=[dict(a=2)])
-    httpx_mock.add_response(url='http://lol/?page=3', **kwargs)
+    httpx_mock.add_response(url='http://lol/?page=3', json=[])
     client = Client(base_url='http://lol')
     assert await client.paginate('/').list() == [dict(a=1), dict(a=2)]
 

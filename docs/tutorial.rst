@@ -30,6 +30,10 @@ modules:
   command result with colored YAML output. **To disable colors in output, set
   `NO_COLORS=1` environment variable!**
   Python's standard `difflib` module's `unified_diff` method.
+- :py:mod:`~cli2.configuration`, available in ``cli2.cfg`` variable, provides a
+  lazy environment variable configuration wrapper
+- :doc:`cli2.client<client>`, turned out to be a framework to build ORMs on top of
+  REST APIs
 
 Command
 =======
@@ -689,6 +693,11 @@ Check `cli2/test_inject.py` for edge cases and more fun examples!
 
 .. literalinclude:: ../cli2/test_inject.py
    :language: python
+
+Configuration
+=============
+
+See :py:mod:`cli2.configuration`
 
 Edge cases
 ==========

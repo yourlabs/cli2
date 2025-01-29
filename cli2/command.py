@@ -1,8 +1,15 @@
 import asyncio
 import inspect
+import json
 import sys
 
 from docstring_parser import parse
+
+try:
+    from httpx import HTTPStatusError
+except ImportError:
+    class HTTPStatusError(Exception):
+        pass
 
 from . import display
 from .argument import Argument
@@ -289,9 +296,46 @@ class Command(EntryPoint, dict):
         except KeyboardInterrupt:
             print('exiting')
             sys.exit(1)
+        except HTTPStatusError as exc:
+            # we probably can have a generic exception handler registry
+            # of some sort instead of this, but this will do for now
+            self.http_exception_enhance(exc)
+            raise
         finally:
-            self.post_result = await async_resolve(self.post_call())
+            try:
+                self.post_result = await async_resolve(self.post_call())
+            except HTTPStatusError as exc:
+                self.http_exception_enhance(exc)
+                raise
         return result
+
+    def http_exception_enhance(self, exc):
+        """
+        Enhance an httpx.HTTPStatusError
+
+        Adds beatiful request/response data to the exception.
+
+        :param exc: httpx.HTTPStatusError
+        """
+        try:
+            request = display.yaml_dump(
+                json.loads(exc.request.content.decode()),
+            )
+        except json.JSONDecodeError:
+            request = exc.request.content
+
+        try:
+            response = display.yaml_dump(exc.response.json())
+        except json.JSONDecodeError:
+            response = exc.response.content
+
+        exc.args = ('\n'.join([
+            exc.args[0],
+            'Request data:',
+            request,
+            'Response data:',
+            response,
+        ]),)
 
     def ordered(self, factories=False):
         """
