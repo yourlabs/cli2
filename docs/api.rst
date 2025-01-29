@@ -40,6 +40,12 @@ Colors
 .. literalinclude:: ../cli2/colors.py
    :language: python
 
+Configuration
+-------------
+
+.. automodule:: cli2.configuration
+   :members:
+
 Node
 ----
 

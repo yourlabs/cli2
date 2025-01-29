@@ -3,6 +3,7 @@ from .argument import Argument
 from .colors import colors as c
 import importlib.metadata
 
+from .configuration import Configuration, cfg
 from .command import Command
 try:
     from .client import (
