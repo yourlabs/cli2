@@ -16,5 +16,10 @@ class Object(APIClient.model):
     url_list = '/objects'
     url_detail = '/objects/{self.url_id}'
 
+    @classmethod
+    @cli.cmd
+    async def fail(cls):
+        await cls.client.post('/foo', json=[1])
+
 
 cli.cmd(Object.find)
