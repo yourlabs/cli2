@@ -6,6 +6,11 @@ from datetime import datetime
 
 
 class Client(cli2.Client):
+    """ doc """
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('base_url', 'http://lol')
+        super().__init__(*args, **kwargs)
+
     def pagination_parameters(self, paginator, page_number):
         return dict(page=page_number)
 
@@ -231,7 +236,7 @@ async def test_pagination_reverse(httpx_mock):
 
 @pytest.mark.asyncio
 async def test_subclass():
-    assert Client.cli2_self['factory'] == '__init__'
+    assert isinstance(Client.cli2_self['factory'](), Client)
 
     class Model(Client.model):
         pass
@@ -429,3 +434,33 @@ async def test_model_crud(httpx_mock):
 
     httpx_mock.add_response(url='http://lol/foo/2', method='DELETE')
     await result.delete()
+
+
+@pytest.mark.asyncio
+async def test_client_cli(httpx_mock):
+    assert Client.cli.name == 'client'
+    assert Client.cli.doc == 'doc'
+
+    httpx_mock.add_response(url='http://lol/foo', json=[1])
+    meth = Client.cli['get']
+    resp = await meth.async_call('/foo')
+    assert resp.json() == [1]
+
+    class Foo(Client.model):
+        id = cli2.Field()
+        url_list = '/foo'
+
+    meth = Client.cli['foo']['get']
+    httpx_mock.add_response(url='http://lol/foo/1', json=dict(id=1, a=2))
+    result = await meth.async_call('id=1')
+    assert isinstance(result, Foo)
+    assert result.data == dict(id=1, a=2)
+
+    meth = Client.cli['foo']['find']
+    httpx_mock.add_response(url='http://lol/foo?page=1', json=[dict(id=1, a=2)])
+    httpx_mock.add_response(url='http://lol/foo?page=2', json=[])
+    result = await meth.async_call()
+
+    class Bar(Client.model):
+        id = cli2.Field()
+    assert 'bar' not in Client.cli

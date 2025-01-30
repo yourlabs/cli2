@@ -3,6 +3,7 @@ HTTP Client boilerplate code to conquer the world.
 """
 
 import copy
+import inspect
 import json
 import httpx
 import math
@@ -17,6 +18,7 @@ except ImportError:
 
 from .asyncio import async_resolve
 from .decorators import factories
+from .group import Group
 
 
 class Paginator:
@@ -351,6 +353,17 @@ class Model:
 
             factories(cls=factory)(cls)
 
+            cli = getattr(cls._client_class, 'cli', None)
+            if cls.url_list and cli:
+                cli_kwargs = dict(
+                    name=cls.__name__.lower(),
+                    doc=inspect.getdoc(cls),
+                )
+                cli_kwargs.update(cls.__dict__.get('cli_kwargs', dict()))
+                cls.cli = cli.group(**cli_kwargs)
+                cls.cli.cmd(cls.find)
+                cls.cli.cmd(cls.get)
+
         cls._fields = dict()
 
         def process_cl(cl):
@@ -507,6 +520,14 @@ class Client:
         if not getattr(cls, 'cli2_self', {}):
             factories(cls)
         cls.models = []
+
+        cli_kwargs = dict(
+            name=cls.__name__.lower().replace('client', '') or 'client',
+            doc=inspect.getdoc(cls),
+        )
+        cli_kwargs.update(cls.__dict__.get('cli_kwargs', dict()))
+        cls.cli = Group(**cli_kwargs)
+        cls.cli.cmd(cls.get)
         super().__init_subclass__(**kwargs)
 
     def __init__(self, *args, **kwargs):
