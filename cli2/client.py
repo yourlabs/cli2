@@ -101,7 +101,7 @@ class Paginator:
         :py:attr:`per_page` and either of :py:attr:`total_pages` or
         :py:attr:`total_items`, which is up to you to implement.
         """
-        obj = copy.deepcopy(self)
+        obj = copy.copy(self)
         obj._reverse = True
         return obj
 
