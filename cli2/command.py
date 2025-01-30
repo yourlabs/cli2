@@ -322,12 +322,12 @@ class Command(EntryPoint, dict):
                 json.loads(exc.request.content.decode()),
             )
         except json.JSONDecodeError:
-            request = exc.request.content
+            request = exc.request.content.decode()
 
         try:
             response = display.yaml_dump(exc.response.json())
         except json.JSONDecodeError:
-            response = exc.response.content
+            response = exc.response.content.decode()
 
         exc.args = ('\n'.join([
             exc.args[0],
