@@ -413,3 +413,19 @@ async def test_expression_parameter(httpx_mock):
     client = Client(base_url='http://lol')
     ones = await client.Model.find(Model.b == 1).list()
     assert [x.a for x in ones] == [1, 3]
+
+
+@pytest.mark.asyncio
+async def test_model_crud(httpx_mock):
+    class Model(Client.model):
+        url_list = '/foo'
+    assert Model(id=1).url == '/foo/1'
+
+
+    httpx_mock.add_response(url='http://lol/foo/2', json=dict(id=2, a=1))
+    client = Client(base_url='http://lol')
+    result = await client.Model.get(id=2)
+    assert result.data == dict(id=2, a=1)
+
+    httpx_mock.add_response(url='http://lol/foo/2', method='DELETE')
+    await result.delete()
