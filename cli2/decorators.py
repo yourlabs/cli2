@@ -30,10 +30,10 @@ def arg(name, **kwargs):
 
 
 def factories(*args, **args_overrides):
-    args_overrides.setdefault('self', '__init__')
-    args_overrides.setdefault('cls', '__class__')
-
     def _(cls):
+        args_overrides.setdefault('self', cls)
+        args_overrides.setdefault('cls', lambda: cls)
+
         for key, value in args_overrides.items():
             arg(key, factory=value)(cls)
 
@@ -41,18 +41,13 @@ def factories(*args, **args_overrides):
             if not inspect.isfunction(obj) and not inspect.ismethod(obj):
                 continue
             obj = getattr(obj, '__func__', obj)
-            specials = dict(
-                __init__=lambda *a, **k: cls(*a, **k),
-                __class__=lambda *a, **k: cls,
-            )
             argspec = inspect.getfullargspec(obj)
             for key, value in args_overrides.items():
                 if key in argspec.args:
-                    callback = None
-                    if isinstance(value, str) and value not in specials.keys():
+                    if isinstance(value, str):
                         callback = getattr(cls, value)
-                    if not callback:
-                        callback = specials.get(value, value)
+                    else:
+                        callback = value
                     arg(key, factory=callback)(obj)
         return cls
 
