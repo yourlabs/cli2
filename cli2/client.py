@@ -316,10 +316,14 @@ class Model:
 
         The URL to get the details of an object, you're supposed to configure
         it as a model attribute in your model subclass.
+
+    .. py:attribute:: url
+
+        Object URL based on :py:attr:`url_detail` and.
     """
     paginator = Paginator
     url_list = None
-    url_detail = '{cls.url_list}/{self.id}'
+    url_detail = '{self.url_list}/{self.id}'
 
     def __init_subclass__(cls, **kwargs):
         if 'client' not in cls.__dict__:
@@ -449,6 +453,34 @@ class Model:
     @property
     def cli2_display(self):
         return self.data
+
+    @property
+    def url(self):
+        return self.url_detail.format(self=self)
+
+    async def delete(self):
+        """
+        Delete model
+
+        DELETE request on :py:attr:`url`
+        """
+        return await self.client.delete(self.url)
+
+    @classmethod
+    async def get(cls, **kwargs):
+        """
+        Instanciate a model with kwargs and run :py:meth:`hydrate`.
+        """
+        obj = cls(**kwargs)
+        await obj.hydrate()
+        return obj
+
+    async def hydrate(self):
+        """
+        Refresh data with GET requset on :py:attr:`url_detail`
+        """
+        response = await self.client.get(self.url)
+        self.data.update(response.json())
 
 
 class Client:
