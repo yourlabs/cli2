@@ -7,6 +7,7 @@ import json
 import httpx
 import math
 import structlog
+import ssl
 from datetime import datetime
 
 try:
@@ -486,7 +487,10 @@ class Client:
         self._client_attrs = None
 
         if truststore:
-            self._client_kwargs.setdefault('verify', truststore.SSLContext)
+            self._client_kwargs.setdefault(
+                'verify',
+                truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT),
+            )
 
         self.logger = structlog.get_logger('cli2')
         self.token_getting = False
