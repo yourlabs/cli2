@@ -27,3 +27,11 @@ def arg(name, **kwargs):
         overrides.update(kwargs)
         return cb
     return wrap
+
+
+def hide(*names):
+    def wrap(cb):
+        for name in names:
+            cb = arg(name, hide=True)(cb)
+        return cb
+    return wrap

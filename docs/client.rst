@@ -33,6 +33,9 @@ Start by extending a :py:class:`~cli2.client.Client`:
     class YourClient(cli2.Client):
         pass
 
+    # you get a CLI for free
+    cli = YourClient.cli
+
 There are a few methods that you might want to override:
 
 - :py:meth:`~cli2.client.Client.token_get`: if you want your client to do some
@@ -47,17 +50,17 @@ Creating a Model
 ----------------
 
 Then, register a :py:class:`~cli2.client.Model` for this client by subclassing
-it's ``.model`` attribute.
+it's ``.Model`` attribute.
 
 .. code-block:: python
 
-    class YourObject(YourClient.model):
+    class YourObject(YourClient.Model):
         pass
 
 Several things are happening here:
 
 - ``YourObject._client_class`` was set to ``YourClient``
-- ``YourClient.models`` was set to ``[YourObject]``
+- ``YourClient.Models`` was set to ``[YourObject]``
 
 Now, you're not supposed to use ``YourObject`` directly, but instead get it
 from the client:
@@ -76,7 +79,7 @@ anywhere in your model:
 
 .. code-block:: python
 
-    class YourObject(YourClient.model):
+    class YourObject(YourClient.Model):
         @classmethod
         async def some_command(cls):
             return await self.client.get('/some-page').json()
@@ -96,7 +99,7 @@ If you set the :py:attr:`url_list` attribute, then you can also use the
 
 .. code-block:: python
 
-    class YourObject(YourClient.model):
+    class YourObject(YourClient.Model):
         pass
 
     paginator = YourObject.find(somefilter='test')
@@ -113,7 +116,7 @@ You can also define fields for your Model as such:
 
 .. code-block:: python
 
-    class YourModel(YourClient.model):
+    class YourModel(YourClient.Model):
         id = cli2.Field()
 
 You guessed it: this will may the ``id`` key of the :py:attr:`Model.data` to
@@ -127,14 +130,14 @@ to define a nested data accessor:
 
 .. code-block:: python
 
-    class YourModel(YourClient.model):
+    class YourModel(YourClient.Model):
         company_name = cli2.Field('company/name')
 
 You can also "pythonize" any property with a simple accessor without any slash:
 
 .. code-block:: python
 
-    class YourModel(YourClient.model):
+    class YourModel(YourClient.Model):
         company_name = cli2.Field('companyName')
 
 Custom types
@@ -185,7 +188,7 @@ delegate a filter to the endpoint, add a :py:attr:`Field.parameter`:
 
 .. code-block:: python
 
-    class YourModel(YourClient.model):
+    class YourModel(YourClient.Model):
         name = cli2.Field(parameter='name')
 
 This will indicate to the paginator that, given the following expression:
@@ -206,18 +209,6 @@ probably a ``cli2.contrib.odata`` module.
 
 And I'm sure there are several other more or less protocols out there to do
 this kind of things, so, we might as well have that here available for free.
-
-Step 3 Profit
-`````````````
-
-The previous paragraph mumbles something about a future ``cli2.contrib``
-module. Indeed, I'm planning on contributing API-specific clients in a new
-``cli2.contrib`` module, for a bunch of proprietary stuff that big corps love
-to buy, we'll have ``cli2.contrib.delphi``, ``cli2.contrib.dynatrace``, etc,
-etc
-
-Then, I'll have beautiful SDKs for everything, for making Ansible action
-plugins and CLIs.
 
 Example
 =======

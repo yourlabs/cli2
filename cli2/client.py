@@ -4,6 +4,7 @@ HTTP Client boilerplate code to conquer the world.
 
 import copy
 import inspect
+import functools
 import json
 import httpx
 import math
@@ -17,6 +18,7 @@ except ImportError:
     truststore = None
 
 from .asyncio import async_resolve
+from .decorators import cmd, hide
 from .group import Group
 
 
@@ -294,492 +296,6 @@ class Paginator:
                 if page == self.total_pages:
                     break
                 page += 1
-
-
-class Model:
-    """
-    You should never call this class directly, instead, get it from the
-    :py:class:`Client` object after decorating your model classes with a
-    client as such:
-
-    .. py:attribute:: paginator
-
-        :py:class:`Paginator` class, you can leave it by default and just
-        implement :py:meth:`pagination_initialize` and
-        :py:meth:`pagination_parameters`.
-
-    .. py:attribute:: url_list
-
-        The URL to get the list of objects, you're supposed to configure it as
-        a model attribute in your model subclass.
-
-    .. py:attribute:: url_detail
-
-        The URL to get the details of an object, you're supposed to configure
-        it as a model attribute in your model subclass.
-
-    .. py:attribute:: url
-
-        Object URL based on :py:attr:`url_detail` and.
-    """
-    paginator = Paginator
-    url_list = None
-    url_detail = '{self.url_list}/{self.id}'
-
-    def __init_subclass__(cls, **kwargs):
-        if 'client' not in cls.__dict__:
-            cls._client_class.models.append(cls)
-
-            # we're going to want to ensure cls for Model does get the
-            # Client().ModelClass
-
-            # Which means we want to get the self factory for the Client class
-            self_overrides = getattr(cls._client_class, 'cli2_self', {})
-            self_factory = self_overrides.get('factory', None)
-            if isinstance(self_factory, str):
-                if self_factory == '__init__':
-                    def self_factory():
-                        return cls._client_class()
-                else:
-                    self_factory = getattr(cls._client_class, self_factory)
-
-            # And create a factory of our own for cls of this Model so that
-            # it calls the Client's ``self`` factory instanciated Client(),
-            # and then the Model from that object
-            async def factory():
-                result = await async_resolve(self_factory())
-                return getattr(result, cls.__name__)
-
-            factories(cls=factory)(cls)
-
-            cli = getattr(cls._client_class, 'cli', None)
-            if cls.url_list and cli:
-                cli_kwargs = dict(
-                    name=cls.__name__.lower(),
-                    doc=inspect.getdoc(cls),
-                )
-                cli_kwargs.update(cls.__dict__.get('cli_kwargs', dict()))
-                cls.cli = cli.group(**cli_kwargs)
-                cls.cli.cmd(cls.find)
-                cls.cli.cmd(cls.get)
-
-        cls._fields = dict()
-
-        def process_cl(cl):
-            for key, obj in cl.__dict__.items():
-                if not isinstance(obj, Field):
-                    continue
-
-                if not obj.data_accessor:
-                    obj.data_accessor = key
-
-                cls._fields[key] = obj
-                obj.name = key
-
-        process_cl(cls)
-
-        def process_bases(cl):
-            for base in cl.__bases__:
-                process_cl(base)
-                process_bases(base)
-
-        process_bases(cls)
-
-        super().__init_subclass__(**kwargs)
-
-    def __init__(self, data=None, **values):
-        """
-        Instanciate a model.
-
-        :param data: JSON Data
-        """
-        self._data = data or dict()
-        self._data_updating = False
-        self._dirty_fields = []
-        self._field_cache = dict()
-
-        for key, value in values.items():
-            setattr(self, key, value)
-
-    @property
-    def data(self):
-        """
-        Just ensure we update dirty data prior to returning the data dict.
-        """
-        if self._dirty_fields and not self._data_updating:
-            self._data_updating = True
-            for field in self._dirty_fields:
-                field.clean(self)
-            self._dirty_fields = []
-            self._data_updating = False
-        return self._data
-
-    @data.setter
-    def data(self, value):
-        self._data = value
-
-    @classmethod
-    def find(cls, *expressions, **params):
-        """
-        Find objects filtered by GET params
-
-        :param params: GET URL parameters
-        :param expressions: :py:class:`Expression` list
-        """
-        return cls.paginate(cls.url_list, *expressions, **params)
-
-    @classmethod
-    def paginate(cls, url, *expressions, **params):
-        """
-        Return a :py:class:`Paginator` based on :py:attr:`url_list`
-        :param expressions: :py:class:`Expression` list
-        """
-        return cls.paginator(cls.client, url, params, cls, expressions)
-
-    @classmethod
-    def pagination_initialize(cls, paginator, data):
-        """
-        Implement Model-specific pagination initialization here.
-
-        Otherwise, :py:meth:`Client.pagination_initialize` will
-        take place.
-
-        Refer to :py:meth:`Paginator.pagination_initialize` for
-        details.
-        """
-        cls.client.pagination_initialize(paginator, data)
-
-    @classmethod
-    def pagination_parameters(cls, paginator, page_number):
-        """
-        Implement Model-specific pagination parameters here.
-
-        Otherwise, :py:meth:`Client.pagination_parameters` will
-        take place.
-
-        Refer to :py:meth:`Paginator.pagination_parameters` for
-        details.
-        """
-        return cls.client.pagination_parameters(paginator, page_number)
-
-    @property
-    def cli2_display(self):
-        return self.data
-
-    @property
-    def url(self):
-        return self.url_detail.format(self=self)
-
-    async def delete(self):
-        """
-        Delete model
-
-        DELETE request on :py:attr:`url`
-        """
-        return await self.client.delete(self.url)
-
-    @classmethod
-    async def get(cls, **kwargs):
-        """
-        Instanciate a model with kwargs and run :py:meth:`hydrate`.
-        """
-        obj = cls(**kwargs)
-        await obj.hydrate()
-        return obj
-
-    async def hydrate(self):
-        """
-        Refresh data with GET requset on :py:attr:`url_detail`
-        """
-        response = await self.client.get(self.url)
-        self.data.update(response.json())
-
-
-class Client:
-    """
-    HTTPx Client
-
-    .. py:attribute:: paginator
-
-        :py:class:`Paginator` class, you can leave it by default and just
-        implement :py:meth:`pagination_initialize` and
-        :py:meth:`pagination_parameters`.
-    """
-    paginator = Paginator
-    model = Model
-    models = []
-
-    def __init_subclass__(cls, **kwargs):
-        # Registering the client class for this model
-        cls.model = type(
-            cls.model.__name__,
-            (cls.model,),
-            dict(_client_class=cls),
-        )
-        if not getattr(cls, 'cli2_self', {}):
-            factories(cls)
-        cls.models = []
-
-        cli_kwargs = dict(
-            name=cls.__name__.lower().replace('client', '') or 'client',
-            doc=inspect.getdoc(cls),
-        )
-        cli_kwargs.update(cls.__dict__.get('cli_kwargs', dict()))
-        cls.cli = Group(**cli_kwargs)
-        cls.cli.cmd(cls.get)
-        super().__init_subclass__(**kwargs)
-
-    def __init__(self, *args, **kwargs):
-        """
-        Instanciate a client with httpx.AsyncClient args and kwargs.
-        """
-        self._client = None
-        self._client_args = args
-        self._client_kwargs = kwargs
-        self._client_attrs = None
-
-        if truststore:
-            self._client_kwargs.setdefault(
-                'verify',
-                truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT),
-            )
-
-        self.logger = structlog.get_logger('cli2')
-        self.token_getting = False
-        self.token = None
-
-        for model in self.models:
-            model = type(model.__name__, (model,), dict(client=self))
-            setattr(self, model.__name__, model)
-
-    @property
-    def client(self):
-        """
-        Return last client object used, unless it raised RemoteProtocolError.
-        """
-        if not self._client:
-            self._client = httpx.AsyncClient(
-                *self._client_args,
-                **self._client_kwargs,
-            )
-        return self._client
-
-    @client.setter
-    def client(self, value):
-        self._client = value
-
-    @client.deleter
-    def client(self):
-        self._client = None
-
-    async def request_safe(self, *args, **kwargs):
-        """
-        Request method that retries with a new client if RemoteProtocolError.
-        """
-        tries = 30
-        while tries:
-            try:
-                return await self.client.request(*args, **kwargs)
-            except httpx.RemoteProtocolError:
-                # enforce getting a new awaitable
-                del self.client
-                del self.token
-                tries -= 1
-                if not tries:
-                    raise
-
-    async def token_get(self):
-        """
-        Authentication dance to get a token.
-
-        This method will automatically be called by :py:meth:`request` if it
-        finds out that :py:attr:`token` is None.
-
-        This is going to depend on the API you're going to consume, basically
-        it's very client-specific.
-
-        By default, this method does nothing. Implement it to your likings.
-
-        This method is supposed to return the token, but doesn't do anything
-        with it by itself: it's up to you to call something like:
-
-        .. code-block::
-
-            async def token_get(self):
-                response = await self.post('/login', dict(...))
-                token = response.json()['token']
-                self.client.headers['token'] = f'Bearer {token}'
-                return token
-        """
-        raise NotImplementedError()
-
-    async def request(self, method, url, **kwargs):
-        """
-        Request method
-
-        If your client defines a token_get callable, then it will
-        automatically play it.
-
-        If your client defines an asyncio semaphore, it will respect it.
-        """
-        if not self.token and not self.token_getting:
-            self.token_getting = True
-            try:
-                self.token = await self.token_get()
-            except NotImplementedError:
-                self.token = True
-            self.token_getting = False
-
-        log = self.logger.bind(method=method, url=url)
-        log.debug('request', **kwargs)
-
-        semaphore = getattr(self, 'semaphore', None)
-        if semaphore:
-            async with semaphore:
-                response = await self.request_safe(method, url, **kwargs)
-        else:
-            response = await self.request_safe(method, url, **kwargs)
-
-        _log = dict(status_code=response.status_code)
-        try:
-            _log['json'] = response.json()
-        except json.JSONDecodeError:
-            _log['content'] = response.content
-
-        log.info('response', **_log)
-
-        response.raise_for_status()
-
-        return response
-
-    async def get(self, url, *args, **kwargs):
-        """ GET Request """
-        return await self.request('GET', url, *args, **kwargs)
-
-    async def post(self, url, *args, **kwargs):
-        """ POST Request """
-        return await self.request('POST', url, *args, **kwargs)
-
-    async def put(self, url, *args, **kwargs):
-        """ PUT Request """
-        return await self.request('PUT', url, *args, **kwargs)
-
-    async def head(self, url, *args, **kwargs):
-        """ HEAD Request """
-        return await self.request('HEAD', url, *args, **kwargs)
-
-    async def delete(self, url, *args, **kwargs):
-        """ DELETE Request """
-        return await self.request('DELETE', url, *args, **kwargs)
-
-    def paginate(self, url, params=None, model=None):
-        """
-        Return a paginator to iterate over results
-
-        :param url: URL to paginate on
-        :param params: GET parameters
-        :param model: Model class to cast for items
-        """
-        return self.paginator(self, url, params or {}, model or dict)
-
-    def pagination_parameters(self, paginator, page_number):
-        """
-        Implement Model-specific pagination parameters here.
-
-        Refer to :py:meth:`Paginator.pagination_parameters` for
-        details.
-        """
-
-    def pagination_initialize(self, paginator, data):
-        """
-        Implement Model-specific pagination initialization here.
-
-        Refer to :py:meth:`Paginator.pagination_initialize` for
-        details.
-        """
-
-
-class Expression:
-    def __init__(self, field, value):
-        self.field = field
-        self.value = value
-        self.parameterable = bool(field.parameter)
-
-    def params(self, params):
-        raise NotImplementedError()
-
-    def __or__(self, other):
-        return Or(self, other)
-
-    def __and__(self, other):
-        return And(self, other)
-
-    def __str__(self):
-        return self.compile()
-
-
-class Equal(Expression):
-    def params(self, params):
-        params[self.field.parameter] = self.value
-
-    def matches(self, item):
-        return self.field.__get__(item) == self.value
-
-
-class Filter(Expression):
-    def __init__(self, function):
-        self.function = function
-        # This filter works with Python functions
-        self.parameterable = False
-
-    def matches(self, item):
-        return self.function(item)
-
-
-class LesserThan(Expression):
-    def matches(self, item):
-        value = self.field.__get__(item)
-        if not value:
-            return False
-        return value < self.value
-
-
-class GreaterThan(Expression):
-    def matches(self, item):
-        value = self.field.__get__(item)
-        if not value:
-            return False
-        return value > self.value
-
-
-class StartsWith(Expression):
-    def matches(self, item):
-        value = self.field.__get__(item)
-        if not value:
-            return False
-        return str(value).startswith(self.value)
-
-
-class Expressions(Expression):
-    def __init__(self, *expressions):
-        self.expressions = expressions
-        self.parameterable = all(exp.parameterable for exp in expressions)
-
-
-class Or(Expressions):
-    def matches(self, value):
-        for exp in self.expressions:
-            if exp.matches(value):
-                return True
-        return False
-
-
-class And(Expressions):
-    def matches(self, value):
-        for exp in self.expressions:
-            if not exp.matches(value):
-                return False
-        return True
 
 
 class Field:
@@ -1097,3 +613,500 @@ class Related(MutableField):
         Instanciate the related model class with the value.
         """
         return getattr(obj.client, self.model)(value)
+
+
+class ModelMetaclass(type):
+    def __new__(cls, name, bases, attributes):
+        cls = super().__new__(cls, name, bases, attributes)
+        client = getattr(cls, 'client', None)
+        if client:
+            return cls
+
+        client_class = getattr(cls, '_client_class', None)
+        if client_class:
+            client_class.models.append(cls)
+            client_cli = getattr(client_class, 'cli', None)
+            if client_cli:
+                cls._cli_group()
+
+        cls._fields = dict()
+
+        def process_cl(cl):
+            for key, obj in cl.__dict__.items():
+                if not isinstance(obj, Field):
+                    continue
+
+                if not obj.data_accessor:
+                    obj.data_accessor = key
+
+                cls._fields[key] = obj
+                obj.name = key
+
+        process_cl(cls)
+
+        def process_bases(cl):
+            for base in cl.__bases__:
+                process_cl(base)
+                process_bases(base)
+
+        process_bases(cls)
+
+        return cls
+
+    def _cli_group(cls):
+        class Factory:
+            def __init__(self, cls):
+                self.cls = cls
+
+            def __str__(self):
+                return f'{type(self)} {self.cls}'
+
+            async def __call__(self, cmd):
+                from cli2.asyncio import async_resolve
+                client = cmd.group.parent.factories['self']()
+                client = await async_resolve(client)
+                return getattr(client, self.cls.__name__)
+
+        cli_kwargs = dict(
+            name=cls.__name__.lower(),
+            doc=inspect.getdoc(cls),
+            factories=dict(
+                cls=Factory(cls),
+            ),
+        )
+        cli_kwargs.update(cls.__dict__.get('cli_kwargs', dict()))
+        cls.cli = cls._client_class.cli.group(**cli_kwargs)
+
+        if cls.url_list:
+            cls.cli.cmd(cls.find)
+            cls.cli.cmd(cls.get)
+
+
+class Model(metaclass=ModelMetaclass):
+    """
+    You should never call this class directly, instead, get it from the
+    :py:class:`Client` object after decorating your model classes with a
+    client as such:
+
+    .. py:attribute:: paginator
+
+        :py:class:`Paginator` class, you can leave it by default and just
+        implement :py:meth:`pagination_initialize` and
+        :py:meth:`pagination_parameters`.
+
+    .. py:attribute:: url_list
+
+        The URL to get the list of objects, you're supposed to configure it as
+        a model attribute in your model subclass.
+
+    .. py:attribute:: url_detail
+
+        The URL to get the details of an object, you're supposed to configure
+        it as a model attribute in your model subclass.
+
+    .. py:attribute:: url
+
+        Object URL based on :py:attr:`url_detail` and.
+    """
+    paginator = Paginator
+    url_list = None
+    url_detail = '{self.url_list}/{self.id}'
+
+    def __init__(self, data=None, **values):
+        """
+        Instanciate a model.
+
+        :param data: JSON Data
+        """
+        self._data = data or dict()
+        self._data_updating = False
+        self._dirty_fields = []
+        self._field_cache = dict()
+
+        for key, value in values.items():
+            setattr(self, key, value)
+
+    @property
+    def data(self):
+        """
+        Just ensure we update dirty data prior to returning the data dict.
+        """
+        if self._dirty_fields and not self._data_updating:
+            self._data_updating = True
+            for field in self._dirty_fields:
+                field.clean(self)
+            self._dirty_fields = []
+            self._data_updating = False
+        return self._data
+
+    @data.setter
+    def data(self, value):
+        self._data = value
+
+    @classmethod
+    @hide('expressions')
+    def find(cls, *expressions, **params):
+        """
+        Find objects filtered by GET params
+
+        :param params: GET URL parameters
+        :param expressions: :py:class:`Expression` list
+        """
+        return cls.paginate(cls.url_list, *expressions, **params)
+
+    @classmethod
+    def paginate(cls, url, *expressions, **params):
+        """
+        Return a :py:class:`Paginator` based on :py:attr:`url_list`
+        :param expressions: :py:class:`Expression` list
+        """
+        return cls.paginator(cls.client, url, params, cls, expressions)
+
+    @classmethod
+    def pagination_initialize(cls, paginator, data):
+        """
+        Implement Model-specific pagination initialization here.
+
+        Otherwise, :py:meth:`Client.pagination_initialize` will
+        take place.
+
+        Refer to :py:meth:`Paginator.pagination_initialize` for
+        details.
+        """
+        cls.client.pagination_initialize(paginator, data)
+
+    @classmethod
+    def pagination_parameters(cls, paginator, page_number):
+        """
+        Implement Model-specific pagination parameters here.
+
+        Otherwise, :py:meth:`Client.pagination_parameters` will
+        take place.
+
+        Refer to :py:meth:`Paginator.pagination_parameters` for
+        details.
+        """
+        return cls.client.pagination_parameters(paginator, page_number)
+
+    @property
+    def cli2_display(self):
+        return self.data
+
+    @property
+    def url(self):
+        return self.url_detail.format(self=self)
+
+    async def delete(self):
+        """
+        Delete model
+
+        DELETE request on :py:attr:`url`
+        """
+        return await self.client.delete(self.url)
+
+    @classmethod
+    async def get(cls, **kwargs):
+        """
+        Instanciate a model with kwargs and run :py:meth:`hydrate`.
+        """
+        obj = cls(**kwargs)
+        await obj.hydrate()
+        return obj
+
+    async def hydrate(self):
+        """
+        Refresh data with GET requset on :py:attr:`url_detail`
+        """
+        response = await self.client.get(self.url)
+        self.data.update(response.json())
+
+
+class ClientMetaclass(type):
+    def __new__(cls, name, bases, attributes):
+        cls = super().__new__(cls, name, bases, attributes)
+
+        # bind ourself as _client_class to any inherited model
+        cls.Model = type('Model', (Model,), dict(_client_class=cls))
+        cls.models = []
+
+        #if f'{cls.__module__}.{cls.__qualname__}' == 'cl2.client.Client':
+            # don't do anything on our own
+
+        cli_kwargs = dict(
+            name=cls.__name__.lower().replace('client', '') or 'client',
+            doc=inspect.getdoc(cls),
+            factories=dict(
+                cls=lambda: cls,
+                self=lambda: cls(),
+            ),
+        )
+        cli_kwargs.update(cls.__dict__.get('cli_kwargs', dict()))
+        cls.cli = Group(**cli_kwargs)
+        cls.cli.cmd(cls.get)
+        return cls
+
+
+class Client(metaclass=ClientMetaclass):
+    """
+    HTTPx Client
+
+    .. py:attribute:: paginator
+
+        :py:class:`Paginator` class, you can leave it by default and just
+        implement :py:meth:`pagination_initialize` and
+        :py:meth:`pagination_parameters`.
+    """
+    paginator = Paginator
+    models = []
+
+    def __init__(self, *args, **kwargs):
+        """
+        Instanciate a client with httpx.AsyncClient args and kwargs.
+        """
+        self._client = None
+        self._client_args = args
+        self._client_kwargs = kwargs
+        self._client_attrs = None
+
+        if truststore:
+            self._client_kwargs.setdefault(
+                    'verify',
+                    truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT),
+                    )
+
+        self.logger = structlog.get_logger('cli2')
+        self.token_getting = False
+        self.token = None
+
+        for model in self.models:
+            model = type(model.__name__, (model,), dict(client=self))
+            setattr(self, model.__name__, model)
+
+    @property
+    def client(self):
+        """
+        Return last client object used, unless it raised RemoteProtocolError.
+        """
+        if not self._client:
+            self._client = httpx.AsyncClient(
+                *self._client_args,
+                **self._client_kwargs,
+            )
+        return self._client
+
+    @client.setter
+    def client(self, value):
+        self._client = value
+
+    @client.deleter
+    def client(self):
+        self._client = None
+
+    async def request_safe(self, *args, **kwargs):
+        """
+        Request method that retries with a new client if RemoteProtocolError.
+        """
+        tries = 30
+        while tries:
+            try:
+                return await self.client.request(*args, **kwargs)
+            except httpx.RemoteProtocolError:
+                # enforce getting a new awaitable
+                del self.client
+                del self.token
+                tries -= 1
+                if not tries:
+                    raise
+
+    async def token_get(self):
+        """
+        Authentication dance to get a token.
+
+        This method will automatically be called by :py:meth:`request` if it
+        finds out that :py:attr:`token` is None.
+
+        This is going to depend on the API you're going to consume, basically
+        it's very client-specific.
+
+        By default, this method does nothing. Implement it to your likings.
+
+        This method is supposed to return the token, but doesn't do anything
+        with it by itself: it's up to you to call something like:
+
+        .. code-block::
+
+            async def token_get(self):
+                response = await self.post('/login', dict(...))
+                token = response.json()['token']
+                self.client.headers['token'] = f'Bearer {token}'
+                return token
+        """
+        raise NotImplementedError()
+
+    async def request(self, method, url, **kwargs):
+        """
+        Request method
+
+        If your client defines a token_get callable, then it will
+        automatically play it.
+
+        If your client defines an asyncio semaphore, it will respect it.
+        """
+        if not self.token and not self.token_getting:
+            self.token_getting = True
+            try:
+                self.token = await self.token_get()
+            except NotImplementedError:
+                self.token = True
+            self.token_getting = False
+
+        log = self.logger.bind(method=method, url=url)
+        log.debug('request', **kwargs)
+
+        semaphore = getattr(self, 'semaphore', None)
+        if semaphore:
+            async with semaphore:
+                response = await self.request_safe(method, url, **kwargs)
+        else:
+            response = await self.request_safe(method, url, **kwargs)
+
+        _log = dict(status_code=response.status_code)
+        try:
+            _log['json'] = response.json()
+        except json.JSONDecodeError:
+            _log['content'] = response.content
+
+        log.info('response', **_log)
+
+        response.raise_for_status()
+
+        return response
+
+    async def get(self, url, *args, **kwargs):
+        """ GET Request """
+        return await self.request('GET', url, *args, **kwargs)
+
+    async def post(self, url, *args, **kwargs):
+        """ POST Request """
+        return await self.request('POST', url, *args, **kwargs)
+
+    async def put(self, url, *args, **kwargs):
+        """ PUT Request """
+        return await self.request('PUT', url, *args, **kwargs)
+
+    async def head(self, url, *args, **kwargs):
+        """ HEAD Request """
+        return await self.request('HEAD', url, *args, **kwargs)
+
+    async def delete(self, url, *args, **kwargs):
+        """ DELETE Request """
+        return await self.request('DELETE', url, *args, **kwargs)
+
+    def paginate(self, url, params=None, model=None):
+        """
+        Return a paginator to iterate over results
+
+        :param url: URL to paginate on
+        :param params: GET parameters
+        :param model: Model class to cast for items
+        """
+        return self.paginator(self, url, params or {}, model or dict)
+
+    def pagination_parameters(self, paginator, page_number):
+        """
+        Implement Model-specific pagination parameters here.
+
+        Refer to :py:meth:`Paginator.pagination_parameters` for
+        details.
+        """
+
+    def pagination_initialize(self, paginator, data):
+        """
+        Implement Model-specific pagination initialization here.
+
+        Refer to :py:meth:`Paginator.pagination_initialize` for
+        details.
+        """
+
+
+class Expression:
+    def __init__(self, field, value):
+        self.field = field
+        self.value = value
+        self.parameterable = bool(field.parameter)
+
+    def params(self, params):
+        raise NotImplementedError()
+
+    def __or__(self, other):
+        return Or(self, other)
+
+    def __and__(self, other):
+        return And(self, other)
+
+    def __str__(self):
+        return self.compile()
+
+
+class Equal(Expression):
+    def params(self, params):
+        params[self.field.parameter] = self.value
+
+    def matches(self, item):
+        return self.field.__get__(item) == self.value
+
+
+class Filter(Expression):
+    def __init__(self, function):
+        self.function = function
+        # This filter works with Python functions
+        self.parameterable = False
+
+    def matches(self, item):
+        return self.function(item)
+
+
+class LesserThan(Expression):
+    def matches(self, item):
+        value = self.field.__get__(item)
+        if not value:
+            return False
+        return value < self.value
+
+
+class GreaterThan(Expression):
+    def matches(self, item):
+        value = self.field.__get__(item)
+        if not value:
+            return False
+        return value > self.value
+
+
+class StartsWith(Expression):
+    def matches(self, item):
+        value = self.field.__get__(item)
+        if not value:
+            return False
+        return str(value).startswith(self.value)
+
+
+class Expressions(Expression):
+    def __init__(self, *expressions):
+        self.expressions = expressions
+        self.parameterable = all(exp.parameterable for exp in expressions)
+
+
+class Or(Expressions):
+    def matches(self, value):
+        for exp in self.expressions:
+            if exp.matches(value):
+                return True
+        return False
+
+
+class And(Expressions):
+    def matches(self, value):
+        for exp in self.expressions:
+            if not exp.matches(value):
+                return False
+        return True

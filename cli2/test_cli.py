@@ -42,3 +42,7 @@ def test_help_no_argument(mocker):
 ])
 def test_cli(name, command):
     autotest(f'tests/{name}.txt', 'cli2 ' + command)
+
+
+def test_hide():
+    autotest(f'tests/test_hide.txt', 'cli2-example-client object find --help')
