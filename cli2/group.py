@@ -12,7 +12,7 @@ class Group(EntryPoint, dict):
     """Represents a group of named commands."""
 
     def __init__(self, name=None, doc=None, color=None, posix=False,
-                 outfile=None, cmdclass=None, log=True):
+                 factories=None, outfile=None, cmdclass=None, log=True):
         self.name = name
         if doc:
             self.doc = textwrap.dedent(doc).strip()
@@ -22,6 +22,7 @@ class Group(EntryPoint, dict):
         self.posix = posix
         self.parent = None
         self.cmdclass = cmdclass or Command
+        self.factories = factories or dict()
         EntryPoint.__init__(self, outfile=outfile, log=log)
 
         # make help a group command
@@ -32,6 +33,7 @@ class Group(EntryPoint, dict):
         cmdclass = kwargs.pop('cls', self.cmdclass)
         cmd = cmdclass(target, *args, **kwargs)
         self[cmd.name] = cmd
+        cmd.group = self
         return self
 
     def __setitem__(self, key, value):

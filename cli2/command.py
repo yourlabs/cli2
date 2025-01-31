@@ -33,15 +33,6 @@ class Command(EntryPoint, dict):
         self.help_hack = help_hack
 
         self.target = target
-        self.sig = inspect.signature(target)
-        if inspect.ismethod(target):
-            # let's allow overwriting a bound method's __self__
-            func_sig = inspect.signature(target.__func__)
-            self_name = [*func_sig.parameters.keys()][0]
-            overrides = getattr(self.target.__func__, f'cli2_{self_name}', {})
-            if 'factory' in overrides:
-                self.target = target.__func__
-                self.sig = inspect.signature(target.__func__)
 
         overrides = getattr(target, 'cli2', {})
         for key, value in overrides.items():
@@ -74,6 +65,35 @@ class Command(EntryPoint, dict):
         self.args_set = False
         self.args_setting = False
 
+    @property
+    def target(self):
+        target = self._target
+
+        if not inspect.ismethod(target):
+            return target
+
+        # let's allow overwriting a bound method's __self__
+        func_sig = inspect.signature(target.__func__)
+        self_name = [*func_sig.parameters.keys()][0]
+        overrides = getattr(target.__func__, f'cli2_{self_name}', {})
+        group = getattr(self, 'group', None)
+
+        if (
+            'factory' in overrides
+            or (group and self_name in group.factories)
+        ):
+            self.target = target = target.__func__
+
+        return target
+
+    @target.setter
+    def target(self, value):
+        self._target = value
+
+    @property
+    def sig(self):
+        return inspect.signature(self.target)
+
     def __getitem__(self, key):
         self._setargs()
         return super().__getitem__(key)
@@ -87,10 +107,18 @@ class Command(EntryPoint, dict):
 
     def setargs(self):
         """Reset arguments."""
+        group = getattr(self, 'group', None)
         for name, param in self.sig.parameters.items():
             overrides = getattr(self.target, 'cli2_' + name, {})
             cls = overrides.get('cls', Argument)
             self[name] = cls(self, param)
+
+            if (
+                group
+                and name in group.factories
+                and 'factory' not in overrides
+            ):
+                overrides['factory'] = group.factories[name]
             for key, value in overrides.items():
                 setattr(self[name], key, value)
 
