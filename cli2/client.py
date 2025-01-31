@@ -18,6 +18,8 @@ except ImportError:
     truststore = None
 
 from .asyncio import async_resolve
+from .command import Command
+from .group import Group
 from .decorators import cmd, hide
 from .group import Group
 
@@ -615,6 +617,52 @@ class Related(MutableField):
         return getattr(obj.client, self.model)(value)
 
 
+class ModelCommand(Command):
+    """
+    Command class for Model class.
+    """
+    def __init__(self, target, *args, **kwargs):
+        # unbound method by force
+        target = getattr(target, '__func__', target)
+        super().__init__(target, *args, **kwargs)
+        self.overrides['self']['factory'] = self.get_object
+        self.overrides['cls']['factory'] = self.get_model
+
+    def setargs(self):
+        super().setargs()
+        if 'self' in self:
+            self.arg('id', position=1, kind='POSITIONAL_ONLY', doc='ID')
+
+    async def get_client(self):
+        client = self.group.parent.overrides['self']['factory']()
+        return await async_resolve(client)
+
+    async def get_model(self):
+        return getattr(await self.get_client(), self.model.__name__)
+
+    async def get_object(self):
+        model = await self.get_model()
+        return await model.get(id=self['id'].value)
+
+
+class ModelGroup(Group):
+    def __init__(self, cls):
+        super().__init__(
+            name=cls.__name__.lower(),
+            doc=inspect.getdoc(cls),
+            cmdclass=type(
+                'ModelCommand',
+                (cls.model_command,),
+                dict(model=cls),
+            )
+        )
+
+        if cls.url_list:
+            self.cmd(cls.find)
+            self.cmd(cls.get)
+            self.cmd(cls.delete)
+
+
 class ModelMetaclass(type):
     def __new__(cls, name, bases, attributes):
         cls = super().__new__(cls, name, bases, attributes)
@@ -627,7 +675,7 @@ class ModelMetaclass(type):
             client_class.models.append(cls)
             client_cli = getattr(client_class, 'cli', None)
             if client_cli:
-                cls._cli_group()
+                cls.cli = client_cli[cls.__name__.lower()] = ModelGroup(cls)
 
         cls._fields = dict()
 
@@ -652,27 +700,6 @@ class ModelMetaclass(type):
         process_bases(cls)
 
         return cls
-
-    def _cli_group(cls):
-        async def factory(cmd):
-            client = cmd.group.parent.overrides['self']['factory']()
-            client = await async_resolve(client)
-            return getattr(client, cls.__name__)
-
-
-        cli_kwargs = dict(
-            name=cls.__name__.lower(),
-            doc=inspect.getdoc(cls),
-            overrides=dict(
-                cls=dict(factory=factory),
-            ),
-        )
-        cli_kwargs.update(cls.__dict__.get('cli_kwargs', dict()))
-        cls.cli = cls._client_class.cli.group(**cli_kwargs)
-
-        if cls.url_list:
-            cls.cli.cmd(cls.find)
-            cls.cli.cmd(cls.get)
 
 
 class Model(metaclass=ModelMetaclass):
@@ -702,6 +729,8 @@ class Model(metaclass=ModelMetaclass):
         Object URL based on :py:attr:`url_detail` and.
     """
     paginator = Paginator
+    model_command = ModelCommand
+    model_group = ModelGroup
     url_list = None
     url_detail = '{self.url_list}/{self.id}'
 
@@ -827,8 +856,6 @@ class ClientMetaclass(type):
         cls.Model = type('Model', (Model,), dict(_client_class=cls))
         cls.models = []
 
-        #if f'{cls.__module__}.{cls.__qualname__}' == 'cl2.client.Client':
-            # don't do anything on our own
 
         cli_kwargs = dict(
             name=cls.__name__.lower().replace('client', '') or 'client',

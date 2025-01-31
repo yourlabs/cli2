@@ -28,7 +28,7 @@ async def test_client_cli(TestClient, httpx_mock):
     class TestModel(TestClient.Model):
         url_list = '/'
     assert 'testmodel' in TestClient.cli
-    assert TestClient.cli['testmodel'].overrides['cls']['factory']
+    assert TestClient.cli['testmodel']['get'].overrides['cls']['factory']
     assert not inspect.ismethod(TestClient.cli['testmodel']['get'].target)
     result = TestClient.cli['testmodel']['get']['cls'].factory_value()
 
@@ -524,3 +524,12 @@ async def test_client_cli2(httpx_mock):
     httpx_mock.add_response(url='http://lol/foo?page=1', json=[dict(id=1, a=2)])
     httpx_mock.add_response(url='http://lol/foo?page=2', json=[])
     result = await meth.async_call()
+
+
+@pytest.mark.asyncio
+async def test_object_command(httpx_mock):
+    class Model(Client.Model):
+        url_list = '/foo'
+    httpx_mock.add_response(url='http://lol/foo/1', json=dict(id=1))
+    httpx_mock.add_response(url='http://lol/foo/1', method='DELETE')
+    await Client.cli['model']['delete'].async_call('1')

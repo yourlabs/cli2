@@ -6,16 +6,7 @@ from .command import Command
 from .decorators import arg
 from .entry_point import EntryPoint
 from .node import Node
-
-
-class Overrides(dict):
-    """
-    Lazy overrides dict
-    """
-    def __getitem__(self, key):
-        if key not in self:
-            self[key] = dict()
-        return super().__getitem__(key)
+from .overrides import Overrides
 
 
 class Group(EntryPoint, dict):
