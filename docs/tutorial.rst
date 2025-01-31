@@ -381,6 +381,19 @@ This also takes a list of aliases:
 This decorator basically sets ``yourcmd.cli2_foo`` to a dict with the alias
 key.
 
+Hide
+----
+
+You can also hide an argument from CLI:
+
+.. code-block:: python
+
+    import cli2
+
+    @cli2.hide('foo', 'bar')
+    def yourcmd(a, foo=None, bar=None):
+        pass
+
 Integers
 --------
 

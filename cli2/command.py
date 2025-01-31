@@ -168,7 +168,8 @@ class Command(EntryPoint, dict):
             chain.insert(0, current.name)
             current = current.parent
         for arg in self.values():
-            chain.append(str(arg))
+            if not arg.hide:
+                chain.append(str(arg))
         self.print(' '.join(map(str, chain)), end='\n\n')
 
         self.print('ORANGE', 'DESCRIPTION')
@@ -177,6 +178,9 @@ class Command(EntryPoint, dict):
         shown_posargs = False
         shown_kwargs = False
         for arg in self.values():
+            if arg.hide:
+                continue
+
             self.print()
 
             if not arg.iskw and not shown_posargs:
