@@ -309,49 +309,6 @@ If the factory callback takes an `arg` argument, then the
 If the factory callback takes an `cmd` argument, then the
 :py:class:`~cli2.command.Command` object will be passed.
 
-``cli2.factories``
-------------------
-
-Another solution is to use the :py:func:`~cli2.decorators.factories` decorator
-which will automatically create basic factories for self and cls:
-
-.. code-block:: python
-
-    @cli2.factories
-    class Foo:
-        @cli.cmd
-        def test(self):
-            return self
-
-        @classmethod
-        @cli.cmd
-        def other(cls):
-            return cls
-
-:py:func:`~cli2.decorators.factories` will gladly take more:
-
-
-- any callable will be directly set as factory function for the arg
-- any string value will be used to get the class method as factory
-
-.. code-block:: python
-
-    @cli2.factories(self='factory', other=lambda: 'hello')
-    class Foo:
-        @classmethod
-        async def factory(cls):
-            return cls()
-
-        @cli.cmd
-        def test(self, other):
-            return self
-
-        @classmethod
-        @cli.cmd
-        def other(cls, other):
-            return cls
-
-
 Aliases
 -------
 

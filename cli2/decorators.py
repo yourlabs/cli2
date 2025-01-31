@@ -27,32 +27,3 @@ def arg(name, **kwargs):
         overrides.update(kwargs)
         return cb
     return wrap
-
-
-def factories(*args, **args_overrides):
-    def _(cls):
-        args_overrides.setdefault('self', cls)
-        args_overrides.setdefault('cls', lambda: cls)
-
-        for key, value in args_overrides.items():
-            arg(key, factory=value)(cls)
-
-        for name, obj in inspect.getmembers(cls):
-            if not inspect.isfunction(obj) and not inspect.ismethod(obj):
-                continue
-            obj = getattr(obj, '__func__', obj)
-            argspec = inspect.getfullargspec(obj)
-            for key, value in args_overrides.items():
-                if key in argspec.args:
-                    if isinstance(value, str):
-                        callback = getattr(cls, value)
-                    else:
-                        callback = value
-                    arg(key, factory=callback)(obj)
-        return cls
-
-    if args:
-        # simple @cli2.factories call without argument
-        return _(args[0])
-
-    return _
