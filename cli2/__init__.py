@@ -18,7 +18,7 @@ try:
 except ImportError:
     # httpx not installed
     pass
-from .decorators import arg, cmd, factories
+from .decorators import arg, cmd
 from .display import diff, print
 from .group import Group
 from .node import Node

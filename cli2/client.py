@@ -17,7 +17,6 @@ except ImportError:
     truststore = None
 
 from .asyncio import async_resolve
-from .decorators import factories
 from .group import Group
 
 
