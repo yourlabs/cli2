@@ -75,13 +75,12 @@ class Command(EntryPoint, dict):
         # let's allow overwriting a bound method's __self__
         func_sig = inspect.signature(target.__func__)
         self_name = [*func_sig.parameters.keys()][0]
-        overrides = getattr(target.__func__, f'cli2_{self_name}', {})
         group = getattr(self, 'group', None)
+        overrides = group.overrides.get(self_name, dict()) if group else dict()
+        arg_overrides = getattr(target.__func__, f'cli2_{self_name}', {})
+        overrides.update(arg_overrides)
 
-        if (
-            'factory' in overrides
-            or (group and self_name in group.factories)
-        ):
+        if 'factory' in overrides:
             self.target = target = target.__func__
 
         return target
@@ -113,12 +112,9 @@ class Command(EntryPoint, dict):
             cls = overrides.get('cls', Argument)
             self[name] = cls(self, param)
 
-            if (
-                group
-                and name in group.factories
-                and 'factory' not in overrides
-            ):
-                overrides['factory'] = group.factories[name]
+            if group and name in group.overrides:
+                for key, value in group.overrides[name].items():
+                    overrides.setdefault(key, value)
             for key, value in overrides.items():
                 setattr(self[name], key, value)
 

@@ -157,9 +157,10 @@ def test_factories():
     """ Test group level factories """
 
     # test takes factory by default
-    group = Group(name='test', factories=dict(foo=lambda: 1))
+    group = Group(name='test')
     def test(foo):
         return foo
+    group.overrides['foo']['factory'] = lambda: 1
 
     group.cmd(test)
     assert group['test']() == 1
@@ -173,7 +174,8 @@ def test_factories():
     assert group['test2']() == 2
 
     # test the example in documentation
-    cli = Group('foo', factories=dict(self=lambda: Foo.factory()))
+    cli = Group('foo')
+    cli.overrides['self']['factory'] = lambda: Foo.factory()
 
     class Foo:
         def __init__(self, x=None):
@@ -199,3 +201,9 @@ def test_factories():
     assert something == 1
 
     assert cli['other'](4) == (3, 4)
+
+
+def test_overrides():
+    group = Group('foo')
+    group.overrides['self']['factory'] = lambda: 1
+    assert group.overrides['self']['factory']() == 1

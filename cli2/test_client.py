@@ -18,8 +18,8 @@ def TestClient():
 @pytest.mark.asyncio
 async def test_client_cli(TestClient, httpx_mock):
     assert TestClient.cli
-    assert TestClient.cli.factories['self']
-    assert isinstance(TestClient.cli.factories['self'](), TestClient)
+    factory = TestClient.cli.overrides['self']['factory']
+    assert isinstance(factory(), TestClient)
 
     httpx_mock.add_response(url='http://lol', json=[1])
     response = await TestClient.cli['get'].async_call('http://lol')
@@ -28,7 +28,7 @@ async def test_client_cli(TestClient, httpx_mock):
     class TestModel(TestClient.Model):
         url_list = '/'
     assert 'testmodel' in TestClient.cli
-    assert TestClient.cli['testmodel'].factories['cls']
+    assert TestClient.cli['testmodel'].overrides['cls']['factory']
     assert not inspect.ismethod(TestClient.cli['testmodel']['get'].target)
     result = TestClient.cli['testmodel']['get']['cls'].factory_value()
 
@@ -57,7 +57,7 @@ async def test_async_factory(httpx_mock):
         async def factory(cls):
             return cls(base_url='http://bar')
 
-    TestClient.cli.factories['self'] = TestClient.factory
+    TestClient.cli.overrides['self']['factory'] = TestClient.factory
     httpx_mock.add_response(url='http://bar/', json=[dict(a=1)])
     assert await TestClient.cli['get'].async_call('/')
 

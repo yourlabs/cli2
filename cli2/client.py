@@ -655,7 +655,7 @@ class ModelMetaclass(type):
 
     def _cli_group(cls):
         async def factory(cmd):
-            client = cmd.group.parent.factories['self']()
+            client = cmd.group.parent.overrides['self']['factory']()
             client = await async_resolve(client)
             return getattr(client, cls.__name__)
 
@@ -663,8 +663,8 @@ class ModelMetaclass(type):
         cli_kwargs = dict(
             name=cls.__name__.lower(),
             doc=inspect.getdoc(cls),
-            factories=dict(
-                cls=factory,
+            overrides=dict(
+                cls=dict(factory=factory),
             ),
         )
         cli_kwargs.update(cls.__dict__.get('cli_kwargs', dict()))
@@ -833,9 +833,9 @@ class ClientMetaclass(type):
         cli_kwargs = dict(
             name=cls.__name__.lower().replace('client', '') or 'client',
             doc=inspect.getdoc(cls),
-            factories=dict(
-                cls=lambda: cls,
-                self=lambda: cls(),
+            overrides=dict(
+                cls=dict(factory=lambda: cls),
+                self=dict(factory=lambda: cls())
             ),
         )
         cli_kwargs.update(cls.__dict__.get('cli_kwargs', dict()))
