@@ -13,9 +13,10 @@ except ImportError:
 
 from . import display
 from .argument import Argument
+from .asyncio import async_resolve
 from .colors import colors
 from .entry_point import EntryPoint
-from .asyncio import async_resolve
+from .overrides import Overrides
 
 
 class Command(EntryPoint, dict):
@@ -27,10 +28,11 @@ class Command(EntryPoint, dict):
         return super().__new__(cls, *args, **kwargs)
 
     def __init__(self, target, name=None, color=None, doc=None, posix=False,
-                 help_hack=True, outfile=None, log=True):
+                 help_hack=True, outfile=None, log=True, overrides=None):
         self.posix = posix
         self.parent = None
         self.help_hack = help_hack
+        self._overrides = Overrides(overrides or dict())
 
         self.target = target
 
@@ -66,6 +68,28 @@ class Command(EntryPoint, dict):
         self.args_setting = False
 
     @property
+    def overrides(self):
+        return self._overrides
+
+    @overrides.setter
+    def overrides(self, value):
+        self._overrides = Overrides(value)
+
+    def get_overrides(self, name, target=None):
+        target = target or self.target
+        overrides = getattr(target, 'cli2_' + name, {})
+
+        for key, value in self.overrides[name].items():
+            overrides.setdefault(key, value)
+
+        group = getattr(self, 'group', None)
+        if group and name in group.overrides:
+            for key, value in group.overrides[name].items():
+                overrides.setdefault(key, value)
+
+        return overrides
+
+    @property
     def target(self):
         target = self._target
 
@@ -75,12 +99,7 @@ class Command(EntryPoint, dict):
         # let's allow overwriting a bound method's __self__
         func_sig = inspect.signature(target.__func__)
         self_name = [*func_sig.parameters.keys()][0]
-        group = getattr(self, 'group', None)
-        overrides = group.overrides.get(self_name, dict()) if group else dict()
-        arg_overrides = getattr(target.__func__, f'cli2_{self_name}', {})
-        overrides.update(arg_overrides)
-
-        if 'factory' in overrides:
+        if 'factory' in self.get_overrides(self_name, target):
             self.target = target = target.__func__
 
         return target
@@ -106,15 +125,10 @@ class Command(EntryPoint, dict):
 
     def setargs(self):
         """Reset arguments."""
-        group = getattr(self, 'group', None)
         for name, param in self.sig.parameters.items():
-            overrides = getattr(self.target, 'cli2_' + name, {})
+            overrides = self.get_overrides(name)
             cls = overrides.get('cls', Argument)
             self[name] = cls(self, param)
-
-            if group and name in group.overrides:
-                for key, value in group.overrides[name].items():
-                    overrides.setdefault(key, value)
             for key, value in overrides.items():
                 setattr(self[name], key, value)
 
