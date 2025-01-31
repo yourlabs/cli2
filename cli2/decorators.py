@@ -1,10 +1,13 @@
 import inspect
+import textwrap
 
 
 def cmd(**overrides):
     """Set the overrides for a command."""
     def wrap(cb):
         cb = cb.__func__ if inspect.ismethod(cb) else cb
+        if 'doc' in overrides:
+            overrides['doc'] = textwrap.dedent(overrides['doc']).strip()
         cb.cli2 = overrides
         return cb
     return wrap

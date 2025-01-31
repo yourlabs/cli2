@@ -805,6 +805,11 @@ class Model(metaclass=ModelMetaclass):
         return await self.client.delete(self.url)
 
     @classmethod
+    @cmd(doc="""
+    Get a model based on kwargs. Example:
+
+        get id=3
+    """)
     async def get(cls, **kwargs):
         """
         Instanciate a model with kwargs and run :py:meth:`hydrate`.
