@@ -654,24 +654,17 @@ class ModelMetaclass(type):
         return cls
 
     def _cli_group(cls):
-        class Factory:
-            def __init__(self, cls):
-                self.cls = cls
+        async def factory(cmd):
+            client = cmd.group.parent.factories['self']()
+            client = await async_resolve(client)
+            return getattr(client, cls.__name__)
 
-            def __str__(self):
-                return f'{type(self)} {self.cls}'
-
-            async def __call__(self, cmd):
-                from cli2.asyncio import async_resolve
-                client = cmd.group.parent.factories['self']()
-                client = await async_resolve(client)
-                return getattr(client, self.cls.__name__)
 
         cli_kwargs = dict(
             name=cls.__name__.lower(),
             doc=inspect.getdoc(cls),
             factories=dict(
-                cls=Factory(cls),
+                cls=factory,
             ),
         )
         cli_kwargs.update(cls.__dict__.get('cli_kwargs', dict()))
