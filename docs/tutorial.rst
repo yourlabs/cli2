@@ -309,6 +309,29 @@ If the factory callback takes an `arg` argument, then the
 If the factory callback takes an `cmd` argument, then the
 :py:class:`~cli2.command.Command` object will be passed.
 
+Group factory
+-------------
+
+A command will also apply factories set at group level:
+
+.. code-block:: python
+
+    cli = cli2.Group('foo')
+
+    class Foo:
+        @classmethod
+        def factory(cls):
+            return cls()
+
+        @cli.cmd
+        def send(self, something):
+            return something
+
+    cli['foo'].factories['self'] = Foo.factory
+
+
+Will shadow ``self`` from the CLI and instead call Foo.factory.
+
 Aliases
 -------
 

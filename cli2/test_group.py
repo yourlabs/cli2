@@ -151,3 +151,51 @@ def test_group_cmdclass_override():
     outer = Group(name="outer")
     inner = outer.group("test", cmdclass=MyCmd)
     assert inner.cmdclass == MyCmd
+
+
+def test_factories():
+    """ Test group level factories """
+
+    # test takes factory by default
+    group = Group(name='test', factories=dict(foo=lambda: 1))
+    def test(foo):
+        return foo
+
+    group.cmd(test)
+    assert group['test']() == 1
+
+    def test2(foo):
+        return foo
+    # test explicit factory wins
+    test2.cli2_foo = dict(factory=lambda: 2)
+
+    group.cmd(test2)
+    assert group['test2']() == 2
+
+    # test the example in documentation
+    cli = Group('foo', factories=dict(self=lambda: Foo.factory()))
+
+    class Foo:
+        def __init__(self, x=None):
+            self.x = x
+
+        @classmethod
+        def factory(cls):
+            return cls()
+
+        @cli.cmd
+        def send(self, something):
+            return self, something
+
+        @cli.cmd
+        # this should always have priority
+        @cli.arg('self', factory=lambda: Foo(3))
+        def other(self, something):
+            return self.x, something
+
+    result = cli['send'](1)
+    self, something = cli['send'](1)
+    assert isinstance(self, Foo)
+    assert something == 1
+
+    assert cli['other'](4) == (3, 4)
