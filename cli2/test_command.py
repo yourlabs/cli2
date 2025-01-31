@@ -668,7 +668,7 @@ def test_self():
     assert cmd['self'].factory == factory
     assert cmd('x') == (2, 'x')
 
-    group = Group(factories=dict(self=lambda: Foo(1)))
+    group = Group(overrides=dict(self=dict(factory=lambda: Foo(1))))
     group.cmd(Foo.foo)
     assert group['foo']('a') == (1, 'a')
     assert group['foo']['self'].factory

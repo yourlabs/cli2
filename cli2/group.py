@@ -8,11 +8,21 @@ from .entry_point import EntryPoint
 from .node import Node
 
 
+class Overrides(dict):
+    """
+    Lazy overrides dict
+    """
+    def __getitem__(self, key):
+        if key not in self:
+            self[key] = dict()
+        return super().__getitem__(key)
+
+
 class Group(EntryPoint, dict):
     """Represents a group of named commands."""
 
     def __init__(self, name=None, doc=None, color=None, posix=False,
-                 factories=None, outfile=None, cmdclass=None, log=True):
+                 overrides=None, outfile=None, cmdclass=None, log=True):
         self.name = name
         if doc:
             self.doc = textwrap.dedent(doc).strip()
@@ -22,11 +32,19 @@ class Group(EntryPoint, dict):
         self.posix = posix
         self.parent = None
         self.cmdclass = cmdclass or Command
-        self.factories = factories or dict()
+        self.overrides = overrides or dict()
         EntryPoint.__init__(self, outfile=outfile, log=log)
 
         # make help a group command
         self.cmd(self.help, cls=Command)
+
+    @property
+    def overrides(self):
+        return self._overrides
+
+    @overrides.setter
+    def overrides(self, value):
+        self._overrides = Overrides(value)
 
     def add(self, target, *args, **kwargs):
         """Add a new target as sub-command."""
