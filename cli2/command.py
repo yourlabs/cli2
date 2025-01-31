@@ -255,10 +255,7 @@ class Command(EntryPoint, dict):
 
         try:
             result = self.call(*self.bound.args, **self.bound.kwargs)
-            if (
-                inspect.isgenerator(result)
-                or isinstance(result, (list, tuple))
-            ):
+            if inspect.isgenerator(result):
                 for _ in result:
                     display.print(_)
                 result = None
