@@ -45,4 +45,4 @@ def test_cli(name, command):
 
 
 def test_hide():
-    autotest(f'tests/test_hide.txt', 'cli2-example-client object find --help')
+    autotest('tests/test_hide.txt', 'cli2-example-client object find --help')

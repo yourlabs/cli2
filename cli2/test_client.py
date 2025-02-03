@@ -7,7 +7,7 @@ import textwrap
 
 
 @pytest.fixture
-def TestClient():
+def client_class():
     class TestClient(cli2.Client):
         def __init__(self, *args, **kwargs):
             kwargs.setdefault('base_url', 'http://lol')
@@ -16,37 +16,39 @@ def TestClient():
 
 
 @pytest.mark.asyncio
-async def test_client_cli(TestClient, httpx_mock):
-    assert TestClient.cli
-    factory = TestClient.cli.overrides['self']['factory']
-    assert isinstance(factory(), TestClient)
+async def test_client_cli(client_class, httpx_mock):
+    assert client_class.cli
+    factory = client_class.cli.overrides['self']['factory']
+    assert isinstance(factory(), client_class)
 
     httpx_mock.add_response(url='http://lol', json=[1])
-    response = await TestClient.cli['get'].async_call('http://lol')
+    response = await client_class.cli['get'].async_call('http://lol')
     assert response.json() == [1]
 
-    class TestModel(TestClient.Model):
+    class TestModel(client_class.Model):
         url_list = '/'
-    assert 'testmodel' in TestClient.cli
-    assert TestClient.cli['testmodel']['get'].overrides['cls']['factory']
-    assert not inspect.ismethod(TestClient.cli['testmodel']['get'].target)
-    result = TestClient.cli['testmodel']['get']['cls'].factory_value()
+    assert 'testmodel' in client_class.cli
+    assert client_class.cli['testmodel']['get'].overrides['cls']['factory']
+    assert not inspect.ismethod(client_class.cli['testmodel']['get'].target)
+    result = await client_class.cli['testmodel']['get']['cls'].factory_value()
+    assert issubclass(result, TestModel)
+    assert isinstance(result.client, client_class)
 
     httpx_mock.add_response(url='http://lol/', json=[dict(a=1)])
-    response = await TestClient.cli['testmodel']['find'].async_call()
+    await client_class.cli['testmodel']['find'].async_call()
 
 
-def test_client_model(TestClient):
-    assert issubclass(TestClient.Model, cli2.Model)
-    assert TestClient.Model._client_class == TestClient
+def test_client_model(client_class):
+    assert issubclass(client_class.Model, cli2.Model)
+    assert client_class.Model._client_class == client_class
 
-    class TestModel(TestClient.Model):
+    class TestModel(client_class.Model):
         pass
-    assert TestModel._client_class == TestClient
+    assert TestModel._client_class == client_class
 
-    assert TestModel in TestClient.models
+    assert TestModel in client_class.models
 
-    client = TestClient()
+    client = client_class()
     assert client.TestModel.client == client
 
 
@@ -65,15 +67,15 @@ async def test_async_factory(httpx_mock):
         url_list = '/2'
 
     httpx_mock.add_response(url='http://bar/2', json=[dict(a=1)])
-    response = await TestClient.cli['testmodel']['find'].async_call()
+    await TestClient.cli['testmodel']['find'].async_call()
 
 
 @pytest.mark.asyncio
-async def test_client_cli_side_effect(TestClient, httpx_mock):
+async def test_client_cli_side_effect(client_class, httpx_mock):
     from cli2 import example_client
 
-    # test that this didn't spill over TestClient
-    test_client_cli(TestClient, httpx_mock)
+    # test that this didn't spill over client_class
+    test_client_cli(client_class, httpx_mock)
 
     # Test that Client's __init_subclass__ did setup a factory for self
     assert isinstance(
@@ -490,7 +492,6 @@ async def test_model_crud(httpx_mock):
         url_list = '/foo'
     assert Model(id=1).url == '/foo/1'
 
-
     httpx_mock.add_response(url='http://lol/foo/2', json=dict(id=2, a=1))
     client = Client(base_url='http://lol')
     result = await client.Model.get(id=2)
@@ -521,7 +522,10 @@ async def test_client_cli2(httpx_mock):
     assert result.data == dict(id=1, a=2)
 
     meth = Client.cli['foo']['find']
-    httpx_mock.add_response(url='http://lol/foo?page=1', json=[dict(id=1, a=2)])
+    httpx_mock.add_response(
+        url='http://lol/foo?page=1',
+        json=[dict(id=1, a=2)],
+    )
     httpx_mock.add_response(url='http://lol/foo?page=2', json=[])
     result = await meth.async_call()
 

@@ -4,7 +4,6 @@ HTTP Client boilerplate code to conquer the world.
 
 import copy
 import inspect
-import functools
 import json
 import httpx
 import math
@@ -21,7 +20,6 @@ from .asyncio import async_resolve
 from .command import Command
 from .group import Group
 from .decorators import cmd, hide
-from .group import Group
 
 
 class Paginator:
@@ -856,7 +854,6 @@ class ClientMetaclass(type):
         cls.Model = type('Model', (Model,), dict(_client_class=cls))
         cls.models = []
 
-
         cli_kwargs = dict(
             name=cls.__name__.lower().replace('client', '') or 'client',
             doc=inspect.getdoc(cls),
@@ -895,9 +892,9 @@ class Client(metaclass=ClientMetaclass):
 
         if truststore:
             self._client_kwargs.setdefault(
-                    'verify',
-                    truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT),
-                    )
+                'verify',
+                truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT),
+            )
 
         self.logger = structlog.get_logger('cli2')
         self.token_getting = False
