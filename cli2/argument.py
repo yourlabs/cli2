@@ -12,8 +12,9 @@ class Argument:
     # TODO: why not split this into a bunch of simpler sub-classes now that
     # it's pretty featureful ?
     def __init__(self, cmd, param, doc=None, color=None, factory=None,
-                 **kwargs):
+                 hide=False, **kwargs):
         self.cmd = cmd
+        self.hide = hide
         self.param = param
         self.color = color
         # Let default be set to None :)

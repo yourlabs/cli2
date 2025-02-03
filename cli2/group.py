@@ -6,13 +6,14 @@ from .command import Command
 from .decorators import arg
 from .entry_point import EntryPoint
 from .node import Node
+from .overrides import Overrides
 
 
 class Group(EntryPoint, dict):
     """Represents a group of named commands."""
 
     def __init__(self, name=None, doc=None, color=None, posix=False,
-                 outfile=None, cmdclass=None, log=True):
+                 overrides=None, outfile=None, cmdclass=None, log=True):
         self.name = name
         if doc:
             self.doc = textwrap.dedent(doc).strip()
@@ -22,16 +23,26 @@ class Group(EntryPoint, dict):
         self.posix = posix
         self.parent = None
         self.cmdclass = cmdclass or Command
+        self.overrides = overrides or dict()
         EntryPoint.__init__(self, outfile=outfile, log=log)
 
         # make help a group command
         self.cmd(self.help, cls=Command)
+
+    @property
+    def overrides(self):
+        return self._overrides
+
+    @overrides.setter
+    def overrides(self, value):
+        self._overrides = Overrides(value)
 
     def add(self, target, *args, **kwargs):
         """Add a new target as sub-command."""
         cmdclass = kwargs.pop('cls', self.cmdclass)
         cmd = cmdclass(target, *args, **kwargs)
         self[cmd.name] = cmd
+        cmd.group = self
         return self
 
     def __setitem__(self, key, value):

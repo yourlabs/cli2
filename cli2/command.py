@@ -13,9 +13,10 @@ except ImportError:
 
 from . import display
 from .argument import Argument
+from .asyncio import async_resolve
 from .colors import colors
 from .entry_point import EntryPoint
-from .asyncio import async_resolve
+from .overrides import Overrides
 
 
 class Command(EntryPoint, dict):
@@ -27,21 +28,13 @@ class Command(EntryPoint, dict):
         return super().__new__(cls, *args, **kwargs)
 
     def __init__(self, target, name=None, color=None, doc=None, posix=False,
-                 help_hack=True, outfile=None, log=True):
+                 help_hack=True, outfile=None, log=True, overrides=None):
         self.posix = posix
         self.parent = None
         self.help_hack = help_hack
+        self._overrides = Overrides(overrides or dict())
 
         self.target = target
-        self.sig = inspect.signature(target)
-        if inspect.ismethod(target):
-            # let's allow overwriting a bound method's __self__
-            func_sig = inspect.signature(target.__func__)
-            self_name = [*func_sig.parameters.keys()][0]
-            overrides = getattr(self.target.__func__, f'cli2_{self_name}', {})
-            if 'factory' in overrides:
-                self.target = target.__func__
-                self.sig = inspect.signature(target.__func__)
 
         overrides = getattr(target, 'cli2', {})
         for key, value in overrides.items():
@@ -74,6 +67,51 @@ class Command(EntryPoint, dict):
         self.args_set = False
         self.args_setting = False
 
+    @property
+    def overrides(self):
+        return self._overrides
+
+    @overrides.setter
+    def overrides(self, value):
+        self._overrides = Overrides(value)
+
+    def get_overrides(self, name, target=None):
+        target = target or self.target
+        overrides = getattr(target, 'cli2_' + name, {})
+
+        for key, value in self.overrides[name].items():
+            overrides.setdefault(key, value)
+
+        group = getattr(self, 'group', None)
+        if group and name in group.overrides:
+            for key, value in group.overrides[name].items():
+                overrides.setdefault(key, value)
+
+        return overrides
+
+    @property
+    def target(self):
+        target = self._target
+
+        if not inspect.ismethod(target):
+            return target
+
+        # let's allow overwriting a bound method's __self__
+        func_sig = inspect.signature(target.__func__)
+        self_name = [*func_sig.parameters.keys()][0]
+        if 'factory' in self.get_overrides(self_name, target):
+            self.target = target = target.__func__
+
+        return target
+
+    @target.setter
+    def target(self, value):
+        self._target = value
+
+    @property
+    def sig(self):
+        return inspect.signature(self.target)
+
     def __getitem__(self, key):
         self._setargs()
         return super().__getitem__(key)
@@ -88,7 +126,7 @@ class Command(EntryPoint, dict):
     def setargs(self):
         """Reset arguments."""
         for name, param in self.sig.parameters.items():
-            overrides = getattr(self.target, 'cli2_' + name, {})
+            overrides = self.get_overrides(name)
             cls = overrides.get('cls', Argument)
             self[name] = cls(self, param)
             for key, value in overrides.items():
@@ -140,7 +178,8 @@ class Command(EntryPoint, dict):
             chain.insert(0, current.name)
             current = current.parent
         for arg in self.values():
-            chain.append(str(arg))
+            if not arg.hide:
+                chain.append(str(arg))
         self.print(' '.join(map(str, chain)), end='\n\n')
 
         self.print('ORANGE', 'DESCRIPTION')
@@ -149,6 +188,9 @@ class Command(EntryPoint, dict):
         shown_posargs = False
         shown_kwargs = False
         for arg in self.values():
+            if arg.hide:
+                continue
+
             self.print()
 
             if not arg.iskw and not shown_posargs:
@@ -255,10 +297,7 @@ class Command(EntryPoint, dict):
 
         try:
             result = self.call(*self.bound.args, **self.bound.kwargs)
-            if (
-                inspect.isgenerator(result)
-                or isinstance(result, (list, tuple))
-            ):
+            if inspect.isgenerator(result):
                 for _ in result:
                     display.print(_)
                 result = None
@@ -322,12 +361,12 @@ class Command(EntryPoint, dict):
                 json.loads(exc.request.content.decode()),
             )
         except json.JSONDecodeError:
-            request = exc.request.content
+            request = exc.request.content.decode()
 
         try:
             response = display.yaml_dump(exc.response.json())
         except json.JSONDecodeError:
-            response = exc.response.content
+            response = exc.response.content.decode()
 
         exc.args = ('\n'.join([
             exc.args[0],

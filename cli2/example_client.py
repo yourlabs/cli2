@@ -1,7 +1,5 @@
 import cli2
 
-cli = cli2.Group('cli2-example-client')
-
 
 class APIClient(cli2.Client):
     def __init__(self, *args, **kwargs):
@@ -9,17 +7,16 @@ class APIClient(cli2.Client):
         super().__init__(*args, **kwargs)
 
 
-cli.cmd(APIClient.get, doc='Try get /')
-
-
-class Object(APIClient.model):
+class Object(APIClient.Model):
     url_list = '/objects'
-    url_detail = '/objects/{self.url_id}'
+    url_detail = '/objects/{self.id}'
+
+    id = cli2.Field()
 
     @classmethod
-    @cli.cmd
+    @APIClient.cli.cmd
     async def fail(cls):
         await cls.client.post('/foo', json=[1])
 
 
-cli.cmd(Object.find)
+cli = APIClient.cli

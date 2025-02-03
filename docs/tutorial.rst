@@ -183,6 +183,29 @@ argument will show:
 
 .. image:: example3.png
 
+Group overrides
+---------------
+
+A group may define default overrides for arguments:
+
+.. code-block:: python
+
+    cli = cli2.Group('foo')
+
+    class Foo:
+        @classmethod
+        def factory(cls):
+            return cls()
+
+        @cli.cmd
+        def send(self, something):
+            return something
+
+    cli['foo'].overrides['self']['factory'] = Foo.factory
+
+
+Will shadow ``self`` from the CLI and instead call Foo.factory.
+
 Python API
 ----------
 
@@ -309,49 +332,6 @@ If the factory callback takes an `arg` argument, then the
 If the factory callback takes an `cmd` argument, then the
 :py:class:`~cli2.command.Command` object will be passed.
 
-``cli2.factories``
-------------------
-
-Another solution is to use the :py:func:`~cli2.decorators.factories` decorator
-which will automatically create basic factories for self and cls:
-
-.. code-block:: python
-
-    @cli2.factories
-    class Foo:
-        @cli.cmd
-        def test(self):
-            return self
-
-        @classmethod
-        @cli.cmd
-        def other(cls):
-            return cls
-
-:py:func:`~cli2.decorators.factories` will gladly take more:
-
-
-- any callable will be directly set as factory function for the arg
-- any string value will be used to get the class method as factory
-
-.. code-block:: python
-
-    @cli2.factories(self='factory', other=lambda: 'hello')
-    class Foo:
-        @classmethod
-        async def factory(cls):
-            return cls()
-
-        @cli.cmd
-        def test(self, other):
-            return self
-
-        @classmethod
-        @cli.cmd
-        def other(cls, other):
-            return cls
-
-
 Aliases
 -------
 
@@ -400,6 +380,19 @@ This also takes a list of aliases:
 
 This decorator basically sets ``yourcmd.cli2_foo`` to a dict with the alias
 key.
+
+Hide
+----
+
+You can also hide an argument from CLI:
+
+.. code-block:: python
+
+    import cli2
+
+    @cli2.hide('foo', 'bar')
+    def yourcmd(a, foo=None, bar=None):
+        pass
 
 Integers
 --------

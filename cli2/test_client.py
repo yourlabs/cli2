@@ -1,11 +1,108 @@
+from datetime import datetime
 import cli2
 import httpx
+import inspect
 import pytest
 import textwrap
-from datetime import datetime
+
+
+@pytest.fixture
+def client_class():
+    class TestClient(cli2.Client):
+        def __init__(self, *args, **kwargs):
+            kwargs.setdefault('base_url', 'http://lol')
+            super().__init__(*args, **kwargs)
+    return TestClient
+
+
+@pytest.mark.asyncio
+async def test_client_cli(client_class, httpx_mock):
+    assert client_class.cli
+    factory = client_class.cli.overrides['self']['factory']
+    assert isinstance(factory(), client_class)
+
+    httpx_mock.add_response(url='http://lol', json=[1])
+    response = await client_class.cli['get'].async_call('http://lol')
+    assert response.json() == [1]
+
+    class TestModel(client_class.Model):
+        url_list = '/'
+    assert 'testmodel' in client_class.cli
+    assert client_class.cli['testmodel']['get'].overrides['cls']['factory']
+    assert not inspect.ismethod(client_class.cli['testmodel']['get'].target)
+    result = await client_class.cli['testmodel']['get']['cls'].factory_value()
+    assert issubclass(result, TestModel)
+    assert isinstance(result.client, client_class)
+
+    httpx_mock.add_response(url='http://lol/', json=[dict(a=1)])
+    await client_class.cli['testmodel']['find'].async_call()
+
+
+def test_client_model(client_class):
+    assert issubclass(client_class.Model, cli2.Model)
+    assert client_class.Model._client_class == client_class
+
+    class TestModel(client_class.Model):
+        pass
+    assert TestModel._client_class == client_class
+
+    assert TestModel in client_class.models
+
+    client = client_class()
+    assert client.TestModel.client == client
+
+
+@pytest.mark.asyncio
+async def test_async_factory(httpx_mock):
+    class TestClient(cli2.Client):
+        @classmethod
+        async def factory(cls):
+            return cls(base_url='http://bar')
+
+    TestClient.cli.overrides['self']['factory'] = TestClient.factory
+    httpx_mock.add_response(url='http://bar/', json=[dict(a=1)])
+    assert await TestClient.cli['get'].async_call('/')
+
+    class TestModel(TestClient.Model):
+        url_list = '/2'
+
+    httpx_mock.add_response(url='http://bar/2', json=[dict(a=1)])
+    await TestClient.cli['testmodel']['find'].async_call()
+
+
+@pytest.mark.asyncio
+async def test_client_cli_side_effect(client_class, httpx_mock):
+    from cli2 import example_client
+
+    # test that this didn't spill over client_class
+    test_client_cli(client_class, httpx_mock)
+
+    # Test that Client's __init_subclass__ did setup a factory for self
+    assert isinstance(
+        example_client.APIClient.cli['get']['self'].factory_value(),
+        example_client.APIClient,
+    )
+
+    # Test that Model's __init_subclass__ did setup a factory for cls
+    httpx_mock.add_response(url='https://api.restful-api.dev/1', json=[1])
+    result = await example_client.cli['get'].async_call('/1')
+    assert result.json() == [1]
+
+    httpx_mock.add_response(
+        url='https://api.restful-api.dev/objects/1',
+        json=dict(id=1, a=2),
+    )
+    result = await example_client.cli['object']['get'].async_call('id=1')
+    assert result.id == 1
+    assert result.data['a'] == 2
 
 
 class Client(cli2.Client):
+    """ doc """
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('base_url', 'http://lol')
+        super().__init__(*args, **kwargs)
+
     def pagination_parameters(self, paginator, page_number):
         return dict(page=page_number)
 
@@ -133,7 +230,7 @@ async def test_pagination_patterns(httpx_mock):
     # I'm dealing with APIs which have a different pagination system on
     # different resources, and on some resources no pagination at all
     # Would like to define that per model
-    class TotalModel(Client.model):
+    class TotalModel(Client.Model):
         url_list = '/foo'
 
         @classmethod
@@ -146,7 +243,7 @@ async def test_pagination_patterns(httpx_mock):
         json=dict(total_items=2, items=[dict(a=1)]),
     )
 
-    class Pages(Client.model):
+    class Pages(Client.Model):
         url_list = '/bar'
 
         @classmethod
@@ -159,7 +256,7 @@ async def test_pagination_patterns(httpx_mock):
         json=dict(total_pages=1, items=[dict(a=1)]),
     )
 
-    class Offset(Client.model):
+    class Offset(Client.Model):
         url_list = '/off'
 
         @classmethod
@@ -229,34 +326,8 @@ async def test_pagination_reverse(httpx_mock):
     assert [x['a'] for x in results] == [5, 4, 3, 2, 1]
 
 
-@pytest.mark.asyncio
-async def test_subclass():
-    assert Client.cli2_self['factory'] == '__init__'
-
-    class Model(Client.model):
-        pass
-    assert Model in Client.models
-    assert Model._client_class == Client
-    cls = await Model.cli2_cls['factory']()
-    assert isinstance(cls.client, Client)
-
-
-@pytest.mark.asyncio
-async def test_cli():
-    from cli2 import example_client
-
-    # Test that Client's __init_subclass__ did setup a factory for self
-    client = example_client.cli['get']['self'].factory()
-    assert isinstance(client, example_client.APIClient)
-
-    # Test that Model's __init_subclass__ did setup a factory for cls
-    model = await example_client.cli['find']['cls'].factory()
-    assert isinstance(model.client, example_client.APIClient)
-    assert issubclass(model, example_client.Object)
-
-
 def test_descriptor():
-    class Model(Client.model):
+    class Model(Client.Model):
         id = cli2.Field()
         bar = cli2.Field('nested/bar')
         foo = cli2.Field('undeclared/foo')
@@ -284,7 +355,7 @@ def test_descriptor():
 
 
 def test_jsonstring():
-    class Model(Client.model):
+    class Model(Client.Model):
         json = cli2.JSONStringField()
 
     client = Client()
@@ -301,7 +372,7 @@ def test_jsonstring():
 
 
 def test_datetime():
-    class Model(Client.model):
+    class Model(Client.Model):
         dt = cli2.DateTimeField()
 
     model = Model(dict(dt='2020-11-12T01:02:03'))
@@ -311,7 +382,7 @@ def test_datetime():
 
 
 def test_model_inheritance():
-    class Model(Client.model):
+    class Model(Client.Model):
         foo = cli2.Field()
 
     class Model2(Model):
@@ -323,10 +394,10 @@ def test_model_inheritance():
 
 
 def test_relation():
-    class Child(Client.model):
+    class Child(Client.Model):
         foo = cli2.Field()
 
-    class Father(Client.model):
+    class Father(Client.Model):
         child = cli2.Related('Child')
 
     client = Client()
@@ -346,7 +417,7 @@ def test_relation():
 
 @pytest.mark.asyncio
 async def test_python_expression(httpx_mock):
-    class Model(Client.model):
+    class Model(Client.Model):
         url_list = '/foo'
         a = cli2.Field()
         b = cli2.Field()
@@ -401,7 +472,7 @@ async def test_python_expression(httpx_mock):
 
 @pytest.mark.asyncio
 async def test_expression_parameter(httpx_mock):
-    class Model(Client.model):
+    class Model(Client.Model):
         url_list = '/foo'
         a = cli2.Field()
         b = cli2.Field(parameter='b')
@@ -413,3 +484,56 @@ async def test_expression_parameter(httpx_mock):
     client = Client(base_url='http://lol')
     ones = await client.Model.find(Model.b == 1).list()
     assert [x.a for x in ones] == [1, 3]
+
+
+@pytest.mark.asyncio
+async def test_model_crud(httpx_mock):
+    class Model(Client.Model):
+        url_list = '/foo'
+    assert Model(id=1).url == '/foo/1'
+
+    httpx_mock.add_response(url='http://lol/foo/2', json=dict(id=2, a=1))
+    client = Client(base_url='http://lol')
+    result = await client.Model.get(id=2)
+    assert result.data == dict(id=2, a=1)
+
+    httpx_mock.add_response(url='http://lol/foo/2', method='DELETE')
+    await result.delete()
+
+
+@pytest.mark.asyncio
+async def test_client_cli2(httpx_mock):
+    assert Client.cli.name == 'client'
+    assert Client.cli.doc == 'doc'
+
+    httpx_mock.add_response(url='http://lol/foo', json=[1])
+    meth = Client.cli['get']
+    resp = await meth.async_call('/foo')
+    assert resp.json() == [1]
+
+    class Foo(Client.Model):
+        id = cli2.Field()
+        url_list = '/foo'
+
+    meth = Client.cli['foo']['get']
+    httpx_mock.add_response(url='http://lol/foo/1', json=dict(id=1, a=2))
+    result = await meth.async_call('id=1')
+    assert isinstance(result, Foo)
+    assert result.data == dict(id=1, a=2)
+
+    meth = Client.cli['foo']['find']
+    httpx_mock.add_response(
+        url='http://lol/foo?page=1',
+        json=[dict(id=1, a=2)],
+    )
+    httpx_mock.add_response(url='http://lol/foo?page=2', json=[])
+    result = await meth.async_call()
+
+
+@pytest.mark.asyncio
+async def test_object_command(httpx_mock):
+    class Model(Client.Model):
+        url_list = '/foo'
+    httpx_mock.add_response(url='http://lol/foo/1', json=dict(id=1))
+    httpx_mock.add_response(url='http://lol/foo/1', method='DELETE')
+    await Client.cli['model']['delete'].async_call('1')

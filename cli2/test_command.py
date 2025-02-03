@@ -4,6 +4,7 @@ import pytest
 from .decorators import arg
 from .argument import Argument
 from .command import Command
+from .group import Group
 from .test import autotest, Outfile
 
 
@@ -646,3 +647,28 @@ def test_class_method():
 
     cmd = Command(Foo.foo)
     assert cmd('a') == 'a'
+
+
+def test_self():
+    def factory():
+        return Foo(2)
+
+    class Foo:
+        def __init__(self, x):
+            self.x = x
+
+        @arg('self', factory=factory)
+        def bar(self, foo):
+            return self.x, foo
+
+        def foo(self, foo):
+            return self.x, foo
+
+    cmd = Command(Foo.bar)
+    assert cmd['self'].factory == factory
+    assert cmd('x') == (2, 'x')
+
+    group = Group(overrides=dict(self=dict(factory=lambda: Foo(1))))
+    group.cmd(Foo.foo)
+    assert group['foo']('a') == (1, 'a')
+    assert group['foo']['self'].factory
