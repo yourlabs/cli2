@@ -158,6 +158,7 @@ def test_factories():
 
     # test takes factory by default
     group = Group(name='test')
+
     def test(foo):
         return foo
     group.overrides['foo']['factory'] = lambda: 1
@@ -195,7 +196,6 @@ def test_factories():
         def other(self, something):
             return self.x, something
 
-    result = cli['send'](1)
     self, something = cli['send'](1)
     assert isinstance(self, Foo)
     assert something == 1
