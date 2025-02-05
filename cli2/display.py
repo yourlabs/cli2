@@ -68,7 +68,7 @@ def print(*args, **kwargs):
     for arg in args:
         try:  # deal with response objects
             arg = arg.json()
-        except (TypeError, AttributeError):
+        except:  # noqa
             pass
 
         try:  # is this json?
