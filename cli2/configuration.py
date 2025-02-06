@@ -85,7 +85,7 @@ class Configuration(dict):
         value = input(prompt + '\n> ')
         confirm = None
         while confirm not in ('', 'y', 'Y', 'n'):
-            confirm = input(f'Confirm value of:\n{value}?\n(Y/n) >')
+            confirm = input(f'Confirm value of:\n{value}\n(Y/n) >')
         if confirm in ('', 'y', 'Y'):
             # user is satisfied
             return value
