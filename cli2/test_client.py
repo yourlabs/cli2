@@ -393,7 +393,7 @@ def test_model_inheritance():
     assert [*client.Model2._fields.keys()] == ['bar', 'foo']
 
 
-def test_relation():
+def test_relation_simple():
     class Child(Client.Model):
         foo = cli2.Field()
 
@@ -413,6 +413,29 @@ def test_relation():
     model.child = new
     assert model.child.foo == 3
     assert model.data['child']['foo'] == 3
+
+
+def test_relation_many():
+    class Child(Client.Model):
+        foo = cli2.Field()
+
+    class Father(Client.Model):
+        children = cli2.Related('Child', many=True)
+
+    client = Client()
+    model = client.Father(dict(children=[dict(foo=1)]))
+    assert model.children[0].foo == 1
+    assert model.data['children'][0]['foo'] == 1
+
+    model.children.append(client.Child(foo=2))
+    assert model.data['children'][1]['foo'] == 2
+    assert model.children[1].foo == 2
+
+    new = [client.Child(dict(foo=3))]
+    model.children = new
+    assert len(model.children) == 1
+    assert model.children[0].foo == 3
+    assert model.data['children'][0]['foo'] == 3
 
 
 @pytest.mark.asyncio

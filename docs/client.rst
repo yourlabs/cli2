@@ -210,6 +210,98 @@ probably a ``cli2.contrib.odata`` module.
 And I'm sure there are several other more or less protocols out there to do
 this kind of things, so, we might as well have that here available for free.
 
+Related
+```````
+
+If your endpoint returns data of a related model as such:
+
+.. code-block:: yaml
+
+    foo: 1
+    related:
+      bar: 2
+
+You can normalize it with :py:class:`~cli2.client.Related`:
+
+.. code-block:: python
+
+    class YourModel(YourClient.Model):
+        foo = cli2.Field()
+        related = cli2.Related('Related')
+
+    class Related(YourClient.Model):
+        bar = cli2.Field()
+
+Due to a pretty ass-kicking :py:class:`~cli2.client.MutableField` mechanic,
+we're able to deal with it as such:
+
+.. code-block:: python
+
+    obj = await client.YourModel.get(foo=1)
+    assert obj.foo == 1
+    assert obj.related.bar == 2
+
+    # update a field
+    obj.related.bar = 3
+    assert obj.related.bar == 3
+    assert obj.data['related']['bar'] == 3
+
+    # set a new object
+    obj.related = client.Related(bar=4)
+    assert obj.related.bar == 4
+    assert obj.data['related']['bar'] == 4
+
+Many Related
+````````````
+
+Given a list of relations:
+
+.. code-block:: yaml
+
+    foo: 1
+    children:
+    - bar: 1
+    - bar: 2
+
+You can normalize it with :py:attr:`cli2.client.MutableField.many`:
+
+.. code-block:: python
+
+    class YourModel(YourClient.Model):
+        foo = cli2.Field()
+        related = cli2.Related('Related', many=True)
+
+    class Related(YourClient.Model):
+        bar = cli2.Field()
+
+Due to a pretty ass-kicking :py:class:`~cli2.client.MutableField` mechanic,
+you can work on the list return with the field descriptor:
+
+.. code-block:: python
+
+    obj = await client.YourModel.get(foo=1)
+    assert obj.foo == 1
+    # obj.related is a list
+    assert obj.related[0].bar == 1
+    assert obj.related[1].bar == 1
+
+    # in which you can update models
+    obj.related[0].bar = 3
+    assert obj.related[0].bar == 3
+    assert obj.data['related'][0]['bar'] == 3
+
+    # append new items
+    obj.related.append(client.Child(bar=4))
+    assert obj.related[3].bar == 4
+    assert obj.data['related'][3]['bar'] == 4
+
+    # or even just replace
+    obj.related = [client.Child(bar=5)]
+    assert obj.related[0].bar == 5
+    assert obj.data['related'][0]['bar'] == 5
+
+It's just magic I love it!
+
 Example
 =======
 
