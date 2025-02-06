@@ -976,7 +976,7 @@ class Client(metaclass=ClientMetaclass):
         """
         raise NotImplementedError()
 
-    async def request(self, method, url, **kwargs):
+    async def request(self, method, url, quiet=False, **kwargs):
         """
         Request method
 
@@ -994,7 +994,8 @@ class Client(metaclass=ClientMetaclass):
             self.token_getting = False
 
         log = self.logger.bind(method=method, url=url)
-        log.debug('request', **kwargs)
+        if not quiet:
+            log.debug('request', **kwargs)
 
         semaphore = getattr(self, 'semaphore', None)
         if semaphore:
@@ -1003,13 +1004,15 @@ class Client(metaclass=ClientMetaclass):
         else:
             response = await self.request_safe(method, url, **kwargs)
 
-        _log = dict(status_code=response.status_code)
-        try:
-            _log['json'] = response.json()
-        except json.JSONDecodeError:
-            _log['content'] = response.content
+        if not quiet:
+            _log = dict(status_code=response.status_code)
 
-        log.info('response', **_log)
+            try:
+                _log['json'] = response.json()
+            except json.JSONDecodeError:
+                _log['content'] = response.content
+
+            log.info('response', **_log)
 
         response.raise_for_status()
 
