@@ -26,6 +26,7 @@ import functools
 import os
 import re
 import shlex
+import textwrap
 from pathlib import Path
 
 
@@ -152,6 +153,7 @@ class Configuration(dict):
             return self.profile_variables[key]
 
         prompt = self.questions.get(key, key)
+        prompt = textwrap.dedent(prompt).strip()
         value = self.input(prompt)
         escaped_value = shlex.quote(value)
         with self.profile_path.open('a') as f:

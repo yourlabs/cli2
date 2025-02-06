@@ -60,3 +60,11 @@ def test_idempotent(tmp_path):
         ENV_VAR2='What 2?',
     )
     assert cfg['ENV_VAR2'] == value
+
+    cfg.questions['TEST'] = '''
+        Test
+        For
+        Dedent
+    '''
+    cfg.expected_prompts['Test\nFor\nDedent'] = 'success'
+    assert cfg['TEST'] == 'success'
