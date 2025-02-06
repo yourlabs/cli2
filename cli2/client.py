@@ -597,22 +597,33 @@ class Related(MutableField):
     .. py:attribute:: model
 
         *STRING* name of the related model class.
+
+    .. py:attribute:: many
+
+        Set this to True if you're expecting a list of models in the field.
     """
-    def __init__(self, model, *args, **kwargs):
+    def __init__(self, model, many=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.model = model
+        self.many = many
 
     def internalize(self, obj, data):
         """
         Return the related object's data.
         """
-        return data.data
+        if not self.many:
+            return data.data
+
+        return [item.data for item in data]
 
     def externalize(self, obj, value):
         """
         Instanciate the related model class with the value.
         """
-        return getattr(obj.client, self.model)(value)
+        model_class = getattr(obj.client, self.model)
+        if not self.many:
+            return model_class(value)
+        return [model_class(item) for item in value]
 
 
 class ModelCommand(Command):
