@@ -7,9 +7,13 @@ class Configuration(cli2.Configuration):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.expected_prompts = dict()
+        self.prints = []
 
     def input(self, prompt):
         return self.expected_prompts.pop(prompt)
+
+    def print(self, *args, **kwargs):
+        self.prints.append((args, kwargs))
 
 
 def test_idempotent(tmp_path):
@@ -68,3 +72,6 @@ def test_idempotent(tmp_path):
     '''
     cfg.expected_prompts['Test\nFor\nDedent'] = 'success'
     assert cfg['TEST'] == 'success'
+    assert cfg.prints[0][0][0] == (
+        f'Appended to {cfg.profile_path}:\nexport TEST=success'
+    )

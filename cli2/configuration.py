@@ -158,7 +158,14 @@ class Configuration(dict):
         escaped_value = shlex.quote(value)
         with self.profile_path.open('a') as f:
             f.write(f'\nexport {key}={escaped_value}')
+        self.print(
+            f'Appended to {self.profile_path}:'
+            f'\nexport {key}={escaped_value}'
+        )
         return value
+
+    def print(self, *args, **kwargs):
+        print(*args, **kwargs)
 
     def delete(self, key, reason=None):
         """
