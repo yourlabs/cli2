@@ -112,7 +112,11 @@ raised = False
 
 @pytest.mark.asyncio
 async def test_error_remote(httpx_mock):
-    client = Client()
+    class TokenClient(Client):
+        async def token_get(self):
+            return 'token'
+
+    client = TokenClient()
     httpx_mock.add_response(url='http://lol', json=[1])
 
     async def raises(*a, **k):
@@ -125,6 +129,9 @@ async def test_error_remote(httpx_mock):
     assert client.client is not old_client
     assert raised
     assert response.json() == [1]
+
+    httpx_mock.add_response(url='http://lol', json=[1])
+    assert (await client.get('http://lol')).json() == [1]
 
 
 @pytest.mark.asyncio

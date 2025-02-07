@@ -946,7 +946,7 @@ class Client(metaclass=ClientMetaclass):
             except (httpx.RemoteProtocolError, httpx.ReadTimeout):
                 # enforce getting a new awaitable
                 del self.client
-                del self.token
+                self.token = None
                 tries -= 1
                 if not tries:
                     raise
