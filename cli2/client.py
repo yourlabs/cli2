@@ -943,7 +943,7 @@ class Client(metaclass=ClientMetaclass):
         while tries:
             try:
                 return await self.client.request(*args, **kwargs)
-            except (httpx.RemoteProtocolError, httpx.ReadTimeout):
+            except httpx.TransportError:
                 # enforce getting a new awaitable
                 del self.client
                 self.token = None
