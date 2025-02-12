@@ -5,14 +5,15 @@ This module defines a print function that's supposed to be able to pretty-print
 anything, as well as a pretty diff printer.
 """
 import os
+import sys
 
 
-NO_COLOR = bool(os.getenv('NO_COLOR', ''))
 _print = print
 
 
 def highlight(string, lexer):
-    if NO_COLOR:
+    FORCE_COLOR = bool(os.getenv('FORCE_COLOR', ''))
+    if not sys.stdout.isatty() and not FORCE_COLOR:
         return string
 
     try:
@@ -47,8 +48,8 @@ def print(*args, **kwargs):
 
     Then, it'll be dumped as colored YAML.
 
-    Set the env var `NO_COLORS` to anything to
-    prevent `cli2.print` from printing colors.
+    Set the env var `FORCE_COLOR` to anything to force `cli2.print` into
+    printing colors even if terminal is non-interactive (ie. gitlab-ci)
 
     .. code-block:: python
 
@@ -56,9 +57,6 @@ def print(*args, **kwargs):
 
         # pretty print some_object
         cli2.print(some_object)
-
-    This outputs colors by default, set the env var `NO_COLORS` to anything to
-    prevent printing colors.
     """
     try:
         import jsonlight as json
