@@ -135,6 +135,23 @@ async def test_error_remote(httpx_mock):
 
 
 @pytest.mark.asyncio
+async def test_factory(httpx_mock, client_class):
+    class Client(client_class):
+        token_str = 'lol'
+
+        def client_factory(self):
+            client = super().client_factory()
+            client.headers['X-ApiKey'] = self.token_str
+            return client
+
+    client = Client()
+    assert client.client.headers['X-ApiKey'] == 'lol'
+    del client.client
+    client.token_str = 'bar'
+    assert client.client.headers['X-ApiKey'] == 'bar'
+
+
+@pytest.mark.asyncio
 async def test_error_status(httpx_mock):
     client = Client()
     httpx_mock.add_response(url='http://lol', status_code=403, json=[1])

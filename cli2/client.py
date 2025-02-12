@@ -921,11 +921,14 @@ class Client(metaclass=ClientMetaclass):
         Return last client object used, unless it raised RemoteProtocolError.
         """
         if not self._client:
-            self._client = httpx.AsyncClient(
-                *self._client_args,
-                **self._client_kwargs,
-            )
+            self._client = self.client_factory()
         return self._client
+
+    def client_factory(self):
+        """
+        Return a fresh httpx async client instance.
+        """
+        return httpx.AsyncClient(*self._client_args, **self._client_kwargs)
 
     @client.setter
     def client(self, value):
