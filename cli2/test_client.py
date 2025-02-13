@@ -733,3 +733,41 @@ def test_datetime_default_fmt():
     str_dt = '2025-02-14T16:09:30.000000'
     model.dt = str_dt
     assert model.data['dt'] == str_dt
+
+
+@pytest.mark.asyncio
+async def test_log():
+    client = Client()
+    client.client = mock.AsyncMock()
+
+    client.logger = mock.Mock()
+    response = httpx.Response(status_code=200, content='[2]')
+    response.request = httpx.Request('GET', '/', json=[1])
+    client.client.request.return_value = response
+    await client.get('/', json=[1])
+    client.logger.bind.assert_called_once_with(method='GET', url='/')
+    log = client.logger.bind.return_value
+    log.debug.assert_called_once_with('request', json=[1])
+    log.info.assert_called_once_with('response', status_code=200, json=[2])
+
+    # test with content instead of json
+    client.logger = mock.Mock()
+    response = httpx.Response(status_code=200, content='lol:]bar')
+    response.request = httpx.Request('POST', '/')
+    client.client.request.return_value = response
+    await client.post('/', content='lol:]foo')
+    client.logger.bind.assert_called_once_with(method='POST', url='/')
+    log = client.logger.bind.return_value
+    log.debug.assert_called_once_with('request', content='lol:]foo')
+    log.info.assert_called_once_with(
+        'response', status_code=200, content=b'lol:]bar'
+    )
+
+    # test with quiet now, should only log request itself
+    client.logger = mock.Mock()
+    await client.get('/', json=[1], quiet=True)
+    log = client.logger.bind.return_value
+    client.logger.bind.assert_called_once_with(method='GET', url='/')
+    log = client.logger.bind.return_value
+    assert not log.debug.call_args_list
+    log.info.assert_called_once_with('response', status_code=200)
