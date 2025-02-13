@@ -38,6 +38,8 @@ Start by extending a :py:class:`~cli2.client.Client`:
 
 There are a few methods that you might want to override:
 
+- :py:meth:`~cli2.client.Client.client_factory`: where you can customize the
+  actual httpx AsyncClient instance before it is used by cli2 Client.
 - :py:meth:`~cli2.client.Client.token_get`: if you want your client to do some
   authentication dance to get a token
 - :py:meth:`~cli2.client.Client.pagination_initialize`: this is supposed to

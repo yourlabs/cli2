@@ -75,6 +75,7 @@ colors = dict(
     orange3='\u001b[38;5;220m',
     orange4='\u001b[38;5;172m',
     orange5='\u001b[38;5;166m',
+    bold='\033[1m',
     reset='\u001b[0m',
 )
 

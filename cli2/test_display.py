@@ -1,5 +1,6 @@
 import cli2
 import io
+import sys
 
 
 DIFF = '''
@@ -18,15 +19,17 @@ index 3a538ef..577a094 100644
 '''.strip().split('\n')
 
 
-def test_diff():
+def test_diff(monkeypatch):
     stdout = io.StringIO()
+    monkeypatch.setenv('FORCE_COLOR', '1')
     cli2.diff(DIFF, file=stdout)
     stdout.seek(0)
     assert stdout.read() == '\x1b[01mdiff --git a/cli2/__init__.py b/cli2/__init__.py\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[01mindex 3a538ef..577a094 100644\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[91m--- a/cli2/__init__.py\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[32m+++ b/cli2/__init__.py\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[01m\x1b[35m@@ -3,6 +3,7 @@ from .argument import Argument\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[37m \x1b[39;49;00mfrom .colors import colors as c\x1b[37m\x1b[39;49;00m\n\x1b[37m \x1b[39;49;00mfrom .command import Command\x1b[37m\x1b[39;49;00m\n\x1b[37m \x1b[39;49;00mfrom .decorators import arg, cmd\x1b[37m\x1b[39;49;00m\n\x1b[32m+from .display import diff, print\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[37m \x1b[39;49;00mfrom .group import Group\x1b[37m\x1b[39;49;00m\n\x1b[37m \x1b[39;49;00mfrom .node import Node\x1b[37m\x1b[39;49;00m\n\x1b[37m \x1b[39;49;00mfrom .table import Table\x1b[37m\x1b[39;49;00m\n\n'  # noqa
 
 
-def test_print():
+def test_print(monkeypatch):
     expected = '\x1b[94ma\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m1\x1b[37m\x1b[39;49;00m\n\n'  # noqa
+    monkeypatch.setenv('FORCE_COLOR', '1')
 
     def test(arg):
         stdout = io.StringIO()
@@ -51,3 +54,19 @@ def test_print():
     class Test(dict):
         pass
     test(Test(a=1))
+
+
+def test_highlight(monkeypatch):
+    colored = '\x1b[94ma\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m1\x1b[37m\x1b[39;49;00m\n'  # noqa
+
+    monkeypatch.setenv('FORCE_COLOR', '1')
+    monkeypatch.setattr(sys.stdout, 'isatty', lambda: False)
+    assert cli2.highlight('a: 1', 'Yaml') == colored
+
+    monkeypatch.setenv('FORCE_COLOR', '')
+    monkeypatch.setattr(sys.stdout, 'isatty', lambda: True)
+    assert cli2.highlight('a: 1', 'Yaml') == colored
+
+    monkeypatch.setenv('FORCE_COLOR', '')
+    monkeypatch.setattr(sys.stdout, 'isatty', lambda: False)
+    assert cli2.highlight('a: 1', 'Yaml') == 'a: 1'
