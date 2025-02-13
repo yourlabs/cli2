@@ -2,6 +2,7 @@
 HTTP Client boilerplate code to conquer the world.
 """
 
+import asyncio
 import copy
 import inspect
 import json
@@ -16,8 +17,10 @@ try:
 except ImportError:
     truststore = None
 
+from . import display
 from .asyncio import async_resolve
 from .command import Command
+from .colors import colors
 from .group import Group
 from .decorators import cmd, hide
 
@@ -548,7 +551,9 @@ class DateTimeField(Field):
         figure `fmt` and have this thing "work by default". Please contribute
         to this list with different formats.
     """
+    iso_fmt = '%Y-%m-%dT%H:%M:%S.%f'
     default_fmts = [
+        iso_fmt,
         '%Y-%m-%dT%H:%M:%S',
     ]
 
@@ -575,8 +580,9 @@ class DateTimeField(Field):
             else:
                 self.fmt = fmt
                 return value
-        raise Exception(
-            f'Could not figure how to parse {value}, use fmt option'
+        raise FieldExternalizeError(
+            f'Could not figure how to parse {value}, use fmt option',
+            self, obj, value,
         )
 
     def internalize(self, obj, value):
@@ -585,9 +591,7 @@ class DateTimeField(Field):
         """
         if isinstance(value, str):
             return value
-        if not self.fmt:
-            raise Exception('fmt required')
-        return value.strftime(self.fmt)
+        return value.strftime(self.fmt or self.iso_fmt)
 
 
 class Related(MutableField):
@@ -886,6 +890,168 @@ class ClientMetaclass(type):
         return cls
 
 
+class Handler:
+    """
+    .. py:attribute:: tries
+
+        Number of retries for an un-accepted request prior to failing.
+        Default: 30
+
+    .. py:attribute:: backoff
+
+        Will sleep ``number_of_tries * backoff`` prior to retrying.
+        Default: `.1`
+
+    .. py:attribute:: accepts
+
+        Accepted status codes, you should always set this to ensure responses
+        with an unexpected status either retry or raise.
+        Default: range(200, 299)
+
+    .. py:attribute:: refuses
+
+        List of refused status codes, responses returning those will not retry
+        at all and raise directly.
+        Default: [400, 404]
+
+    .. py:attribute:: retokens
+
+        Status codes which trigger a new call of :py:meth:`~Client.token_get`
+        prior to a retry. Only one retry is done then by this handler,
+        considering that authenticating twice in a row is useless: there's a
+        problem in your credentials instead.
+        Default: [401, 403, 407, 511]
+    """
+    retokens_defaults = [401, 403, 407, 511]
+    accepts_defaults = range(200, 299)
+    refuses_defaults = [400, 404]
+    tries_default = 30
+    backoff_default = .1
+
+    def __init__(self, accepts=None, refuses=None, retokens=None, tries=None,
+                 backoff=None):
+
+        if retokens is None:
+            self.retokens = copy.copy(self.retokens_defaults)
+        else:
+            self.retokens = retokens
+
+        if accepts is None:
+            self.accepts = copy.copy(self.accepts_defaults)
+        else:
+            self.accepts = accepts
+
+        if refuses is None:
+            self.refuses = copy.copy(self.refuses_defaults)
+        else:
+            self.refuses = refuses
+
+        self.tries = self.tries_default if tries is None else tries
+        self.backoff = self.backoff_default if backoff is None else backoff
+
+    async def __call__(self, client, response, tries):
+        if isinstance(response, Exception):
+            if tries >= self.tries:
+                raise response
+            # httpx session is rendered unusable after a TransportError
+            if isinstance(response, httpx.TransportError):
+                await client.client_reset()
+            return
+
+        if self.accepts:
+            if response.status_code in self.accepts:
+                return response
+        elif response.status_code not in self.refuses:
+            return response
+
+        if response.status_code in self.refuses:
+            raise RefusedResponseError(response, tries)
+
+        if tries >= self.tries:
+            raise RetriesExceededError(response, tries)
+
+        if response.status_code in self.retokens:
+            if tries:
+                # our authentication is just not working, no need to retry
+                raise TokenGetError(response, tries)
+            await client.token_reset()
+
+        await asyncio.sleep(tries * self.backoff)
+
+
+class ClientError(Exception):
+    pass
+
+
+class ResponseError(ClientError):
+    def __init__(self, response, tries=1, msg=None):
+        self.response = response
+        self.tries = tries
+        msg = msg or getattr(self, 'msg', '').format(self=self)
+        super().__init__(self.enhance(msg))
+
+    def enhance(self, msg):
+        """
+        Enhance an httpx.HTTPStatusError
+
+        Adds beatiful request/response data to the exception.
+
+        :param exc: httpx.HTTPStatusError
+        """
+        try:
+            request = display.render(
+                json.loads(self.response.request.content.decode()),
+            )
+        except json.JSONDecodeError:
+            request = self.response.request.content.decode()
+
+        try:
+            response = display.render(self.response.json())
+        except json.JSONDecodeError:
+            response = self.response.content.decode()
+
+        request_msg = ' '.join([
+            self.response.request.method,
+            str(self.response.request.url),
+        ])
+
+        return '\n'.join([
+            msg,
+            f'{colors.reset}{colors.bold}{request_msg}{colors.reset}:',
+            request,
+            f'{colors.bold}HTTP {self.response.status_code}{colors.reset}:',
+            response,
+        ])
+
+
+class TokenGetError(ResponseError):
+    msg = 'Authentication failed after {self.tries} tries'
+
+
+class RefusedResponseError(ResponseError):
+    msg = 'Response {self.response} refused'
+
+
+class RetriesExceededError(ResponseError):
+    msg = 'Unacceptable response {self.response} after {self.tries} tries'
+
+
+class FieldError(ClientError):
+    pass
+
+
+class FieldValueError(FieldError):
+    def __init__(self, msg, field, obj, value):
+        super().__init__(msg)
+        self.obj = obj
+        self.field = field
+        self.value = value
+
+
+class FieldExternalizeError(FieldValueError):
+    pass
+
+
 class Client(metaclass=ClientMetaclass):
     """
     HTTPx Client
@@ -895,11 +1061,26 @@ class Client(metaclass=ClientMetaclass):
         :py:class:`Paginator` class, you can leave it by default and just
         implement :py:meth:`pagination_initialize` and
         :py:meth:`pagination_parameters`.
+
+    .. py:attribute:: semaphore
+
+        Optionnal asyncio semaphore to throttle requests.
+
+    .. py:attribute:: handler
+
+        A callback that will take responses objects and decide wether or not to
+        retry the request, or raise an exception, or return the request.
+        Default is a :py:class:`Handler`
+
+    .. py:attribute:: models
+
+        Declared models for this Client.
     """
     paginator = Paginator
     models = []
+    semaphore = None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, handler=None, semaphore=None, **kwargs):
         """
         Instanciate a client with httpx.AsyncClient args and kwargs.
         """
@@ -907,6 +1088,9 @@ class Client(metaclass=ClientMetaclass):
         self._client_args = args
         self._client_kwargs = kwargs
         self._client_attrs = None
+
+        self.handler = handler or Handler()
+        self.semaphore = semaphore if semaphore else self.semaphore
 
         if truststore:
             self._client_kwargs.setdefault(
@@ -945,21 +1129,38 @@ class Client(metaclass=ClientMetaclass):
     def client(self):
         self._client = None
 
-    async def request_safe(self, *args, **kwargs):
+    async def request_safe(self, *args, handler, retries=True, semaphore=None,
+                           **kwargs):
         """
-        Request method that retries with a new client if RemoteProtocolError.
+        Internal request method
         """
-        tries = 30
-        while tries:
+        semaphore = semaphore or self.semaphore
+        tries = 0
+
+        async def _request():
+            if semaphore:
+                async with semaphore:
+                    return await self.client.request(*args, **kwargs)
+            return await self.client.request(*args, **kwargs)
+
+        while retries or tries > 1:
             try:
-                return await self.client.request(*args, **kwargs)
-            except httpx.TransportError:
-                # enforce getting a new awaitable
-                del self.client
-                self.token = None
-                tries -= 1
-                if not tries:
-                    raise
+                response = await _request()
+            except Exception as exc:
+                await handler(self, exc, tries)
+            else:
+                if response := await handler(self, response, tries):
+                    return response
+
+            tries += 1
+
+        return response
+
+    async def client_reset(self):
+        del self.client
+
+    async def token_reset(self):
+        self.token = None
 
     async def token_get(self):
         """
@@ -986,7 +1187,9 @@ class Client(metaclass=ClientMetaclass):
         """
         raise NotImplementedError()
 
-    async def request(self, method, url, quiet=False, **kwargs):
+    async def request(self, method, url, handler=None, quiet=False,
+                      accepts=None, refuses=None, tries=None, backoff=None,
+                      retries=True, semaphore=None, **kwargs):
         """
         Request method
 
@@ -994,6 +1197,45 @@ class Client(metaclass=ClientMetaclass):
         automatically play it.
 
         If your client defines an asyncio semaphore, it will respect it.
+
+        .. code-block:: python
+
+            client = Client()
+
+            await client.request(
+                'GET',
+                '/',
+                # extend the current handler with 10 tries with 200 accepted
+                # status code only
+                tries=10,
+                accepts=[200],
+            )
+
+            await client.request(
+                'GET',
+                '/',
+                # you can also pass your own handler callable
+                handler=Handler(tries=10, accepts=[200]),
+                # that could also have been a function
+            )
+
+
+        :param method: HTTP Method name, GET, POST, etc
+        :param url: URL to query
+        :param handler: If a callable, will be called, if a dict, will extend
+                        the client's :py:attr:`handler`.
+        :param quiet: Wether to log or not, used by :py:class:`Paginator` to
+                      not clutter logs with pagination. Meaning if you want to
+                      debug pagination, you'll have to make it not quiet from
+                      there.
+        :param retries: Wether to retry or not in case handler dosen't accept
+                        the response, set to False if you want only 1 try.
+        :param accepts: Override for :py:attr:`Handler.accepts`
+        :param refuses: Override for :py:attr:`Handler.refuses`
+        :param retries: Override for :py:attr:`Handler.retries`
+        :param tries: Override for :py:attr:`Handler.tries`
+        :param backoff: Override for :py:attr:`Handler.backoff`
+        :param semaphore: Override for :py:attr:`Client.semaphore`
         """
         if not self.token and not self.token_getting:
             self.token_getting = True
@@ -1003,16 +1245,33 @@ class Client(metaclass=ClientMetaclass):
                 self.token = True
             self.token_getting = False
 
+        if handler is None:
+            if accepts or refuses or tries or backoff:
+                # if any handler kwarg, clone our handler and override
+                handler = copy.deepcopy(self.handler)
+                if accepts is not None:
+                    handler.accepts = accepts
+                if refuses is not None:
+                    handler.refuses = refuses
+                if tries is not None:
+                    handler.tries = tries
+                if backoff is not None:
+                    handler.backoff = backoff
+            else:
+                handler = self.handler
+
         log = self.logger.bind(method=method, url=url)
         if not quiet:
             log.debug('request', **kwargs)
 
-        semaphore = getattr(self, 'semaphore', None)
-        if semaphore:
-            async with semaphore:
-                response = await self.request_safe(method, url, **kwargs)
-        else:
-            response = await self.request_safe(method, url, **kwargs)
+        response = await self.request_safe(
+            method,
+            url,
+            handler=handler,
+            retries=retries,
+            semaphore=semaphore,
+            **kwargs,
+        )
 
         if not quiet:
             _log = dict(status_code=response.status_code)
@@ -1023,8 +1282,6 @@ class Client(metaclass=ClientMetaclass):
                 _log['content'] = response.content
 
             log.info('response', **_log)
-
-        response.raise_for_status()
 
         return response
 

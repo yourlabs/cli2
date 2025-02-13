@@ -2,8 +2,22 @@ from datetime import datetime
 import cli2
 import httpx
 import inspect
+import mock
 import pytest
-import textwrap
+
+
+async def _response(**kwargs):
+    return httpx.Response(**kwargs)
+
+
+class HandlerSentinel(cli2.Handler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.calls = []
+
+    async def __call__(self, client, response, tries):
+        self.calls.append((client, response.status_code, tries))
+        return await super().__call__(client, response, tries)
 
 
 @pytest.fixture
@@ -152,23 +166,116 @@ async def test_factory(httpx_mock, client_class):
 
 
 @pytest.mark.asyncio
-async def test_error_status(httpx_mock):
-    client = Client()
-    httpx_mock.add_response(url='http://lol', status_code=403, json=[1])
+async def test_client_handler(httpx_mock, client_class):
+    class Client(client_class):
+        def client_factory(self):
+            return mock.Mock()
 
-    async def request():
-        await client.post('http://lol', json=[2])
-    cmd = cli2.Command(request)
-    with pytest.raises(httpx.HTTPStatusError) as excinfo:
-        await cmd.async_call()
-    expected = textwrap.dedent('''
-    Request data:
-    - 2
+    client = Client(handler=HandlerSentinel())
 
-    Response data:
-    - 1
-    ''').strip()
-    assert excinfo.value.args[0].strip().endswith(expected)
+    # test response retry
+    client.client.request.side_effect = [
+        _response(status_code=500),
+        _response(status_code=200),
+    ]
+    response = await client.request('GET', '/')
+    assert response.status_code == 200
+    assert client.handler.calls == [
+        (client, 500, 0),
+        (client, 200, 1),
+    ]
+
+    # test TransportError retry
+    client.client.request.side_effect = [
+        httpx.TransportError("foo"),
+        _response(status_code=200),
+    ]
+    assert response.status_code == 200
+    assert client.handler.calls == [
+        (client, 500, 0),
+        (client, 200, 1),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_handler():
+    client = mock.AsyncMock()
+    handler = cli2.Handler(accepts=[201], refuses=[218], retokens=[418])
+
+    response = httpx.Response(status_code=201)
+    result = await handler(client, response, 0)
+    assert result == response
+
+    response = httpx.Response(status_code=200)
+    result = await handler(client, response, 0)
+    assert not result
+
+    response = httpx.Response(status_code=200, content='[2]')
+    response.request = httpx.Request('POST', '/', json=[1])
+    with pytest.raises(cli2.RetriesExceededError) as exc:
+        await handler(client, response, handler.tries + 1)
+
+    msg = 'Unacceptable response <Response [200 OK]> after 31 tries\n\x1b[0m\x1b[1mPOST /\x1b[0m:\n-\x1b[37m \x1b[39;49;00m1\x1b[37m\x1b[39;49;00m\n\n\x1b[1mHTTP 200\x1b[0m:\n-\x1b[37m \x1b[39;49;00m2\x1b[37m\x1b[39;49;00m\n'  # noqa
+    assert str(exc.value) == msg
+
+    response = httpx.Response(status_code=218)
+    response.request = httpx.Request('POST', '/')
+    with pytest.raises(cli2.RefusedResponseError):
+        await handler(client, response, 1)
+
+    response = httpx.Response(status_code=418)
+    response.request = httpx.Request('POST', '/')
+    with pytest.raises(cli2.TokenGetError):
+        await handler(client, response, 1)
+
+    assert not client.client_reset.await_count
+    result = await handler(client, httpx.TransportError('foo'), 0)
+    assert not result
+    assert client.client_reset.await_count == 1
+
+    with pytest.raises(httpx.TransportError) as exc:
+        await handler(client, httpx.TransportError('x'), handler.tries + 1)
+
+    response = httpx.Response(status_code=418)
+    assert not client.token_reset.await_count
+    result = await handler(client, response, 0)
+    assert not result
+    assert client.token_reset.await_count == 1
+
+    handler = cli2.Handler(accepts=[], refuses=[222])
+
+    response = httpx.Response(status_code=123)
+    result = await handler(client, response, 0)
+    assert result == response
+
+
+@pytest.mark.asyncio
+async def test_retry(httpx_mock, client_class):
+    class Client(client_class):
+        return_token = 1
+
+        async def token_get(self):
+            return self.return_token
+
+        def client_factory(self):
+            return mock.Mock()
+
+    client = Client(
+        retry_request=[500],
+        recreate_client=[400],
+        backoff=0.1,
+    )
+
+    current_client = client.client
+    client.client.request.side_effect = [
+        _response(status_code=500),
+        _response(status_code=500),
+        _response(status_code=200),
+    ]
+    response = await client.request('GET', '/')
+    assert response.status_code == 200
+    assert client.client == current_client
+    assert client.token == 1
 
 
 @pytest.mark.asyncio
@@ -377,6 +484,9 @@ def test_descriptor():
     assert model.foo == 3
     assert model.data['undeclared']['foo'] == 3
 
+    model = Model()
+    assert model.foo == ''
+
 
 def test_jsonstring():
     class Model(Client.Model):
@@ -584,3 +694,42 @@ async def test_object_command(httpx_mock):
     httpx_mock.add_response(url='http://lol/foo/1', json=dict(id=1))
     httpx_mock.add_response(url='http://lol/foo/1', method='DELETE')
     await Client.cli['model']['delete'].async_call('1')
+
+
+@pytest.mark.parametrize('intern,extern', (
+    ('2025-02-13T16:09:30.745517', datetime(2025, 2, 13, 16, 9, 30, 745517)),
+    ('2025-02-13T16:09:30', datetime(2025, 2, 13, 16, 9, 30)),
+))
+def test_datetime_fmts(intern, extern):
+    class DtModel(Client.Model):
+        dt = cli2.DateTimeField()
+    model = Client().DtModel(dict(dt=intern))
+    assert model.dt == extern
+
+
+def test_datetime_fmt():
+    class DtModel(Client.Model):
+        dt = cli2.DateTimeField(fmt='%d/%m/%Y %H:%M:%S')
+    model = Client().DtModel(dict(dt='13/02/2025 12:34:56'))
+    assert model.dt == datetime(2025, 2, 13, 12, 34, 56)
+
+    model.dt = datetime(2025, 2, 14, 12, 34, 56)
+    assert model.data['dt'] == '14/02/2025 12:34:56'
+
+
+def test_datetime_error():
+    class DtModel(Client.Model):
+        dt = cli2.DateTimeField()
+    model = Client().DtModel(dict(dt='13/024:56'))
+    with pytest.raises(cli2.client.FieldExternalizeError):
+        model.dt
+
+
+def test_datetime_default_fmt():
+    model = Client().DtModel()
+    model.dt = datetime(2025, 2, 13, 16, 9, 30)
+    assert model.data['dt'] == '2025-02-13T16:09:30.000000'
+
+    str_dt = '2025-02-14T16:09:30.000000'
+    model.dt = str_dt
+    assert model.data['dt'] == str_dt

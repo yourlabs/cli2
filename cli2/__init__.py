@@ -7,9 +7,18 @@ from .configuration import Configuration, cfg
 from .command import Command
 try:
     from .client import (
+        ClientError,
+        ResponseError,
+        TokenGetError,
+        RefusedResponseError,
+        RetriesExceededError,
+        FieldError,
+        FieldValueError,
+        FieldExternalizeError,
         Client,
         DateTimeField,
         Field,
+        Handler,
         JSONStringField,
         Model,
         Paginator,

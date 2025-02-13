@@ -1,11 +1,15 @@
 import inspect
 import pytest
+import os
 
 from .decorators import arg
 from .argument import Argument
 from .command import Command
 from .group import Group
 from .test import autotest, Outfile
+
+
+os.environ['FORCE_COLOR'] = '1'
 
 
 def test_int():

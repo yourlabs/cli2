@@ -7,6 +7,11 @@ anything, as well as a pretty diff printer.
 import os
 import sys
 
+try:
+    import jsonlight as json
+except ImportError:
+    import json
+
 
 _print = print
 
@@ -40,48 +45,54 @@ def yaml_highlight(yaml_string):
     return highlight(yaml_string, 'Yaml')
 
 
-def print(*args, **kwargs):
+def render(arg):
     """
-    Try to print the args, pass the kwargs to actual print method.
+    Try to render arg as yaml.
 
-    If any arg is parseable as JSON then it'l be parsed.
-
+    If the arg has a ``.json()`` method, it'll be called.
+    If it is parseable as JSON then it'l be parsed as such.
     Then, it'll be dumped as colored YAML.
 
-    Set the env var `FORCE_COLOR` to anything to force `cli2.print` into
-    printing colors even if terminal is non-interactive (ie. gitlab-ci)
+    Set the env var `FORCE_COLOR` to anything to force into printing colors
+    even if terminal is non-interactive (ie. gitlab-ci)
 
     .. code-block:: python
 
-        import cli2
+        # pretty render some_object
+        print(cli2.render(some_object))
+    """
+    try:  # deal with response objects
+        arg = arg.json()
+    except:  # noqa
+        pass
+
+    try:  # is this json?
+        arg = json.loads(arg)
+    except:  # noqa
+        pass
+
+    # does this wants to show specific data to cli2?
+    try:
+        arg = arg.cli2_display
+    except AttributeError:
+        pass
+
+    string = arg if isinstance(arg, str) else yaml_dump(arg)
+    return yaml_highlight(string)
+
+
+def print(*args, **kwargs):
+    """
+    Try to print the :py:func:`render`'ed args, pass the kwargs to actual print
+    method.
+
+    .. code-block:: python
 
         # pretty print some_object
         cli2.print(some_object)
     """
-    try:
-        import jsonlight as json
-    except ImportError:
-        import json
-
     for arg in args:
-        try:  # deal with response objects
-            arg = arg.json()
-        except:  # noqa
-            pass
-
-        try:  # is this json?
-            arg = json.loads(arg)
-        except:  # noqa
-            pass
-
-        # does this wants to show specific data to cli2?
-        try:
-            arg = arg.cli2_display
-        except AttributeError:
-            pass
-
-        string = arg if isinstance(arg, str) else yaml_dump(arg)
-        _print(yaml_highlight(string), **kwargs)
+        _print(render(arg), **kwargs)
 
 
 def diff_highlight(diff):
