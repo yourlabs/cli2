@@ -256,7 +256,7 @@ class Paginator:
         for expression in self.expressions:
             if expression.parameterable:
                 expression.params(params)
-        response = await self.client.get(self.url, params=params)
+        response = await self.client.get(self.url, params=params, quiet=True)
         if not self.initialized:
             await self.initialize(response)
         return response
@@ -1273,15 +1273,15 @@ class Client(metaclass=ClientMetaclass):
             **kwargs,
         )
 
-        if not quiet:
-            _log = dict(status_code=response.status_code)
+        _log = dict(status_code=response.status_code)
 
+        if not quiet:
             try:
                 _log['json'] = response.json()
             except json.JSONDecodeError:
                 _log['content'] = response.content
 
-            log.info('response', **_log)
+        log.info('response', **_log)
 
         return response
 
