@@ -15,8 +15,21 @@ project to another, I've refactored this stuff here:
 - debug output always saved in ``~/.local/cli2/log``, **they will eventually fill
   up your drive and I've not yet decided a solution against that**, but I just
   love this feature,
+- absolutely beautiful HTTP Exceptions
 - ``export HTTP_DEBUG=1`` for low-level HTTP Debugging output
 - **a ORM for REST resources**
+
+Architecture
+============
+
+The client module is built around 3 main moving parts:
+
+- :py:class:`~cli2.client.Client`: A wrapper around the ``httpx.AsyncClient``
+  class,
+- :py:class:`~cli2.client.Handler`: Used by the client to automate response
+  handling: do we retry, need to re-create a TCP Session, or get a new token...
+- :py:class:`~cli2.client.Model`: A Django-like model metaclass, that comes
+  with it's :py:class:`~cli2.client.Field` classes and their expressions_
 
 Tutorial
 ========
@@ -149,6 +162,8 @@ The most painful stuff I've had to deal with in APIs are datetimes and, "json
 in json".
 
 The cures for that are :py:class:`JSONStringField` and :py:class:`DateTimeField`.
+
+.. _expressions:
 
 Expressions
 ```````````
