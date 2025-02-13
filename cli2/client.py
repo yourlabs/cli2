@@ -671,6 +671,13 @@ class ModelGroup(Group):
             self.cmd(cls.get)
             self.cmd(cls.delete)
 
+        for name, method in cls.__dict__.items():
+            wrapped_method = getattr(method, '__func__', None)
+            if hasattr(wrapped_method, 'cli2'):
+                self.cmd(wrapped_method)
+            elif hasattr(method, 'cli2'):
+                self.cmd(method)
+
 
 class ModelMetaclass(type):
     def __new__(cls, name, bases, attributes):

@@ -13,9 +13,14 @@ class Object(APIClient.Model):
 
     id = cli2.Field()
 
+    @cli2.cmd
     @classmethod
-    @APIClient.cli.cmd
     async def fail(cls):
+        await cls.client.post('/foo', json=[1])
+
+    @classmethod
+    @cli2.cmd
+    async def fail2(cls):
         await cls.client.post('/foo', json=[1])
 
 
