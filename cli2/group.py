@@ -177,6 +177,20 @@ class Group(EntryPoint, dict):
                 self.group(name).load(target, parent=obj)
         return self
 
+    def load_cls(self, cls, exclude=None):
+        """
+        Load all methods which have been decorated with @cmd
+        """
+        exclude = exclude or []
+        for name, method in cls.__dict__.items():
+            wrapped_method = getattr(method, '__func__', None)
+            if hasattr(wrapped_method, 'cli2'):
+                self.cmd(wrapped_method)
+            elif hasattr(method, 'cli2'):
+                self.cmd(method)
+        for base in cls.__bases__:
+            self.load_cls(base, exclude=exclude)
+
     def __call__(self, *argv):
         self.exit_code = 0
         if not argv:
