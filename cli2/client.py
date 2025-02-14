@@ -859,7 +859,9 @@ class Model(metaclass=ModelMetaclass):
 
     @classmethod
     @cmd(doc="""
-    POST request to create. Example:
+    POST request to create.
+
+    Example:
 
         create name=foo
     """)
