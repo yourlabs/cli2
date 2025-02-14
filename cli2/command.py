@@ -86,6 +86,9 @@ class Command(EntryPoint, dict):
         if not inspect.ismethod(target):
             return target
 
+        if self.name == 'help':
+            return target
+
         # let's allow overwriting a bound method's __self__
         func_sig = inspect.signature(target.__func__)
         self_name = [*func_sig.parameters.keys()][0]
