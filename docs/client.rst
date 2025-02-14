@@ -19,6 +19,47 @@ project to another, I've refactored this stuff here:
 - ``export HTTP_DEBUG=1`` for low-level HTTP Debugging output
 - **a ORM for REST resources**
 
+Example
+=======
+
+And of course all this is designed to combine very well with CLIs, because once
+you have a library for an API, which you're going to embed in god knows what
+(your API server, an Ansible plugin ...), you'll want to work with a CLI to
+debug stuff: discover the API and implement features incrementally.
+
+Source code
+-----------
+
+.. literalinclude:: ../cli2/example_client.py
+
+Mind you, the Object can be used in a Django-ish ORM style and all these CLIs
+were created with free Sphinx documentation as seen in :ref:`Example CLI`.
+
+Outputs are just beautiful of course:
+
+.. image:: example_client_object_usage.png
+
+See a builtin command with a custom command in action:
+
+.. image:: example_client_rename.png
+
+The debug output is also awesome:
+
+.. image:: example_client_debug.png
+
+It shows:
+
+- the JSON being sent to the server
+- request/method/url/timestamp
+- the JSON being returned by the server
+- response status code returned by the server
+- finnaly, the return value of the command, which is the created object, see
+  how the returned object was updated with the id and createAt fields which
+  came from the response
+
+Of course, you're going to be able to override/customize everything as you dig
+into the API that you're implementing a client for.
+
 Architecture
 ============
 
@@ -319,26 +360,15 @@ you can work on the list return with the field descriptor:
 
 It's just magic I love it!
 
-Example
-=======
-
-And of course all this is designed to combine very well with CLIs, because once
-you have a library for an API, which you're going to embed in god knows what
-(your API server, an Ansible plugin ...), you'll want to work with a CLI to
-debug stuff: discover the API and implement features incrementally.
-
-Source code
------------
-
-.. literalinclude:: ../cli2/example_client.py
-
-Result CLI
-----------
-
-.. cli2:auto:: cli2-example-client
-
 API
 ===
 
 .. automodule:: cli2.client
    :members:
+
+.. _Example CLI:
+
+Example CLI
+===========
+
+.. cli2:auto:: cli2-example-client
