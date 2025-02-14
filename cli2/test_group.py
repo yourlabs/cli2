@@ -1,5 +1,3 @@
-import cli2
-
 from .command import Command
 from .group import Group
 from .test import Outfile
@@ -212,6 +210,8 @@ def test_overrides():
 
 
 def test_load_cls():
+    import cli2
+
     class Bar:
         @cli2.cmd
         def test(self):
