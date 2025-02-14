@@ -207,3 +207,25 @@ def test_overrides():
     group = Group('foo')
     group.overrides['self']['factory'] = lambda: 1
     assert group.overrides['self']['factory']() == 1
+
+
+def test_load_cls():
+    import cli2
+
+    class Bar:
+        @cli2.cmd
+        def test(self):
+            pass
+
+    class Foo(Bar):
+        def bar(self):
+            pass
+
+        @cli2.cmd
+        def test2(self):
+            pass
+    group = Group()
+    group.load_cls(Foo)
+    assert 'bar' not in group
+    assert 'test' in group
+    assert 'test2' in group
