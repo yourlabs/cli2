@@ -745,15 +745,21 @@ class Model(metaclass=ModelMetaclass):
         The URL to get the details of an object, you're supposed to configure
         it as a model attribute in your model subclass.
 
+    .. py:attribute:: id_field
+
+        Name of the field that should be used as resource identifier, `id` by
+        default.
+
     .. py:attribute:: url
 
-        Object URL based on :py:attr:`url_detail` and.
+        Object URL based on :py:attr:`url_detail` and :py:attr:`id_field`.
     """
     paginator = Paginator
     model_command = ModelCommand
     model_group = ModelGroup
     url_list = None
-    url_detail = '{self.url_list}/{self.id}'
+    url_detail = '{self.url_list}/{self.id_value}'
+    id_field = 'id'
 
     def __init__(self, data=None, **values):
         """
@@ -837,6 +843,8 @@ class Model(metaclass=ModelMetaclass):
 
     @property
     def url(self):
+        if 'url_list' in self.url_detail and not self.url_list:
+            raise Exception(f'{type(self).__name__}.url_list not set')
         return self.url_detail.format(self=self)
 
     async def delete(self):
@@ -846,6 +854,20 @@ class Model(metaclass=ModelMetaclass):
         DELETE request on :py:attr:`url`
         """
         return await self.client.delete(self.url)
+
+    @classmethod
+    @cmd(doc="""
+    POST request to create. Example:
+
+        create name=foo
+    """)
+    async def create(cls, **kwargs):
+        """
+        Instanciate a model with kwargs and run :py:meth:`save`.
+        """
+        obj = cls(**kwargs)
+        await obj.save()
+        return obj
 
     @classmethod
     @cmd(doc="""
@@ -867,6 +889,55 @@ class Model(metaclass=ModelMetaclass):
         """
         response = await self.client.get(self.url)
         self.data.update(response.json())
+
+    async def save(self):
+        """
+        Call :py:meth:`update` if `self.id` otherwise :py:meth:`instanciate`.
+
+        Then updates :py:attr:`data` based on the response.json if possible.
+
+        You might want to override this.
+        """
+        if self.id_value:
+            response = await self.update()
+        else:
+            response = await self.instanciate()
+
+        try:
+            data = response.json()
+        except json.JSONDecodeError:
+            pass
+        else:
+            self.data = data
+
+        return response
+
+    async def instanciate(self):
+        """
+        POST :py:attr:`data` to :py:attr:`url_list`, update data with response
+        json.
+
+        You might want to override this.
+        """
+        if not self.url_list:
+            raise Exception(f'{type(self).__name__}.url_list not set')
+        return await self.client.post(self.url_list, json=self.data)
+
+    async def update(self):
+        """
+        POST :py:attr:`data` to :py:attr:`url_list`, update data with response
+        json.
+
+        You might want to override this.
+        """
+        return await self.client.post(self.url, json=self.data)
+
+    @property
+    def id_value(self):
+        """
+        Return value of the :py:attr:`id_field`.
+        """
+        return getattr(self, self.id_field)
 
 
 class ClientMetaclass(type):
