@@ -845,6 +845,52 @@ def test_class_override():
 
 
 @pytest.mark.asyncio
+async def test_save(client_class, httpx_mock):
+    class TestModel(client_class.Model):
+        id = cli2.Field()
+        foo = cli2.Field()
+
+    client = client_class()
+    model = client.TestModel(id=1, foo='bar')
+
+    with pytest.raises(Exception):
+        await model.save()
+
+    client.TestModel.url_list = '/test'
+    httpx_mock.add_response(
+        method='POST',
+        url='http://lol/test/1',
+        json=dict(id=1, foo=2),
+        match_json=dict(id=1, foo='bar'),
+    )
+    await model.save()
+    assert model.id == 1
+    assert model.foo == 2
+
+    model = client.TestModel(foo='bar')
+    httpx_mock.add_response(
+        method='POST',
+        url='http://lol/test',
+        json=dict(id=1, foo='bar'),
+        match_json=dict(foo='bar'),
+    )
+    await model.save()
+    assert model.id == 1
+    assert model.foo == 'bar'
+
+
+def test_id_value():
+    class TestModel(Client.Model):
+        id = cli2.Field()
+    assert Client().TestModel(id=1).id_value == 1
+
+    class TestModel2(Client.Model):
+        bar = cli2.Field()
+        id_field = 'bar'
+    assert Client().TestModel2(bar=1).id_value == 1
+
+
+@pytest.mark.asyncio
 async def test_debug():
     client = Client(mask=['scrt', 'password'], debug=True)
     client.client = mock.AsyncMock()
