@@ -1365,7 +1365,7 @@ class Client(metaclass=ClientMetaclass):
             handler=handler,
             retries=retries,
             semaphore=semaphore,
-            mask=lambda data: self.mask_data(data, mask),
+            mask=mask,
             **kwargs,
         )
 
