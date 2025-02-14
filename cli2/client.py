@@ -2,8 +2,6 @@
 HTTP Client boilerplate code to conquer the world.
 """
 
-from urllib.parse import parse_qs
-
 import asyncio
 import copy
 import httpx
@@ -13,7 +11,11 @@ import math
 import os
 import ssl
 import structlog
+import yaml
+
 from datetime import datetime
+from pathlib import Path
+from urllib.parse import parse_qs
 
 try:
     import truststore
@@ -796,6 +798,7 @@ class Model(metaclass=ModelMetaclass):
 
     @classmethod
     @hide('expressions')
+    @cmd(color='green')
     def find(cls, *expressions, **params):
         """
         Find objects filtered by GET params
@@ -849,9 +852,10 @@ class Model(metaclass=ModelMetaclass):
             raise Exception(f'{type(self).__name__}.url_list not set')
         return self.url_detail.format(self=self)
 
+    @cmd(color='red')
     async def delete(self):
         """
-        Delete model
+        Delete model.
 
         DELETE request on :py:attr:`url`
         """
@@ -872,8 +876,10 @@ class Model(metaclass=ModelMetaclass):
         return obj
 
     @classmethod
-    @cmd(doc="""
-    Get a model based on kwargs. Example:
+    @cmd(color='green', doc="""
+    Get a model based on kwargs.
+
+    Example:
 
         get id=3
     """)
@@ -961,6 +967,7 @@ class ClientMetaclass(type):
         cli_kwargs.update(cls.__dict__.get('cli_kwargs', dict()))
         cls.cli = Group(**cli_kwargs)
         cls.cli.cmd(cls.get)
+        cls.cli.cmd(cls.request_cmd)
         return cls
 
 
@@ -1444,6 +1451,32 @@ class Client(metaclass=ClientMetaclass):
     async def get(self, url, *args, **kwargs):
         """ GET Request """
         return await self.request('GET', url, *args, **kwargs)
+
+    @cmd(name='request')
+    async def request_cmd(self, method, url, *args, **kwargs):
+        """
+        Perform an HTTP Request.
+
+        This calls the underlying httpx.Client request command, so, you can use
+        kwargs such as content for raw body pass, data for form data, and json
+        for json. Values for these kwargs may be file paths.
+
+        Example:
+
+            request POST /objects json=my_data.yaml
+
+        :param method: HTTP verb, GET, POST, etc
+        :param url: URL relative to the client's base_url
+        :param args: Any args to pass to the request method
+        :param kwargs: Any kwargs that will be loaded as file
+        """
+        for key, value in kwargs.items():
+            file = Path(value)
+            if not file.exists():
+                continue
+            with file.open('r') as fh:
+                kwargs[key] = yaml.safe_load(fh.read())
+        return await self.request(method, url, *args, **kwargs)
 
     async def post(self, url, *args, **kwargs):
         """ POST Request """
