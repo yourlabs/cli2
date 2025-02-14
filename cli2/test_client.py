@@ -215,7 +215,15 @@ async def test_handler():
     with pytest.raises(cli2.RetriesExceededError) as exc:
         await handler(client, response, handler.tries + 1)
 
-    msg = 'Unacceptable response <Response [200 OK]> after 31 tries\n\x1b[0m\x1b[1mPOST /\x1b[0m:\n-\x1b[37m \x1b[39;49;00m1\x1b[37m\x1b[39;49;00m\n\n\x1b[1mHTTP 200\x1b[0m:\n-\x1b[37m \x1b[39;49;00m2\x1b[37m\x1b[39;49;00m\n'  # noqa
+    msg = 'Unacceptable response <Response [200 OK]> after 31 tries\n\x1b[0m\x1b[1mPOST /\x1b[0m\n-\x1b[37m \x1b[39;49;00m1\x1b[37m\x1b[39;49;00m\n\n\x1b[1mHTTP 200\x1b[0m\n-\x1b[37m \x1b[39;49;00m2\x1b[37m\x1b[39;49;00m\n'  # noqa
+    assert str(exc.value) == msg
+
+    response = httpx.Response(status_code=200)
+    response.request = httpx.Request('GET', '/')
+    with pytest.raises(cli2.RetriesExceededError) as exc:
+        await handler(client, response, handler.tries + 1)
+
+    msg = 'Unacceptable response <Response [200 OK]> after 31 tries\n\x1b[0m\x1b[1mGET /\x1b[0m\n\x1b[1mHTTP 200\x1b[0m'  # noqa
     assert str(exc.value) == msg
 
     response = httpx.Response(status_code=218)

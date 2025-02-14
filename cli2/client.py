@@ -1011,18 +1011,25 @@ class ResponseError(ClientError):
         except json.JSONDecodeError:
             response = self.response.content.decode()
 
+        output = [msg]
         request_msg = ' '.join([
             self.response.request.method,
             str(self.response.request.url),
         ])
 
-        return '\n'.join([
-            msg,
-            f'{colors.reset}{colors.bold}{request_msg}{colors.reset}:',
-            request,
-            f'{colors.bold}HTTP {self.response.status_code}{colors.reset}:',
-            response,
-        ])
+        output.append(
+            f'{colors.reset}{colors.bold}{request_msg}{colors.reset}',
+        )
+        if request:
+            output.append(request)
+
+        output.append(
+            f'{colors.bold}HTTP {self.response.status_code}{colors.reset}',
+        )
+        if response:
+            output.append(response)
+
+        return '\n'.join(output)
 
 
 class TokenGetError(ResponseError):
