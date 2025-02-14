@@ -649,7 +649,7 @@ class ModelCommand(Command):
     def setargs(self):
         super().setargs()
         if 'self' in self:
-            self.arg('id', position=1, kind='POSITIONAL_ONLY', doc='ID')
+            self.arg('id', position=0, kind='POSITIONAL_ONLY', doc='ID')
 
     async def get_client(self):
         client = self.group.parent.overrides['self']['factory']()
