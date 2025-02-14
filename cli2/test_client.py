@@ -736,21 +736,66 @@ def test_datetime_default_fmt():
 
 
 @pytest.mark.asyncio
-async def test_log():
-    client = Client()
+@pytest.mark.parametrize(
+    'key', ('json', 'data'),
+)
+async def test_log_masking(key):
+    client = Client(mask=['scrt', 'password'])
     client.client = mock.AsyncMock()
 
     client.logger = mock.Mock()
-    response = httpx.Response(status_code=200, content='[2]')
-    response.request = httpx.Request('GET', '/', json=[1])
+    response = httpx.Response(
+        status_code=200,
+        content='{"pub": 1, "scrt": "pass"}',
+    )
+    data = dict(foo='bar', password='secret')
+    response.request = httpx.Request('POST', '/', **{key: data})
     client.client.request.return_value = response
-    await client.get('/', json=[1])
-    client.logger.bind.assert_called_once_with(method='GET', url='/')
+    await client.post('/', **{key: data})
+    client.logger.bind.assert_called_once_with(method='POST', url='/')
     log = client.logger.bind.return_value
-    log.debug.assert_called_once_with('request', json=[1])
-    log.info.assert_called_once_with('response', status_code=200, json=[2])
+    log.debug.assert_called_once_with(
+        'request',
+        **{key: dict(foo='bar', password='***MASKED***')},
+    )
+    log.info.assert_called_once_with(
+        'response',
+        status_code=200,
+        json=dict(pub=1, scrt='***MASKED***'),
+    )
 
-    # test with content instead of json
+
+@pytest.mark.asyncio
+async def test_request_mask():
+    client = Client(mask=['password'])
+    client.client = mock.AsyncMock()
+
+    client.logger = mock.Mock()
+    response = httpx.Response(
+        status_code=200,
+        content='{"pub": 1, "scrt": "pass"}',
+    )
+    data = dict(foo='bar', password='secret')
+    response.request = httpx.Request('POST', '/', json=data)
+    client.client.request.return_value = response
+    await client.post('/', json=data, mask=['scrt'])
+    client.logger.bind.assert_called_once_with(method='POST', url='/')
+    log = client.logger.bind.return_value
+    log.debug.assert_called_once_with(
+        'request',
+        json=dict(foo='bar', password='secret'),
+    )
+    log.info.assert_called_once_with(
+        'response',
+        status_code=200,
+        json=dict(pub=1, scrt='***MASKED***'),
+    )
+
+
+@pytest.mark.asyncio
+async def test_log_content():
+    client = Client()
+    client.client = mock.AsyncMock()
     client.logger = mock.Mock()
     response = httpx.Response(status_code=200, content='lol:]bar')
     response.request = httpx.Request('POST', '/')
@@ -763,11 +808,56 @@ async def test_log():
         'response', status_code=200, content=b'lol:]bar'
     )
 
-    # test with quiet now, should only log request itself
+
+@pytest.mark.asyncio
+async def test_log_quiet():
+    client = Client()
+    client.client = mock.AsyncMock()
     client.logger = mock.Mock()
+    response = httpx.Response(status_code=200, content='[1]')
+    response.request = httpx.Request('GET', '/')
+    client.client.request.return_value = response
     await client.get('/', json=[1], quiet=True)
     log = client.logger.bind.return_value
     client.logger.bind.assert_called_once_with(method='GET', url='/')
     log = client.logger.bind.return_value
     assert not log.debug.call_args_list
     log.info.assert_called_once_with('response', status_code=200)
+
+
+def test_class_override():
+    class TestClient(Client):
+        semaphore = 'foo'
+        mask = 'bar'
+        debug = True
+
+    assert TestClient().semaphore == 'foo'
+    assert TestClient().mask == 'bar'
+    assert TestClient().debug
+
+
+@pytest.mark.asyncio
+async def test_debug():
+    client = Client(mask=['scrt', 'password'], debug=True)
+    client.client = mock.AsyncMock()
+
+    client.logger = mock.Mock()
+    response = httpx.Response(
+        status_code=200,
+        content='{"pub": 1, "scrt": "pass"}',
+    )
+    data = dict(foo='bar', password='secret')
+    response.request = httpx.Request('POST', '/', json=data)
+    client.client.request.return_value = response
+    await client.post('/', json=data, quiet=True)
+    client.logger.bind.assert_called_once_with(method='POST', url='/')
+    log = client.logger.bind.return_value
+    log.debug.assert_called_once_with(
+        'request',
+        json=dict(foo='bar', password='secret'),
+    )
+    log.info.assert_called_once_with(
+        'response',
+        status_code=200,
+        json=dict(pub=1, scrt='pass'),
+    )
