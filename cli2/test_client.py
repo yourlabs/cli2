@@ -15,9 +15,9 @@ class HandlerSentinel(cli2.Handler):
         super().__init__(*args, **kwargs)
         self.calls = []
 
-    async def __call__(self, client, response, tries):
+    async def __call__(self, client, response, tries, mask):
         self.calls.append((client, response.status_code, tries))
-        return await super().__call__(client, response, tries)
+        return await super().__call__(client, response, tries, mask)
 
 
 @pytest.fixture
@@ -198,22 +198,24 @@ async def test_client_handler(httpx_mock, client_class):
 
 
 @pytest.mark.asyncio
-async def test_handler():
-    client = mock.AsyncMock()
+async def test_handler(client_class):
+    client = client_class()
+    client.client_reset = mock.AsyncMock()
+    client.token_reset = mock.AsyncMock()
     handler = cli2.Handler(accepts=[201], refuses=[218], retokens=[418])
 
     response = httpx.Response(status_code=201)
-    result = await handler(client, response, 0)
+    result = await handler(client, response, 0, [])
     assert result == response
 
     response = httpx.Response(status_code=200)
-    result = await handler(client, response, 0)
+    result = await handler(client, response, 0, [])
     assert not result
 
     response = httpx.Response(status_code=200, content='[2]')
     response.request = httpx.Request('POST', '/', json=[1])
     with pytest.raises(cli2.RetriesExceededError) as exc:
-        await handler(client, response, handler.tries + 1)
+        await handler(client, response, handler.tries + 1, [])
 
     msg = 'Unacceptable response <Response [200 OK]> after 31 tries\n\x1b[0m\x1b[1mPOST /\x1b[0m\n-\x1b[37m \x1b[39;49;00m1\x1b[37m\x1b[39;49;00m\n\n\x1b[1mHTTP 200\x1b[0m\n-\x1b[37m \x1b[39;49;00m2\x1b[37m\x1b[39;49;00m\n'  # noqa
     assert str(exc.value) == msg
@@ -221,7 +223,7 @@ async def test_handler():
     response = httpx.Response(status_code=200)
     response.request = httpx.Request('GET', '/')
     with pytest.raises(cli2.RetriesExceededError) as exc:
-        await handler(client, response, handler.tries + 1)
+        await handler(client, response, handler.tries + 1, [])
 
     msg = 'Unacceptable response <Response [200 OK]> after 31 tries\n\x1b[0m\x1b[1mGET /\x1b[0m\n\x1b[1mHTTP 200\x1b[0m'  # noqa
     assert str(exc.value) == msg
@@ -229,31 +231,31 @@ async def test_handler():
     response = httpx.Response(status_code=218)
     response.request = httpx.Request('POST', '/')
     with pytest.raises(cli2.RefusedResponseError):
-        await handler(client, response, 1)
+        await handler(client, response, 1, [])
 
     response = httpx.Response(status_code=418)
     response.request = httpx.Request('POST', '/')
     with pytest.raises(cli2.TokenGetError):
-        await handler(client, response, 1)
+        await handler(client, response, 1, [])
 
     assert not client.client_reset.await_count
-    result = await handler(client, httpx.TransportError('foo'), 0)
+    result = await handler(client, httpx.TransportError('foo'), 0, [])
     assert not result
     assert client.client_reset.await_count == 1
 
     with pytest.raises(httpx.TransportError) as exc:
-        await handler(client, httpx.TransportError('x'), handler.tries + 1)
+        await handler(client, httpx.TransportError('x'), handler.tries + 1, [])
 
     response = httpx.Response(status_code=418)
     assert not client.token_reset.await_count
-    result = await handler(client, response, 0)
+    result = await handler(client, response, 0, [])
     assert not result
     assert client.token_reset.await_count == 1
 
     handler = cli2.Handler(accepts=[], refuses=[222])
 
     response = httpx.Response(status_code=123)
-    result = await handler(client, response, 0)
+    result = await handler(client, response, 0, [])
     assert result == response
 
 
@@ -747,7 +749,7 @@ def test_datetime_default_fmt():
 @pytest.mark.parametrize(
     'key', ('json', 'data'),
 )
-async def test_log_masking(key):
+async def test_mask_logs(key):
     client = Client(mask=['scrt', 'password'])
     client.client = mock.AsyncMock()
 
@@ -771,6 +773,27 @@ async def test_log_masking(key):
         status_code=200,
         json=dict(pub=1, scrt='***MASKED***'),
     )
+
+
+@pytest.mark.asyncio
+async def test_mask_exceptions(client_class):
+    class TestClient(client_class):
+        mask = ['foo']
+
+    client = TestClient()
+
+    response = httpx.Response(status_code=218, content='{"c": 3, "d": 4}')
+    response.request = httpx.Request('POST', '/', json=dict(a=1, b=2))
+    error = cli2.ResponseError(client, response, 1, ['a', 'c'])
+    expected = "\n\x1b[0m\x1b[1mPOST /\x1b[0m\n\x1b[94ma\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m***MASKED***\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[94mb\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m2\x1b[37m\x1b[39;49;00m\n\n\x1b[1mHTTP 218\x1b[0m\n\x1b[94mc\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m***MASKED***\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[94md\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m4\x1b[37m\x1b[39;49;00m\n"  # noqa
+    assert str(error) == expected
+
+    # this needs to work with form data too
+    response = httpx.Response(status_code=218, content='{"c": 3, "d": 4}')
+    response.request = httpx.Request('POST', '/', data=dict(a=1, b=2))
+    error = cli2.ResponseError(client, response, 1, ['a', 'c'])
+    expected = "\n\x1b[0m\x1b[1mPOST /\x1b[0m\n\x1b[94ma\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m***MASKED***\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[94mb\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m2\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\n\x1b[1mHTTP 218\x1b[0m\n\x1b[94mc\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m***MASKED***\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[94md\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m4\x1b[37m\x1b[39;49;00m\n"  # noqa
+    assert str(error) == expected
 
 
 @pytest.mark.asyncio
