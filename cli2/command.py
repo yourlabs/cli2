@@ -42,13 +42,10 @@ class Command(EntryPoint, dict):
         if doc:
             self.doc = doc
         elif 'doc' not in overrides:
-            self.doc = ''
-            if self.parsed.short_description:
-                self.doc += self.parsed.short_description.replace('\n', ' ')
-            if self.parsed.long_description:
-                if self.doc:
-                    self.doc += '\n'
-                self.doc += self.parsed.long_description
+            if self.parsed.description:
+                self.doc = self.parsed.description.strip()
+            else:
+                self.doc = ''
 
         if color:
             self.color = color
@@ -186,11 +183,12 @@ class Command(EntryPoint, dict):
 
             self.print()
 
-            if not arg.iskw and not shown_posargs:
+            varkw = arg.param.kind == arg.param.VAR_KEYWORD
+
+            if not arg.iskw and not varkw and not shown_posargs:
                 self.print('ORANGE', 'POSITIONAL ARGUMENTS')
                 shown_posargs = True
 
-            varkw = arg.param.kind == arg.param.VAR_KEYWORD
             if (arg.iskw or varkw) and not shown_kwargs:
                 self.print('ORANGE', 'NAMED ARGUMENTS')
                 shown_kwargs = True

@@ -65,6 +65,4 @@ class EntryPoint:
             if not line.strip():
                 break
             tokens.append(line)
-        if tokens and tokens[-1].endswith('.'):
-            tokens[-1] = tokens[-1][:-1]
-        return ' '.join(tokens) if tokens else ''
+        return ' '.join(tokens).rstrip('.')
