@@ -4,12 +4,13 @@ HTTP Client boilerplate code to conquer the world.
 
 import asyncio
 import copy
+import httpx
 import inspect
 import json
-import httpx
 import math
-import structlog
+import os
 import ssl
+import structlog
 from datetime import datetime
 
 try:
@@ -1054,7 +1055,7 @@ class FieldExternalizeError(FieldValueError):
 
 class Client(metaclass=ClientMetaclass):
     """
-    HTTPx Client
+    HTTPx Client Wrapper
 
     .. py:attribute:: paginator
 
@@ -1072,6 +1073,15 @@ class Client(metaclass=ClientMetaclass):
         retry the request, or raise an exception, or return the request.
         Default is a :py:class:`Handler`
 
+    .. py:attribute:: mask
+
+        List of keys to mask in logging, ie.: ``['password', 'secret']``
+
+    .. py:attribute:: debug
+
+        Enforce full logging: quiet requests are logged, masking does not
+        apply. This is also enabled with environment variable ``DEBUG``.
+
     .. py:attribute:: models
 
         Declared models for this Client.
@@ -1079,8 +1089,11 @@ class Client(metaclass=ClientMetaclass):
     paginator = Paginator
     models = []
     semaphore = None
+    mask = []
+    debug = False
 
-    def __init__(self, *args, handler=None, semaphore=None, **kwargs):
+    def __init__(self, *args, handler=None, semaphore=None, mask=None,
+                 debug=False, **kwargs):
         """
         Instanciate a client with httpx.AsyncClient args and kwargs.
         """
@@ -1091,6 +1104,8 @@ class Client(metaclass=ClientMetaclass):
 
         self.handler = handler or Handler()
         self.semaphore = semaphore if semaphore else self.semaphore
+        self.mask = mask if mask else self.mask
+        self.debug = debug or os.getenv('DEBUG', self.debug)
 
         if truststore:
             self._client_kwargs.setdefault(
@@ -1189,7 +1204,7 @@ class Client(metaclass=ClientMetaclass):
 
     async def request(self, method, url, handler=None, quiet=False,
                       accepts=None, refuses=None, tries=None, backoff=None,
-                      retries=True, semaphore=None, **kwargs):
+                      retries=True, semaphore=None, mask=None, **kwargs):
         """
         Request method
 
@@ -1228,6 +1243,8 @@ class Client(metaclass=ClientMetaclass):
                       not clutter logs with pagination. Meaning if you want to
                       debug pagination, you'll have to make it not quiet from
                       there.
+                      If you really want to see all results, set
+                      :py:attr:`debug` to True.
         :param retries: Wether to retry or not in case handler dosen't accept
                         the response, set to False if you want only 1 try.
         :param accepts: Override for :py:attr:`Handler.accepts`
@@ -1236,6 +1253,7 @@ class Client(metaclass=ClientMetaclass):
         :param tries: Override for :py:attr:`Handler.tries`
         :param backoff: Override for :py:attr:`Handler.backoff`
         :param semaphore: Override for :py:attr:`Client.semaphore`
+        :param mask: Override for :py:attr:`Client.mask`
         """
         if not self.token and not self.token_getting:
             self.token_getting = True
@@ -1261,8 +1279,8 @@ class Client(metaclass=ClientMetaclass):
                 handler = self.handler
 
         log = self.logger.bind(method=method, url=url)
-        if not quiet:
-            log.debug('request', **kwargs)
+        if not quiet or self.debug:
+            log.debug('request', **self.mask_data(kwargs, mask))
 
         response = await self.request_safe(
             method,
@@ -1275,15 +1293,31 @@ class Client(metaclass=ClientMetaclass):
 
         _log = dict(status_code=response.status_code)
 
-        if not quiet:
+        if not quiet or self.debug:
             try:
                 _log['json'] = response.json()
             except json.JSONDecodeError:
                 _log['content'] = response.content
 
-        log.info('response', **_log)
+        log.info('response', **self.mask_data(_log, mask))
 
         return response
+
+    def mask_data(self, data, mask=None):
+        """
+        Apply mask for all :py:attr:`mask` in data.
+        """
+        mask = mask or self.mask
+
+        if self.debug:
+            return data
+
+        for key, value in data.items():
+            if key in mask:
+                data[key] = '***MASKED***'
+            if isinstance(value, dict):
+                data[key] = self.mask_data(value, mask)
+        return data
 
     async def get(self, url, *args, **kwargs):
         """ GET Request """
