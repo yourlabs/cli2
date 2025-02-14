@@ -2,6 +2,8 @@
 HTTP Client boilerplate code to conquer the world.
 """
 
+from urllib.parse import parse_qs
+
 import asyncio
 import copy
 import httpx
@@ -1021,7 +1023,7 @@ class Handler:
         self.tries = self.tries_default if tries is None else tries
         self.backoff = self.backoff_default if backoff is None else backoff
 
-    async def __call__(self, client, response, tries):
+    async def __call__(self, client, response, tries, mask):
         if isinstance(response, Exception):
             if tries >= self.tries:
                 raise response
@@ -1037,15 +1039,15 @@ class Handler:
             return response
 
         if response.status_code in self.refuses:
-            raise RefusedResponseError(response, tries)
+            raise RefusedResponseError(client, response, tries, mask)
 
         if tries >= self.tries:
-            raise RetriesExceededError(response, tries)
+            raise RetriesExceededError(client, response, tries, mask)
 
         if response.status_code in self.retokens:
             if tries:
                 # our authentication is just not working, no need to retry
-                raise TokenGetError(response, tries)
+                raise TokenGetError(client, response, tries, mask)
             await client.token_reset()
 
         await asyncio.sleep(tries * self.backoff)
@@ -1056,9 +1058,11 @@ class ClientError(Exception):
 
 
 class ResponseError(ClientError):
-    def __init__(self, response, tries=1, msg=None):
+    def __init__(self, client, response, tries, mask, msg=None):
+        self.client = client
         self.response = response
         self.tries = tries
+        self.mask = mask
         msg = msg or getattr(self, 'msg', '').format(self=self)
         super().__init__(self.enhance(msg))
 
@@ -1070,18 +1074,6 @@ class ResponseError(ClientError):
 
         :param exc: httpx.HTTPStatusError
         """
-        try:
-            request = display.render(
-                json.loads(self.response.request.content.decode()),
-            )
-        except json.JSONDecodeError:
-            request = self.response.request.content.decode()
-
-        try:
-            response = display.render(self.response.json())
-        except json.JSONDecodeError:
-            response = self.response.content.decode()
-
         output = [msg]
         request_msg = ' '.join([
             self.response.request.method,
@@ -1091,14 +1083,19 @@ class ResponseError(ClientError):
         output.append(
             f'{colors.reset}{colors.bold}{request_msg}{colors.reset}',
         )
+        request = self.client.request_log_data(
+            self.response.request,
+            self.mask,
+        )
         if request:
-            output.append(request)
+            output.append(display.render(request))
 
         output.append(
             f'{colors.bold}HTTP {self.response.status_code}{colors.reset}',
         )
+        response = self.client.response_log_data(self.response, self.mask)
         if response:
-            output.append(response)
+            output.append(display.render(response))
 
         return '\n'.join(output)
 
@@ -1222,8 +1219,8 @@ class Client(metaclass=ClientMetaclass):
     def client(self):
         self._client = None
 
-    async def request_safe(self, *args, handler, retries=True, semaphore=None,
-                           **kwargs):
+    async def request_safe(self, *args, handler, mask, retries=True,
+                           semaphore=None, **kwargs):
         """
         Internal request method
         """
@@ -1240,9 +1237,9 @@ class Client(metaclass=ClientMetaclass):
             try:
                 response = await _request()
             except Exception as exc:
-                await handler(self, exc, tries)
+                await handler(self, exc, tries, mask)
             else:
-                if response := await handler(self, response, tries):
+                if response := await handler(self, response, tries, mask):
                     return response
 
             tries += 1
@@ -1358,7 +1355,7 @@ class Client(metaclass=ClientMetaclass):
 
         log = self.logger.bind(method=method, url=url)
         if not quiet or self.debug:
-            log.debug('request', **self.mask_data(kwargs, mask))
+            log.debug('request', **self.kwargs_log_data(kwargs, mask, quiet))
 
         response = await self.request_safe(
             method,
@@ -1366,35 +1363,82 @@ class Client(metaclass=ClientMetaclass):
             handler=handler,
             retries=retries,
             semaphore=semaphore,
+            mask=lambda data: self.mask_data(data, mask),
             **kwargs,
         )
 
         _log = dict(status_code=response.status_code)
-
         if not quiet or self.debug:
-            try:
-                _log['json'] = response.json()
-            except json.JSONDecodeError:
-                _log['content'] = response.content
+            self.response_log_data(response, mask, _log)
 
-        log.info('response', **self.mask_data(_log, mask))
+        log.info('response', **_log)
 
         return response
+
+    def response_log_data(self, response, mask, log=None):
+        try:
+            data = self.mask_data(response.json(), mask)
+            key = 'json'
+        except json.JSONDecodeError:
+            data = self.mask_content(response.content, mask)
+            key = 'content'
+
+        if log:
+            log[key] = data
+        return data
+
+    def request_log_data(self, request, mask, quiet=False):
+        content = request.content.decode()
+        try:
+            return self.mask_data(json.loads(content), mask)
+        except json.JSONDecodeError:
+            pass
+
+        parsed = parse_qs(content)
+        if parsed:
+            data = {
+                key: value[0] if len(value) == 1 else value
+                for key, value in parsed.items()
+            }
+            return self.mask_data(data, mask)
+
+        return self.mask_content(content, mask)
+
+    def kwargs_log_data(self, kwargs, mask, quiet=False):
+        _log = kwargs.copy()
+        if 'content' in kwargs:
+            _log['content'] = self.mask_content(kwargs['content'], mask)
+        for key in ('json', 'data'):
+            if key in kwargs:
+                _log[key] = self.mask_data(kwargs[key], mask)
+        return _log
+
+    def mask_content(self, content, mask=None):
+        """
+        Implement content masking for non JSON content here.
+        """
+        return content
 
     def mask_data(self, data, mask=None):
         """
         Apply mask for all :py:attr:`mask` in data.
         """
-        mask = mask or self.mask
-
         if self.debug:
             return data
 
-        for key, value in data.items():
-            if key in mask:
-                data[key] = '***MASKED***'
-            if isinstance(value, dict):
-                data[key] = self.mask_data(value, mask)
+        mask = mask if mask is not None else self.mask
+
+        if isinstance(data, list):
+            return [self.mask_data(item, mask) for item in data]
+
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if key in mask:
+                    data[key] = '***MASKED***'
+                if isinstance(value, dict):
+                    data[key] = self.mask_data(value, mask)
+            return data
+
         return data
 
     async def get(self, url, *args, **kwargs):
