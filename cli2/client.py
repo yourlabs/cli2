@@ -679,13 +679,9 @@ class ModelGroup(Group):
             self.cmd(cls.find)
             self.cmd(cls.get)
             self.cmd(cls.delete)
+            self.cmd(cls.create)
 
-        for name, method in cls.__dict__.items():
-            wrapped_method = getattr(method, '__func__', None)
-            if hasattr(wrapped_method, 'cli2'):
-                self.cmd(wrapped_method)
-            elif hasattr(method, 'cli2'):
-                self.cmd(method)
+        self.load_cls(cls, exclude=['find', 'get', 'delete', 'create'])
 
 
 class ModelMetaclass(type):
@@ -966,8 +962,7 @@ class ClientMetaclass(type):
         )
         cli_kwargs.update(cls.__dict__.get('cli_kwargs', dict()))
         cls.cli = Group(**cli_kwargs)
-        cls.cli.cmd(cls.get)
-        cls.cli.cmd(cls.request_cmd)
+        cls.cli.load_cls(cls)
         return cls
 
 
@@ -1448,6 +1443,7 @@ class Client(metaclass=ClientMetaclass):
 
         return data
 
+    @cmd
     async def get(self, url, *args, **kwargs):
         """ GET Request """
         return await self.request('GET', url, *args, **kwargs)
