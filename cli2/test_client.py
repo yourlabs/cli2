@@ -4,6 +4,7 @@ import httpx
 import inspect
 import mock
 import pytest
+import uuid
 
 
 async def _response(**kwargs):
@@ -938,3 +939,38 @@ async def test_debug():
         status_code=200,
         json=dict(pub=1, scrt='pass'),
     )
+
+
+@pytest.mark.asyncio
+async def test_client_proxy(httpx_mock):
+    class ProxyTestClient(cli2.Client):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.sub = cli2.ClientProxy(self, base_url='/bar')
+            self.tokens = []
+
+        async def token_get(self):
+            token = str(uuid.uuid4())
+            self.tokens.append(token)
+            return token
+
+    client = ProxyTestClient(base_url='http://ex')
+    assert not client.token
+
+    httpx_mock.add_response(url='http://ex/test1')
+    await client.get('/test1')
+
+    httpx_mock.add_response(url='http://ex/bar/sub')
+    await client.sub.get('/sub')
+    # don't get a new token, use the parent's
+    assert len(client.tokens) == 1
+
+    client = ProxyTestClient(base_url='http://ex2')
+    assert not client.token
+    httpx_mock.add_response(url='http://ex2/bar/sub2')
+    await client.sub.get('/sub2')
+
+    httpx_mock.add_response(url='http://ex2/root')
+    await client.get('/root')
+    # don't get a new token, use the parent's
+    assert len(client.tokens) == 1

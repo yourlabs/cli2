@@ -16,6 +16,7 @@ try:
         FieldValueError,
         FieldExternalizeError,
         Client,
+        ClientProxy,
         DateTimeField,
         Field,
         Handler,

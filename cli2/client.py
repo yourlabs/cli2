@@ -1445,11 +1445,6 @@ class Client(metaclass=ClientMetaclass):
 
         return data
 
-    @cmd
-    async def get(self, url, *args, **kwargs):
-        """ GET Request """
-        return await self.request('GET', url, *args, **kwargs)
-
     @cmd(name='request')
     async def request_cmd(self, method, url, *args, **kwargs):
         """
@@ -1475,6 +1470,11 @@ class Client(metaclass=ClientMetaclass):
             with file.open('r') as fh:
                 kwargs[key] = yaml.safe_load(fh.read())
         return await self.request(method, url, *args, **kwargs)
+
+    @cmd
+    async def get(self, url, *args, **kwargs):
+        """ GET Request """
+        return await self.request('GET', url, *args, **kwargs)
 
     async def post(self, url, *args, **kwargs):
         """ POST Request """
@@ -1517,6 +1517,71 @@ class Client(metaclass=ClientMetaclass):
         Refer to :py:meth:`Paginator.pagination_initialize` for
         details.
         """
+
+    @property
+    def base_url(self):
+        return self.client.base_url
+
+
+class ClientProxy:
+    """
+    Proxy a :py:cls:`Client` with another :py:attr:`base_url`.
+
+    Allows to declare sub-clients:
+
+    .. code-block:: python
+
+        class YourClient(cli2.Client):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.widget_client = cli2.ClientProxy(self, '/widgets')
+                self.thing_client = cli2.ClientProxy(self, '/things')
+
+    You generally don't need this class.
+
+    .. py:attribute:: client
+
+        Actual :py:cls:`Client` instance
+
+    .. py.attribute:: base_url
+
+        Extra base_url
+    """
+    def __init__(self, client, base_url):
+        self.base_url = base_url
+        self.client = client
+
+    async def request(self, method, url, *args, **kwargs):
+        """
+        Join the actual client's base_url, our base_url and the url.
+        """
+        url = '/'.join([
+            str(self.client.base_url),
+            str(self.base_url.lstrip('/')),
+            url.lstrip('/')
+        ])
+        return await self.client.request(method, url, *args, **kwargs)
+
+    @cmd
+    async def get(self, url, *args, **kwargs):
+        """ GET Request """
+        return await self.request('GET', url, *args, **kwargs)
+
+    async def post(self, url, *args, **kwargs):
+        """ POST Request """
+        return await self.request('POST', url, *args, **kwargs)
+
+    async def put(self, url, *args, **kwargs):
+        """ PUT Request """
+        return await self.request('PUT', url, *args, **kwargs)
+
+    async def head(self, url, *args, **kwargs):
+        """ HEAD Request """
+        return await self.request('HEAD', url, *args, **kwargs)
+
+    async def delete(self, url, *args, **kwargs):
+        """ DELETE Request """
+        return await self.request('DELETE', url, *args, **kwargs)
 
 
 class Expression:
