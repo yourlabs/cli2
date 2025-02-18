@@ -974,3 +974,32 @@ async def test_client_proxy(httpx_mock):
     await client.get('/root')
     # don't get a new token, use the parent's
     assert len(client.tokens) == 1
+
+
+@pytest.mark.asyncio
+async def test_client_token_apply(client_class, httpx_mock):
+    class TokenClient(client_class):
+        async def token_get(self):
+            return self._token
+
+        def client_token_apply(self, client):
+            client.token = self.token
+
+    client = TokenClient()
+    client._token = 1
+    await client.token_refresh()
+    assert client.token == 1
+    assert client.client.token == 1
+
+    # token_reset will cause a new token
+    client._token = 2
+    await client.token_reset()
+    await client.token_refresh()
+    assert client.token == 2
+    assert client.client.token == 2
+
+    # client_reset on its own doesn't refresh token
+    client._token = 3
+    await client.client_reset()
+    assert client.token == 2
+    assert client.client.token == 2

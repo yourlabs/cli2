@@ -1213,7 +1213,10 @@ class Client(metaclass=ClientMetaclass):
         """
         Return a fresh httpx async client instance.
         """
-        return httpx.AsyncClient(*self._client_args, **self._client_kwargs)
+        client = httpx.AsyncClient(*self._client_args, **self._client_kwargs)
+        if self.token and not self.token_getting:
+            self.client_token_apply(client)
+        return client
 
     @client.setter
     def client(self, value):
@@ -1255,6 +1258,37 @@ class Client(metaclass=ClientMetaclass):
 
     async def token_reset(self):
         self.token = None
+
+    async def token_refresh(self):
+        """ Use :py:meth:`token_get()` to get a token """
+        self.token_getting = True
+        try:
+            self.token = await self.token_get()
+        except NotImplementedError:
+            self.token = True
+        else:
+            try:
+                self.client_token_apply(self.client)
+            except NotImplementedError:
+                pass
+        self.token_getting = False
+
+    async def client_token_apply(self, client):
+        """
+        Actually provision self.client with self.token.
+
+        This is yours to implement, ie.:
+
+        .. code-block:: python
+
+            client.headers['X-API'] = f'Bearer {self.token}'
+
+        Do NOT use self.client in this function given it's called by the
+        factory itself.
+
+        :param client: The actual AsyncClient instance to provision.
+        """
+        raise NotImplementedError()
 
     async def token_get(self):
         """
@@ -1335,12 +1369,7 @@ class Client(metaclass=ClientMetaclass):
         :param mask: Override for :py:attr:`Client.mask`
         """
         if not self.token and not self.token_getting:
-            self.token_getting = True
-            try:
-                self.token = await self.token_get()
-            except NotImplementedError:
-                self.token = True
-            self.token_getting = False
+            await self.token_refresh()
 
         if handler is None:
             if accepts or refuses or tries or backoff:
