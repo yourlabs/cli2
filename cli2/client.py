@@ -1551,16 +1551,20 @@ class ClientProxy:
         self.base_url = base_url
         self.client = client
 
-    async def request(self, method, url, *args, **kwargs):
-        """
-        Join the actual client's base_url, our base_url and the url.
-        """
-        url = '/'.join([
+    def url_rewrite(self, url):
+        return '/'.join([
             str(self.client.base_url),
             str(self.base_url.lstrip('/')),
             url.lstrip('/')
         ])
-        return await self.client.request(method, url, *args, **kwargs)
+
+    async def request(self, method, url, *args, **kwargs):
+        """
+        Join the actual client's base_url, our base_url and the url.
+        """
+        return await self.client.request(
+            method, self.url_rewrite(url), *args, **kwargs
+        )
 
     @cmd
     async def get(self, url, *args, **kwargs):
@@ -1582,6 +1586,10 @@ class ClientProxy:
     async def delete(self, url, *args, **kwargs):
         """ DELETE Request """
         return await self.request('DELETE', url, *args, **kwargs)
+
+    def paginate(self, url, *args, **kwargs):
+        """ Paginate proxy """
+        return super().paginate(self.url_rewrite(url), *args, **kwargs)
 
 
 class Expression:
