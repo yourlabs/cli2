@@ -945,8 +945,8 @@ async def test_debug():
 async def test_client_proxy(httpx_mock):
     class ProxyTestClient(cli2.Client):
         def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
             self.sub = cli2.ClientProxy(self, base_url='/bar')
+            super().__init__(*args, **kwargs)
             self.tokens = []
 
         async def token_get(self):
@@ -954,8 +954,14 @@ async def test_client_proxy(httpx_mock):
             self.tokens.append(token)
             return token
 
+    class TestModel(ProxyTestClient.Model, client='sub'):
+        pass
+
     client = ProxyTestClient(base_url='http://ex')
     assert not client.token
+
+    # TestModel uses a sub-client
+    assert client.TestModel.client == client.sub
 
     httpx_mock.add_response(url='http://ex/test1')
     await client.get('/test1')

@@ -685,10 +685,11 @@ class ModelGroup(Group):
 
 
 class ModelMetaclass(type):
-    def __new__(cls, name, bases, attributes):
+    def __new__(cls, name, bases, attributes, client=None):
+        attributes['_client_key'] = client
         cls = super().__new__(cls, name, bases, attributes)
-        client = getattr(cls, 'client', None)
-        if client:
+
+        if getattr(cls, 'client', None):
             return cls
 
         client_class = getattr(cls, '_client_class', None)
@@ -1197,7 +1198,11 @@ class Client(metaclass=ClientMetaclass):
         self.token = None
 
         for model in self.models:
-            model = type(model.__name__, (model,), dict(client=self))
+            if model._client_key:
+                client = getattr(self, model._client_key)
+            else:
+                client = self
+            model = type(model.__name__, (model,), dict(client=client))
             setattr(self, model.__name__, model)
 
     @property
