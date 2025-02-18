@@ -15,9 +15,9 @@ class HandlerSentinel(cli2.Handler):
         super().__init__(*args, **kwargs)
         self.calls = []
 
-    async def __call__(self, client, response, tries, mask):
+    async def __call__(self, client, response, tries, mask, log):
         self.calls.append((client, response.status_code, tries))
-        return await super().__call__(client, response, tries, mask)
+        return await super().__call__(client, response, tries, mask, log)
 
 
 @pytest.fixture
@@ -154,7 +154,7 @@ async def test_error_remote(httpx_mock):
         global raised
         raised = True
         raise httpx.RemoteProtocolError('foo')
-    client.client.request = raises
+    client.client.send = raises
     old_client = client.client
     response = await client.get('http://lol')
     assert client.client is not old_client
@@ -186,12 +186,14 @@ async def test_factory(httpx_mock, client_class):
 async def test_client_handler(httpx_mock, client_class):
     class Client(client_class):
         def client_factory(self):
-            return mock.Mock()
+            client = super().client_factory()
+            client.send = mock.Mock()
+            return client
 
     client = Client(handler=HandlerSentinel())
 
     # test response retry
-    client.client.request.side_effect = [
+    client.client.send.side_effect = [
         _response(status_code=500),
         _response(status_code=200),
     ]
@@ -203,7 +205,7 @@ async def test_client_handler(httpx_mock, client_class):
     ]
 
     # test TransportError retry
-    client.client.request.side_effect = [
+    client.client.send.side_effect = [
         httpx.TransportError("foo"),
         _response(status_code=200),
     ]
@@ -216,23 +218,30 @@ async def test_client_handler(httpx_mock, client_class):
 
 @pytest.mark.asyncio
 async def test_handler(client_class):
+    log = mock.Mock()
     client = client_class()
     client.client_reset = mock.AsyncMock()
     client.token_reset = mock.AsyncMock()
     handler = cli2.Handler(accepts=[201], refuses=[218], retokens=[418])
 
     response = httpx.Response(status_code=201)
-    result = await handler(client, response, 0, [])
+    result = await handler(client, response, 0, [], log)
     assert result == response
 
     response = httpx.Response(status_code=200)
-    result = await handler(client, response, 0, [])
+    result = await handler(client, response, 0, [], log)
+    log.info.assert_called_once_with(
+        'retry', status_code=200, tries=0, sleep=.0
+    )
     assert not result
 
     response = httpx.Response(status_code=200, content='[2]')
     response.request = httpx.Request('POST', '/', json=[1])
     with pytest.raises(cli2.RetriesExceededError) as exc:
-        await handler(client, response, handler.tries + 1, [])
+        await handler(client, response, handler.tries + 1, [], log)
+    log.info.assert_called_once_with(
+        'retry', status_code=200, tries=0, sleep=.0
+    )
 
     msg = 'Unacceptable response <Response [200 OK]> after 31 tries\n\x1b[0m\x1b[1mPOST /\x1b[0m\n-\x1b[37m \x1b[39;49;00m1\x1b[37m\x1b[39;49;00m\n\n\x1b[1mHTTP 200\x1b[0m\n-\x1b[37m \x1b[39;49;00m2\x1b[37m\x1b[39;49;00m\n'  # noqa
     assert str(exc.value) == msg
@@ -240,7 +249,7 @@ async def test_handler(client_class):
     response = httpx.Response(status_code=200)
     response.request = httpx.Request('GET', '/')
     with pytest.raises(cli2.RetriesExceededError) as exc:
-        await handler(client, response, handler.tries + 1, [])
+        await handler(client, response, handler.tries + 1, [], log)
 
     msg = 'Unacceptable response <Response [200 OK]> after 31 tries\n\x1b[0m\x1b[1mGET /\x1b[0m\n\x1b[1mHTTP 200\x1b[0m'  # noqa
     assert str(exc.value) == msg
@@ -248,31 +257,38 @@ async def test_handler(client_class):
     response = httpx.Response(status_code=218)
     response.request = httpx.Request('POST', '/')
     with pytest.raises(cli2.RefusedResponseError):
-        await handler(client, response, 1, [])
+        await handler(client, response, 1, [], log)
 
     response = httpx.Response(status_code=418)
     response.request = httpx.Request('POST', '/')
     with pytest.raises(cli2.TokenGetError):
-        await handler(client, response, 1, [])
+        await handler(client, response, 1, [], log)
 
     assert not client.client_reset.await_count
-    result = await handler(client, httpx.TransportError('foo'), 0, [])
+    result = await handler(client, httpx.TransportError('foo'), 0, [], log)
+    log.warn.assert_called_once_with('reconnect', exception='foo')
     assert not result
     assert client.client_reset.await_count == 1
 
     with pytest.raises(httpx.TransportError) as exc:
-        await handler(client, httpx.TransportError('x'), handler.tries + 1, [])
+        await handler(
+            client, httpx.TransportError('x'), handler.tries + 1, [], log
+        )
 
     response = httpx.Response(status_code=418)
     assert not client.token_reset.await_count
-    result = await handler(client, response, 0, [])
+    log.warn.reset_mock()
+    result = await handler(client, response, 0, [], log)
+    log.warn.assert_called_once_with(
+        'retoken', status_code=418, tries=0, sleep=.0
+    )
     assert not result
     assert client.token_reset.await_count == 1
 
     handler = cli2.Handler(accepts=[], refuses=[222])
 
     response = httpx.Response(status_code=123)
-    result = await handler(client, response, 0, [])
+    result = await handler(client, response, 0, [], log)
     assert result == response
 
 
@@ -285,16 +301,14 @@ async def test_retry(httpx_mock, client_class):
             return self.return_token
 
         def client_factory(self):
-            return mock.Mock()
+            client = super().client_factory()
+            client.send = mock.Mock()
+            return client
 
-    client = Client(
-        retry_request=[500],
-        recreate_client=[400],
-        backoff=0.1,
-    )
+    client = Client()
 
     current_client = client.client
-    client.client.request.side_effect = [
+    client.client.send.side_effect = [
         _response(status_code=500),
         _response(status_code=500),
         _response(status_code=200),
@@ -774,7 +788,7 @@ def test_datetime_default_fmt():
 )
 async def test_mask_logs(key):
     client = Client(mask=['scrt', 'password'])
-    client.client = mock.AsyncMock()
+    client.client.send = mock.AsyncMock()
 
     client.logger = mock.Mock()
     response = httpx.Response(
@@ -783,9 +797,12 @@ async def test_mask_logs(key):
     )
     data = dict(foo='bar', password='secret')
     response.request = httpx.Request('POST', '/', **{key: data})
-    client.client.request.return_value = response
+    client.client.send.return_value = response
     await client.post('/', **{key: data})
-    client.logger.bind.assert_called_once_with(method='POST', url='/')
+    client.logger.bind.assert_called_once_with(
+        method='POST',
+        url='http://lol/',
+    )
     log = client.logger.bind.return_value
     log.debug.assert_called_once_with(
         'request',
@@ -822,7 +839,7 @@ async def test_mask_exceptions(client_class):
 @pytest.mark.asyncio
 async def test_request_mask():
     client = Client(mask=['password'])
-    client.client = mock.AsyncMock()
+    client.client.send = mock.AsyncMock()
 
     client.logger = mock.Mock()
     response = httpx.Response(
@@ -831,9 +848,12 @@ async def test_request_mask():
     )
     data = dict(foo='bar', password='secret')
     response.request = httpx.Request('POST', '/', json=data)
-    client.client.request.return_value = response
+    client.client.send.return_value = response
     await client.post('/', json=data, mask=['scrt'])
-    client.logger.bind.assert_called_once_with(method='POST', url='/')
+    client.logger.bind.assert_called_once_with(
+        method='POST',
+        url='http://lol/'
+    )
     log = client.logger.bind.return_value
     log.debug.assert_called_once_with(
         'request',
@@ -849,13 +869,16 @@ async def test_request_mask():
 @pytest.mark.asyncio
 async def test_log_content():
     client = Client()
-    client.client = mock.AsyncMock()
+    client.client.send = mock.AsyncMock()
     client.logger = mock.Mock()
     response = httpx.Response(status_code=200, content='lol:]bar')
     response.request = httpx.Request('POST', '/')
-    client.client.request.return_value = response
+    client.client.send.return_value = response
     await client.post('/', content='lol:]foo')
-    client.logger.bind.assert_called_once_with(method='POST', url='/')
+    client.logger.bind.assert_called_once_with(
+        method='POST',
+        url='http://lol/'
+    )
     log = client.logger.bind.return_value
     log.debug.assert_called_once_with('request', content='lol:]foo')
     log.info.assert_called_once_with(
@@ -866,14 +889,17 @@ async def test_log_content():
 @pytest.mark.asyncio
 async def test_log_quiet():
     client = Client()
-    client.client = mock.AsyncMock()
+    client.client.send = mock.AsyncMock()
     client.logger = mock.Mock()
     response = httpx.Response(status_code=200, content='[1]')
     response.request = httpx.Request('GET', '/')
-    client.client.request.return_value = response
+    client.client.send.return_value = response
     await client.get('/', json=[1], quiet=True)
     log = client.logger.bind.return_value
-    client.logger.bind.assert_called_once_with(method='GET', url='/')
+    client.logger.bind.assert_called_once_with(
+        method='GET',
+        url='http://lol/',
+    )
     log = client.logger.bind.return_value
     assert not log.debug.call_args_list
     log.info.assert_called_once_with('response', status_code=200)
@@ -939,7 +965,7 @@ def test_id_value():
 @pytest.mark.asyncio
 async def test_debug():
     client = Client(mask=['scrt', 'password'], debug=True)
-    client.client = mock.AsyncMock()
+    client.client.send = mock.AsyncMock()
 
     client.logger = mock.Mock()
     response = httpx.Response(
@@ -948,9 +974,12 @@ async def test_debug():
     )
     data = dict(foo='bar', password='secret')
     response.request = httpx.Request('POST', '/', json=data)
-    client.client.request.return_value = response
+    client.client.send.return_value = response
     await client.post('/', json=data, quiet=True)
-    client.logger.bind.assert_called_once_with(method='POST', url='/')
+    client.logger.bind.assert_called_once_with(
+        method='POST',
+        url='http://lol/',
+    )
     log = client.logger.bind.return_value
     log.debug.assert_called_once_with(
         'request',
