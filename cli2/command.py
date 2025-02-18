@@ -26,6 +26,7 @@ class Command(EntryPoint, dict):
         self.parent = None
         self.help_hack = help_hack
         self._overrides = Overrides(overrides or dict())
+        self._overrides['_cli2']['factory'] = lambda: self
 
         self.target = target
 
