@@ -224,8 +224,13 @@ def test_load_cls():
         @cli2.cmd
         def test2(self):
             pass
+
+        @cli2.cmd
+        def exclude(self):
+            pass
     group = Group()
-    group.load_cls(Foo)
+    group.load_cls(Foo, exclude=['exclude'])
     assert 'bar' not in group
     assert 'test' in group
     assert 'test2' in group
+    assert 'exclude' not in group
