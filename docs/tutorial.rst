@@ -147,6 +147,23 @@ example_obj.py:
 
 The rest of the tutorial will describe each part used in there.
 
+``_cli2``
+---------
+
+If you need to know if a function is executed from cli2, you can add a
+``_cli2`` special keyword argument:
+
+.. code-block:: python
+
+    def your_cmd(some, _cli2=None):
+        if _cli2:
+            print('in cli2')
+        else:
+            return some
+
+``_cli2`` will be the :py:class:`~cli2.command.Command` instance if detected in
+function signature.
+
 Group
 =====
 
