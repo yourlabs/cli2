@@ -941,6 +941,20 @@ async def test_debug():
 
 
 @pytest.mark.asyncio
+async def test_url_list(client_class):
+    class Client(client_class):
+        def __init__(self, *args, **kwargs):
+            self.foo = '/foo'
+            super().__init__(*args, **kwargs)
+
+    class TestModel(Client.Model):
+        url_list = '{client.foo}/bar'
+
+    client = Client()
+    assert client.TestModel.url_list == '/foo/bar'
+
+
+@pytest.mark.asyncio
 async def test_client_token_apply(client_class, httpx_mock):
     class TokenClient(client_class):
         async def token_get(self):

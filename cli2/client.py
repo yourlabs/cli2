@@ -739,6 +739,7 @@ class Model(metaclass=ModelMetaclass):
 
         The URL to get the list of objects, you're supposed to configure it as
         a model attribute in your model subclass.
+        This may be a format string using a client ``client`` variable.
 
     .. py:attribute:: url_detail
 
@@ -1198,6 +1199,8 @@ class Client(metaclass=ClientMetaclass):
 
         for model in self.models:
             model = type(model.__name__, (model,), dict(client=self))
+            if model.url_list:
+                model.url_list = model.url_list.format(client=self)
             setattr(self, model.__name__, model)
 
     @property
