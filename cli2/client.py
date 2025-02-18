@@ -1032,12 +1032,13 @@ class Handler:
         self.tries = self.tries_default if tries is None else tries
         self.backoff = self.backoff_default if backoff is None else backoff
 
-    async def __call__(self, client, response, tries, mask):
+    async def __call__(self, client, response, tries, mask, log):
         if isinstance(response, Exception):
             if tries >= self.tries:
                 raise response
             # httpx session is rendered unusable after a TransportError
             if isinstance(response, httpx.TransportError):
+                log.warn('reconnect', exception=str(response))
                 await client.client_reset()
             return
 
@@ -1053,13 +1054,25 @@ class Handler:
         if tries >= self.tries:
             raise RetriesExceededError(client, response, tries, mask)
 
+        seconds = tries * self.backoff
+        kwargs = dict(
+            status_code=response.status_code,
+            tries=tries,
+            sleep=seconds,
+        )
+        key, value = client.response_log_data(response, mask)
+        if value:
+            kwargs[key] = value
+
         if response.status_code in self.retokens:
             if tries:
                 # our authentication is just not working, no need to retry
                 raise TokenGetError(client, response, tries, mask)
+            log.warn('retoken', **kwargs)
             await client.token_reset()
 
-        await asyncio.sleep(tries * self.backoff)
+        log.info('retry', **kwargs)
+        await asyncio.sleep(seconds)
 
 
 class ClientError(Exception):
@@ -1084,27 +1097,31 @@ class ResponseError(ClientError):
         :param exc: httpx.HTTPStatusError
         """
         output = [msg]
+        key, value = self.client.request_log_data(
+            self.response.request,
+            self.mask,
+        )
         request_msg = ' '.join([
-            self.response.request.method,
+            str(self.response.request.method),
             str(self.response.request.url),
         ])
 
         output.append(
             f'{colors.reset}{colors.bold}{request_msg}{colors.reset}',
         )
-        request = self.client.request_log_data(
-            self.response.request,
-            self.mask,
-        )
-        if request:
-            output.append(display.render(request))
+        if value:
+            output.append(display.render(value))
 
+        key, value = self.client.response_log_data(self.response, self.mask)
         output.append(
-            f'{colors.bold}HTTP {self.response.status_code}{colors.reset}',
+            ''.join([
+                colors.bold,
+                f'HTTP {self.response.status_code}',
+                colors.reset,
+            ])
         )
-        response = self.client.response_log_data(self.response, self.mask)
-        if response:
-            output.append(display.render(response))
+        if value:
+            output.append(display.render(value))
 
         return '\n'.join(output)
 
@@ -1233,27 +1250,34 @@ class Client(metaclass=ClientMetaclass):
     def client(self):
         self._client = None
 
-    async def request_safe(self, *args, handler, mask, retries=True,
-                           semaphore=None, **kwargs):
+    async def send(self, request, handler, mask, retries=True, semaphore=None,
+                   log=None, auth=None, follow_redirects=None):
         """
         Internal request method
         """
         semaphore = semaphore or self.semaphore
         tries = 0
 
+        async def _send():
+            return await self.client.send(
+                request,
+                auth=auth,
+                follow_redirects=follow_redirects,
+            )
+
         async def _request():
             if semaphore:
                 async with semaphore:
-                    return await self.client.request(*args, **kwargs)
-            return await self.client.request(*args, **kwargs)
+                    return await _send()
+            return await _send()
 
         while retries or tries > 1:
             try:
                 response = await _request()
             except Exception as exc:
-                await handler(self, exc, tries, mask)
+                await handler(self, exc, tries, mask, log)
             else:
-                if response := await handler(self, response, tries, mask):
+                if response := await handler(self, response, tries, mask, log):
                     return response
 
             tries += 1
@@ -1322,9 +1346,19 @@ class Client(metaclass=ClientMetaclass):
         """
         raise NotImplementedError()
 
-    async def request(self, method, url, handler=None, quiet=False,
-                      accepts=None, refuses=None, tries=None, backoff=None,
-                      retries=True, semaphore=None, mask=None, **kwargs):
+    async def request(
+        # base arguments
+		self, method, url,
+        *,
+        # cli2 arguments
+        handler=None, quiet=False, accepts=None, refuses=None, tries=None,
+        backoff=None, retries=True, semaphore=None, mask=None,
+        # httpx arguments
+        content=None, data=None, files=None, json=None, params=None,
+        headers=None, cookies=None, auth=httpx.USE_CLIENT_DEFAULT,
+        follow_redirects=httpx.USE_CLIENT_DEFAULT,
+        timeout=httpx.USE_CLIENT_DEFAULT, extensions=None,
+    ):
         """
         Request method
 
@@ -1393,46 +1427,71 @@ class Client(metaclass=ClientMetaclass):
             else:
                 handler = self.handler
 
-        log = self.logger.bind(method=method, url=url)
-        if not quiet or self.debug:
-            log.debug('request', **self.kwargs_log_data(kwargs, mask, quiet))
+        request = self.client.build_request(
+            method=method,
+            url=url,
+            content=content,
+            data=data,
+            files=files,
+            json=json,
+            params=params,
+            headers=headers,
+            cookies=cookies,
+            timeout=timeout,
+            extensions=extensions,
+        )
 
-        response = await self.request_safe(
-            method,
-            url,
+        log = self.logger.bind(method=method, url=str(request.url))
+        if not quiet or self.debug:
+            key, value = self.request_log_data(request, mask, quiet)
+            kwargs = dict()
+            if value:
+                kwargs[key] = value
+            log.debug('request', **kwargs)
+
+        response = await self.send(
+            request,
             handler=handler,
             retries=retries,
             semaphore=semaphore,
             mask=mask,
-            **kwargs,
+            log=log,
+            auth=auth,
+            follow_redirects=follow_redirects,
         )
 
         _log = dict(status_code=response.status_code)
         if not quiet or self.debug:
-            self.response_log_data(response, mask, _log)
+            key, value = self.response_log_data(response, mask)
+            if value:
+                _log[key] = value
 
         log.info('response', **_log)
 
         return response
 
-    def response_log_data(self, response, mask, log=None):
+    def response_log_data(self, response, mask):
         try:
-            data = self.mask_data(response.json(), mask)
-            key = 'json'
+            data = response.json()
         except json.JSONDecodeError:
-            data = self.mask_content(response.content, mask)
-            key = 'content'
-
-        if log:
-            log[key] = data
-        return data
+            if response.content:
+                return 'content', self.mask_content(response.content, mask)
+        else:
+            if data:
+                return 'json', self.mask_data(data, mask)
+        return None, None
 
     def request_log_data(self, request, mask, quiet=False):
         content = request.content.decode()
+        if not content:
+            return None, None
+
         try:
-            return self.mask_data(json.loads(content), mask)
+            data = json.loads(content)
         except json.JSONDecodeError:
             pass
+        else:
+            return 'json', self.mask_data(data, mask)
 
         parsed = parse_qs(content)
         if parsed:
@@ -1440,18 +1499,9 @@ class Client(metaclass=ClientMetaclass):
                 key: value[0] if len(value) == 1 else value
                 for key, value in parsed.items()
             }
-            return self.mask_data(data, mask)
+            return 'data', self.mask_data(data, mask)
 
-        return self.mask_content(content, mask)
-
-    def kwargs_log_data(self, kwargs, mask, quiet=False):
-        _log = kwargs.copy()
-        if 'content' in kwargs:
-            _log['content'] = self.mask_content(kwargs['content'], mask)
-        for key in ('json', 'data'):
-            if key in kwargs:
-                _log[key] = self.mask_data(kwargs[key], mask)
-        return _log
+        return 'content', self.mask_content(content, mask)
 
     def mask_content(self, content, mask=None):
         """
