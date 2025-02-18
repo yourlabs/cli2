@@ -1239,7 +1239,10 @@ class Client(metaclass=ClientMetaclass):
         """
         client = httpx.AsyncClient(*self._client_args, **self._client_kwargs)
         if self.token and not self.token_getting:
-            self.client_token_apply(client)
+            try:
+                self.client_token_apply(client)
+            except NotImplementedError:
+                pass
         return client
 
     @client.setter
@@ -1304,7 +1307,7 @@ class Client(metaclass=ClientMetaclass):
                 pass
         self.token_getting = False
 
-    async def client_token_apply(self, client):
+    def client_token_apply(self, client):
         """
         Actually provision self.client with self.token.
 
@@ -1348,7 +1351,7 @@ class Client(metaclass=ClientMetaclass):
 
     async def request(
         # base arguments
-		self, method, url,
+        self, method, url,
         *,
         # cli2 arguments
         handler=None, quiet=False, accepts=None, refuses=None, tries=None,
