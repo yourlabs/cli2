@@ -1337,15 +1337,20 @@ class Client(metaclass=ClientMetaclass):
         By default, this method does nothing. Implement it to your likings.
 
         This method is supposed to return the token, but doesn't do anything
-        with it by itself: it's up to you to call something like:
+        with it by itself.
+
+        You also need to implement the :py:meth:`client_token_apply` which is
+        in charge of updating the actual httpx client object with the said
+        token.
 
         .. code-block::
 
             async def token_get(self):
                 response = await self.post('/login', dict(...))
-                token = response.json()['token']
-                self.client.headers['token'] = f'Bearer {token}'
-                return token
+                return response.json()['token']
+
+            def client_token_apply(self, client):
+                client.headers['X-ApiKey'] = self.token
         """
         raise NotImplementedError()
 
