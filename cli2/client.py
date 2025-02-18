@@ -1406,7 +1406,6 @@ class Client(metaclass=ClientMetaclass):
                         the response, set to False if you want only 1 try.
         :param accepts: Override for :py:attr:`Handler.accepts`
         :param refuses: Override for :py:attr:`Handler.refuses`
-        :param retries: Override for :py:attr:`Handler.retries`
         :param tries: Override for :py:attr:`Handler.tries`
         :param backoff: Override for :py:attr:`Handler.backoff`
         :param semaphore: Override for :py:attr:`Client.semaphore`
