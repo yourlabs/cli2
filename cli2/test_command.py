@@ -676,3 +676,11 @@ def test_self():
     group.cmd(Foo.foo)
     assert group['foo']('a') == (1, 'a')
     assert group['foo']['self'].factory
+
+
+def test_cli2():
+    def test(some, _cli2=None):
+        return some, _cli2
+
+    cmd = Command(test)
+    assert cmd('x') == ('x', cmd)
