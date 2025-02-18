@@ -955,7 +955,8 @@ async def test_client_proxy(httpx_mock):
             return token
 
     class TestModel(ProxyTestClient.Model, client='sub'):
-        pass
+        url_list = '/foo'
+        id = cli2.Field()
 
     client = ProxyTestClient(base_url='http://ex')
     assert not client.token
@@ -980,6 +981,27 @@ async def test_client_proxy(httpx_mock):
     await client.get('/root')
     # don't get a new token, use the parent's
     assert len(client.tokens) == 1
+
+    httpx_mock.add_response(
+        url='http://ex2/bar/foo',
+        json=[dict(id=1), dict(id=2)],
+    )
+    result = await client.TestModel.find().list()
+    assert result[0].id == 1
+    assert result[1].id == 2
+
+    httpx_mock.add_response(
+        url='http://ex2/bar/foo/1',
+        json=dict(id=1),
+    )
+    result = await client.TestModel.get(id=1)
+    assert result.id == 1
+
+    httpx_mock.add_response(
+        url='http://ex2/bar/foo/1',
+        method='DELETE',
+    )
+    await result.delete()
 
 
 @pytest.mark.asyncio

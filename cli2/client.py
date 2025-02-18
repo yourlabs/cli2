@@ -1625,6 +1625,12 @@ class ClientProxy:
         """ Paginate proxy """
         return self.client.paginate(self.url_rewrite(url), *args, **kwargs)
 
+    def pagination_initialize(self, paginator, data):
+        return self.client.pagination_initialize(paginator, data)
+
+    def pagination_parameters(self, paginator, page_number):
+        return self.client.pagination_parameters(paginator, page_number)
+
 
 class Expression:
     def __init__(self, field, value):
