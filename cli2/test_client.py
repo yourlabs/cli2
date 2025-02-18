@@ -348,6 +348,12 @@ async def test_pagination_initialize(httpx_mock):
     client = PaginatedClient(base_url='http://lol')
     assert await client.paginate('/').list() == [dict(a=1), dict(a=2)]
 
+    httpx_mock.add_response(url='http://lol/?page=1', json=dict(
+        total_pages=2,
+        items=[dict(a=1)],
+    ))
+    assert await client.paginate('/').first() == dict(a=1)
+
 
 @pytest.mark.asyncio
 async def test_token_get(httpx_mock):

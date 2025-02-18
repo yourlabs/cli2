@@ -305,6 +305,11 @@ class Paginator:
                     break
                 page += 1
 
+    async def first(self):
+        """ Return first item """
+        async for item in self:
+            return item
+
 
 class Field:
     """
