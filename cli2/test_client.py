@@ -52,6 +52,23 @@ async def test_client_cli(client_class, httpx_mock):
     await client_class.cli['testmodel']['find'].async_call()
 
 
+@pytest.mark.asyncio
+async def test_client_cli_override(client_class, httpx_mock):
+    class Client(client_class):
+        def __init__(self, *args, **kwargs):
+            self.test = 'bar'
+            super().__init__(*args, **kwargs)
+
+    class TestModel(Client.Model):
+        url_list = '{client.test}/foo'
+
+        @classmethod
+        @cli2.cmd
+        async def find(cls, foo):
+            return cls.url_list
+    assert await Client.cli['testmodel']['find'].async_call('bar') == 'bar/foo'
+
+
 def test_client_model(client_class):
     assert issubclass(client_class.Model, cli2.Model)
     assert client_class.Model._client_class == client_class

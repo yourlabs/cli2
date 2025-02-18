@@ -183,6 +183,8 @@ class Group(EntryPoint, dict):
         """
         exclude = exclude or []
         for name, method in cls.__dict__.items():
+            if name in exclude:
+                continue
             wrapped_method = getattr(method, '__func__', None)
             if hasattr(wrapped_method, 'cli2'):
                 self.cmd(wrapped_method)

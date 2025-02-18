@@ -675,13 +675,12 @@ class ModelGroup(Group):
             )
         )
 
+        url_list_methods = ['find', 'get', 'delete', 'create']
         if cls.url_list:
-            self.cmd(cls.find)
-            self.cmd(cls.get)
-            self.cmd(cls.delete)
-            self.cmd(cls.create)
+            for name in url_list_methods:
+                self.cmd(getattr(cls, name))
 
-        self.load_cls(cls, exclude=['find', 'get', 'delete', 'create'])
+        self.load_cls(cls, exclude=url_list_methods)
 
 
 class ModelMetaclass(type):
