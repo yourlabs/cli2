@@ -68,17 +68,15 @@ class Paginator:
 
         :py:class:`Model` class or ``dict`` by default.
 
-    .. py:attribute:: postfilter
+    .. py:attribute:: callback
 
-        Callback called for every item after filtering.
-
-    .. py:attribute:: prefilter
-
-        Callback called for every item before filtering.
+        Callback called for every item before filtering by expressions.
+        This must return True or the item will be filtered *out* of yielded
+        results.
     """
 
     def __init__(self, client, url, params=None, model=None, expressions=None,
-                 prefilter=None, postfilter=None):
+                 callback=None):
         """
         Initialize a paginator object with a client on a URL with parameters.
 
@@ -94,8 +92,7 @@ class Paginator:
         self.page_start = 1
         self.per_page = None
         self.initialized = False
-        self.prefilter = prefilter
-        self.postfilter = postfilter
+        self.callback = callback
         self.expressions = []
         for expression in (expressions or []):
             if not isinstance(expression, Expression):
@@ -260,12 +257,11 @@ class Paginator:
             await self.initialize(response)
         return response
 
-    async def __aiter__(self, prefilter=None, postfilter=None):
+    async def __aiter__(self, callback=None):
         """
         Asynchronous iterator.
         """
-        prefilter = prefilter or self.prefilter
-        postfilter = postfilter or self.postfilter
+        callback = callback or self.callback
 
         if self._reverse and not self.total_pages:
             first_page_response = await self.page_response(1)
@@ -279,11 +275,10 @@ class Paginator:
 
         async def yielder(items):
             for item in items:
-                if prefilter:
-                    await async_resolve(prefilter(item))
+                if callback:
+                    if not await async_resolve(callback(item)):
+                        continue
                 if not python_filter or python_filter.matches(item):
-                    if postfilter:
-                        await async_resolve(postfilter(item))
                     yield item
 
         while items := await self.page_items(page):
@@ -1564,7 +1559,8 @@ class Client(metaclass=ClientMetaclass):
         """ DELETE Request """
         return await self.request('DELETE', url, *args, **kwargs)
 
-    def paginate(self, url, params=None, model=None):
+    def paginate(self, url, *expressions, params=None, model=None,
+                 callback=None):
         """
         Return a paginator to iterate over results
 
@@ -1572,7 +1568,8 @@ class Client(metaclass=ClientMetaclass):
         :param params: GET parameters
         :param model: Model class to cast for items
         """
-        return self.paginator(self, url, params or {}, model or dict)
+        return self.paginator(self, url, params or {}, model or dict,
+                              expressions, callback)
 
 
 class Expression:

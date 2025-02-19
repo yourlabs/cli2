@@ -239,7 +239,8 @@ Custom types
 The most painful stuff I've had to deal with in APIs are datetimes and, "json
 in json".
 
-The cures for that are :py:class:`JSONStringField` and :py:class:`DateTimeField`.
+The cures for that are :py:class:`~cli2.client.JSONStringField` and
+:py:class:`~cli2.client.DateTimeField`.
 
 .. _expressions:
 
@@ -396,6 +397,46 @@ you can work on the list return with the field descriptor:
     assert obj.data['related'][0]['bar'] == 5
 
 It's just magic I love it!
+
+Patterns
+========
+
+In this section, we'll document various patterns found over time.
+
+Filtering on external data
+--------------------------
+
+You may want to be able to filter on fields which won't be returned by the list
+API:
+
+.. code-block:: python
+
+    class DynatraceConfiguration(YourClient.Model):
+        url_list = '/configurations'
+
+        async def status_fetch(self):
+            response = self.client.get(self.url + '/status')
+            self.status = response.json()['status']
+
+        @classmethod
+        @cli2.cmd
+        async def find(cls, *expressions, **params):
+            paginator = super().find(
+                lambda item: item.status == 'OK',
+                *expressions,
+                **params,
+            )
+
+            async def callback(item):
+                await item.status_fetch()
+
+            paginator.callback = callback
+            return paginator
+
+Before yielding an item, paginator will call the callback causing an extra
+async request to the status URL of the object and set ``self.status``, this
+will cause a lot of requests, ensure you have configured
+:py:attr:`~cli2.client.Client.semaphore` to limit concurrent requests.
 
 API
 ===

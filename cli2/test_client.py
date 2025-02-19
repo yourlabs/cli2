@@ -375,19 +375,14 @@ async def test_pagination(httpx_mock):
     httpx_mock.add_response(url='http://lol/?page=2', json=[dict(a=2)])
     httpx_mock.add_response(url='http://lol/?page=3', json=[])
     client = Client(base_url='http://lol')
-    paginator = client.paginate('/')
 
-    def prefilter(item):
+    def callback(item):
         item['b'] = item['a']
+        return True
 
-    def postfilter(item):
-        item['c'] = item['b']
-
-    paginator.prefilter = prefilter
-    paginator.postfilter = postfilter
+    paginator = client.paginate('/', lambda item: item['b'] == 2, callback=callback)
     assert await paginator.list() == [
-        dict(a=1, b=1, c=1),
-        dict(a=2, b=2, c=2)
+        dict(a=2, b=2)
     ]
 
 
