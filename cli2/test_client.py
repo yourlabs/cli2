@@ -348,11 +348,18 @@ async def test_pagination(httpx_mock):
     httpx_mock.add_response(url='http://lol/?page=3', json=[])
     client = Client(base_url='http://lol')
     paginator = client.paginate('/')
-    paginator.callback = mock.Mock()
-    assert await paginator.list() == [dict(a=1), dict(a=2)]
-    assert paginator.callback.call_args_list == [
-        mock.call({'a': 1}),
-        mock.call({'a': 2})
+
+    def prefilter(item):
+        item['b'] = item['a']
+
+    def postfilter(item):
+        item['c'] = item['b']
+
+    paginator.prefilter = prefilter
+    paginator.postfilter = postfilter
+    assert await paginator.list() == [
+        dict(a=1, b=1, c=1),
+        dict(a=2, b=2, c=2)
     ]
 
 

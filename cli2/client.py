@@ -76,13 +76,17 @@ class Paginator:
 
         :py:class:`Model` class or ``dict`` by default.
 
-    .. py:attribute:: callback
+    .. py:attribute:: postfilter
 
-        Callback called for every item.
+        Callback called for every item after filtering.
+
+    .. py:attribute:: prefilter
+
+        Callback called for every item before filtering.
     """
 
     def __init__(self, client, url, params=None, model=None, expressions=None,
-                 callback=None):
+                 prefilter=None, postfilter=None):
         """
         Initialize a paginator object with a client on a URL with parameters.
 
@@ -98,7 +102,8 @@ class Paginator:
         self.page_start = 1
         self.per_page = None
         self.initialized = False
-        self.callback = callback
+        self.prefilter = prefilter
+        self.postfilter = postfilter
         self.expressions = []
         for expression in (expressions or []):
             if not isinstance(expression, Expression):
@@ -272,11 +277,12 @@ class Paginator:
             await self.initialize(response)
         return response
 
-    async def __aiter__(self, callback=None):
+    async def __aiter__(self, prefilter=None, postfilter=None):
         """
         Asynchronous iterator.
         """
-        callback = callback or self.callback
+        prefilter = prefilter or self.prefilter
+        postfilter = postfilter or self.postfilter
 
         if self._reverse and not self.total_pages:
             first_page_response = await self.page_response(1)
@@ -286,18 +292,24 @@ class Paginator:
 
         python_filter = self.python_filter()
 
+        async def yielder(items):
+            for item in items:
+                if prefilter:
+                    await async_resolve(prefilter(item))
+                if not python_filter or python_filter.matches(item):
+                    if postfilter:
+                        await async_resolve(postfilter(item))
+                    yield item
+
         while items := await self.page_items(page):
-            if items == 'continue':
+            if not items:
                 continue
 
             if self._reverse:
                 items = reversed(items)
 
-            for item in items:
-                if not python_filter or python_filter.matches(item):
-                    if callback:
-                        callback(item)
-                    yield item
+            async for item in yielder(items):
+                yield item
 
             if self._reverse:
                 page -= 1
@@ -306,11 +318,8 @@ class Paginator:
                 if page == 1:
                     # use cached first page response
                     items = self.response_items(first_page_response)
-                    for item in reversed(items):
-                        if not python_filter or python_filter.matches(item):
-                            if callback:
-                                callback(item)
-                            yield item
+                    async for item in yielder(reversed(items)):
+                        yield item
                     break
             else:
                 if page == self.total_pages:
