@@ -530,6 +530,34 @@ async def test_pagination_patterns(httpx_mock):
     assert paginator.per_page == 1
     assert paginator.pagination_parameters(2) == dict(offset=1, limit=1)
 
+    class Key(Client.Model):
+        url_list = '/key'
+
+        @classmethod
+        def pagination_initialize(cls, paginator, data):
+            paginator.next_page = data['next_page']
+            paginator.total_pages = data['total']
+
+        @classmethod
+        def pagination_parameters(cls, paginator, page_number):
+            if page_number > 1:
+                return dict(next_page=paginator.next_page)
+
+    httpx_mock.add_response(
+        url='http://lol/key',
+        json=dict(total=2, items=[dict(a=1)], next_page='aoeu'),
+    )
+    httpx_mock.add_response(
+        url='http://lol/key?next_page=aoeu',
+        json=dict(total=2, items=[dict(a=2)]),
+    )
+
+    client = Client(base_url='http://lol')
+    items = []
+    async for item in client.Key.find():
+        items.append(item.data['a'])
+    assert items == [1, 2]
+
 
 @pytest.mark.asyncio
 async def test_pagination_reverse(httpx_mock):
