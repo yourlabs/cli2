@@ -434,10 +434,10 @@ API:
             paginator.callback = callback
             return paginator
 
-Before yielding an item, paginator will call the callback causing an extra
-async request to the status URL of the object and set ``self.status``, this
-will cause a lot of requests, ensure you have configured
-:py:attr:`~cli2.client.Client.semaphore` to limit concurrent requests.
+Before yielding items, paginator will call the callback for every item in
+asyncio.gather, causing an extra async request to the status URL of the object
+and set ``self.status``, this will cause a lot of requests, you might want to
+set :py:attr:`~cli2.client.Client.semaphore` to limit concurrent requests.
 
 API
 ===

@@ -70,9 +70,7 @@ class Paginator:
 
     .. py:attribute:: callback
 
-        Callback called for every item before filtering by expressions.
-        This must return True or the item will be filtered *out* of yielded
-        results.
+        Async callback called for every item before filtering by expressions.
     """
 
     def __init__(self, client, url, params=None, model=None, expressions=None,
@@ -274,10 +272,9 @@ class Paginator:
         python_filter = self.python_filter()
 
         async def yielder(items):
+            if callback:
+                await asyncio.gather(*[callback(item) for item in items])
             for item in items:
-                if callback:
-                    if not await async_resolve(callback(item)):
-                        continue
                 if not python_filter or python_filter.matches(item):
                     yield item
 

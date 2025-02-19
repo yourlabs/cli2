@@ -376,9 +376,8 @@ async def test_pagination(httpx_mock):
     httpx_mock.add_response(url='http://lol/?page=3', json=[])
     client = Client(base_url='http://lol')
 
-    def callback(item):
+    async def callback(item):
         item['b'] = item['a']
-        return True
 
     paginator = client.paginate(
         '/',
