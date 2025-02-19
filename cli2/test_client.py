@@ -49,6 +49,7 @@ async def test_client_cli(client_class, httpx_mock):
     assert isinstance(result.client, client_class)
 
     httpx_mock.add_response(url='http://lol/', json=[dict(a=1)])
+    httpx_mock.add_response(url='http://lol/?page=2', json=[])
     await client_class.cli['testmodel']['find'].async_call()
 
     class TestModel2(client_class.Model):
@@ -124,6 +125,7 @@ async def test_async_factory(httpx_mock):
         url_list = '/2'
 
     httpx_mock.add_response(url='http://bar/2', json=[dict(a=1)])
+    httpx_mock.add_response(url='http://bar/2?page=2', json=[])
     await TestClient.cli['testmodel']['find'].async_call()
 
 
@@ -369,23 +371,22 @@ async def test_token(httpx_mock):
 
 @pytest.mark.asyncio
 async def test_pagination(httpx_mock):
-    httpx_mock.add_response(url='http://lol/?page=1', json=[dict(a=1)])
+    httpx_mock.add_response(url='http://lol/', json=[dict(a=1)])
     httpx_mock.add_response(url='http://lol/?page=2', json=[dict(a=2)])
     httpx_mock.add_response(url='http://lol/?page=3', json=[])
     client = Client(base_url='http://lol')
-    paginator = client.paginate('/')
 
-    def prefilter(item):
+    def callback(item):
         item['b'] = item['a']
+        return True
 
-    def postfilter(item):
-        item['c'] = item['b']
-
-    paginator.prefilter = prefilter
-    paginator.postfilter = postfilter
+    paginator = client.paginate(
+        '/',
+        lambda item: item['b'] == 2,
+        callback=callback,
+    )
     assert await paginator.list() == [
-        dict(a=1, b=1, c=1),
-        dict(a=2, b=2, c=2)
+        dict(a=2, b=2)
     ]
 
 
@@ -406,11 +407,12 @@ def test_paginator(client_class):
 
 @pytest.mark.asyncio
 async def test_pagination_initialize(httpx_mock):
-    httpx_mock.add_response(url='http://lol/?page=1', json=dict(
+    httpx_mock.add_response(url='http://lol/', json=dict(
         total_pages=2,
         items=[dict(a=1)],
     ))
     httpx_mock.add_response(url='http://lol/?page=2', json=[dict(a=2)])
+    httpx_mock.add_response(url='http://lol/?page=3', json=[])
 
     class PaginatedClient(Client):
         def pagination_initialize(self, paginator, data):
@@ -419,7 +421,7 @@ async def test_pagination_initialize(httpx_mock):
     client = PaginatedClient(base_url='http://lol')
     assert await client.paginate('/').list() == [dict(a=1), dict(a=2)]
 
-    httpx_mock.add_response(url='http://lol/?page=1', json=dict(
+    httpx_mock.add_response(url='http://lol/', json=dict(
         total_pages=2,
         items=[dict(a=1)],
     ))
@@ -429,7 +431,7 @@ async def test_pagination_initialize(httpx_mock):
 @pytest.mark.asyncio
 async def test_token_get(httpx_mock):
     httpx_mock.add_response(url='http://lol/token', json=dict(token=123))
-    httpx_mock.add_response(url='http://lol/?page=1', json=[])
+    httpx_mock.add_response(url='http://lol/', json=[])
 
     class TokenClient(Client):
         async def token_get(self):
@@ -446,7 +448,7 @@ async def test_pagination_model(httpx_mock):
     class Model(dict):
         pass
 
-    httpx_mock.add_response(url='http://lol/?page=1', json=[dict(a=2)])
+    httpx_mock.add_response(url='http://lol/', json=[dict(a=2)])
     httpx_mock.add_response(url='http://lol/?page=2', json=[])
     client = Client(base_url='http://lol')
     result = await client.paginate('/', model=Model).list()
@@ -465,46 +467,49 @@ async def test_pagination_patterns(httpx_mock):
     # I'm dealing with APIs which have a different pagination system on
     # different resources, and on some resources no pagination at all
     # Would like to define that per model
+
+    class TotalPaginator(cli2.Paginator):
+        def pagination_initialize(self, data):
+            self.total_items = data['total_items']
+            self.per_page = len(data['items'])
+
     class TotalModel(Client.Model):
+        paginator = TotalPaginator
         url_list = '/foo'
 
-        @classmethod
-        def pagination_initialize(cls, paginator, data):
-            paginator.total_items = data['total_items']
-            paginator.per_page = len(data['items'])
-
     httpx_mock.add_response(
-        url='http://lol/foo?page=1',
+        url='http://lol/foo',
         json=dict(total_items=2, items=[dict(a=1)]),
     )
 
+    class PagesPaginator(cli2.Paginator):
+        def pagination_initialize(self, data):
+            self.total_pages = data['total_pages']
+            self.per_page = len(data['items'])
+
     class Pages(Client.Model):
         url_list = '/bar'
-
-        @classmethod
-        def pagination_initialize(cls, paginator, data):
-            paginator.total_pages = data['total_pages']
-            paginator.per_page = len(data['items'])
+        paginator = PagesPaginator
 
     httpx_mock.add_response(
-        url='http://lol/bar?page=1',
+        url='http://lol/bar',
         json=dict(total_pages=1, items=[dict(a=1)]),
     )
 
-    class Offset(Client.Model):
-        url_list = '/off'
+    class OffsetPaginator(cli2.Paginator):
+        def pagination_initialize(self, data):
+            self.total_items = data['total']
 
-        @classmethod
-        def pagination_initialize(cls, paginator, data):
-            paginator.total_items = data['total']
-
-        @classmethod
-        def pagination_parameters(cls, paginator, page_number):
-            paginator.per_page = 1
+        def pagination_parameters(self, page_number):
+            self.per_page = 1
             return dict(
                 offset=(page_number - 1) * paginator.per_page,
                 limit=paginator.per_page,
             )
+
+    class Offset(Client.Model):
+        url_list = '/off'
+        paginator = OffsetPaginator
 
     httpx_mock.add_response(
         url='http://lol/off?offset=0&limit=1',
@@ -530,39 +535,11 @@ async def test_pagination_patterns(httpx_mock):
     assert paginator.per_page == 1
     assert paginator.pagination_parameters(2) == dict(offset=1, limit=1)
 
-    class Key(Client.Model):
-        url_list = '/key'
-
-        @classmethod
-        def pagination_initialize(cls, paginator, data):
-            paginator.next_page = data['next_page']
-            paginator.total_pages = data['total']
-
-        @classmethod
-        def pagination_parameters(cls, paginator, page_number):
-            if page_number > 1:
-                return dict(next_page=paginator.next_page)
-
-    httpx_mock.add_response(
-        url='http://lol/key',
-        json=dict(total=2, items=[dict(a=1)], next_page='aoeu'),
-    )
-    httpx_mock.add_response(
-        url='http://lol/key?next_page=aoeu',
-        json=dict(total=2, items=[dict(a=2)]),
-    )
-
-    client = Client(base_url='http://lol')
-    items = []
-    async for item in client.Key.find():
-        items.append(item.data['a'])
-    assert items == [1, 2]
-
 
 @pytest.mark.asyncio
 async def test_pagination_reverse(httpx_mock):
     httpx_mock.add_response(
-        url='http://lol/bar?page=1',
+        url='http://lol/bar',
         json=dict(total_pages=3, items=[dict(a=1), dict(a=2)]),
     )
     httpx_mock.add_response(
@@ -574,13 +551,13 @@ async def test_pagination_reverse(httpx_mock):
         json=dict(total_pages=3, items=[dict(a=5)]),
     )
 
+    class Paginator(cli2.Paginator):
+        def pagination_initialize(self, data):
+            self.total_pages = data['total_pages']
+
     # test that we can reverse pagination too
     class Client(cli2.Client):
-        def pagination_initialize(self, paginator, data):
-            paginator.total_pages = data['total_pages']
-
-        def pagination_parameters(self, paginator, page_number):
-            return dict(page=page_number)
+        paginator = Paginator
 
     client = Client(base_url='http://lol')
     paginator = client.paginate('/bar')
@@ -706,17 +683,18 @@ def test_relation_many():
 
 @pytest.mark.asyncio
 async def test_python_expression(httpx_mock):
+    class Paginator(cli2.Paginator):
+        def pagination_initialize(self, data):
+            self.total_pages = data['total_pages']
+
     class Model(Client.Model):
         url_list = '/foo'
         a = cli2.Field()
         b = cli2.Field()
-
-        @classmethod
-        def pagination_initialize(cls, paginator, data):
-            paginator.total_pages = data['total_pages']
+        paginator = Paginator
 
     def mock():
-        httpx_mock.add_response(url='http://lol/foo?page=1', json=dict(
+        httpx_mock.add_response(url='http://lol/foo', json=dict(
             total_pages=2,
             items=[dict(a=1, b=1), dict(a=2, b=2), dict(a=3, b=1)],
         ))
@@ -766,7 +744,7 @@ async def test_expression_parameter(httpx_mock):
         a = cli2.Field()
         b = cli2.Field(parameter='b')
 
-    httpx_mock.add_response(url='http://lol/foo?page=1&b=1', json=dict(
+    httpx_mock.add_response(url='http://lol/foo?b=1', json=dict(
         items=[dict(a=1, b=1), dict(a=3, b=1)],
     ))
     httpx_mock.add_response(url='http://lol/foo?page=2&b=1', json=dict())
@@ -812,7 +790,7 @@ async def test_client_cli2(httpx_mock):
 
     meth = Client.cli['foo']['find']
     httpx_mock.add_response(
-        url='http://lol/foo?page=1',
+        url='http://lol/foo',
         json=[dict(id=1, a=2)],
     )
     httpx_mock.add_response(url='http://lol/foo?page=2', json=[])

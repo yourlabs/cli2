@@ -96,48 +96,53 @@ There are a few methods that you might want to override:
   actual httpx AsyncClient instance before it is used by cli2 Client.
 - :py:meth:`~cli2.client.Client.token_get`: if you want your client to do some
   authentication dance to get a token
-- :py:meth:`~cli2.client.Client.pagination_initialize`: this is supposed to
-  parse the first response in a paginated query and setup attributes like
-  :py:attr:`~cli2.client.Paginator.total_pages`
-- :py:meth:`~cli2.client.Client.pagination_parameters`: if the endpoint dosen't
-  support a ``page`` GET parameter
 
-Pagination examples
--------------------
+Pagination
+----------
 
-Can be defined in model or client class:
+The default :py:class:`~cli2.client.Paginator` is pretty dump, it just
+increments a ``page`` GET parameter until it gets an empty results list.
+
+It's sub-optimal, for the paginator to know when to stop, it needs to know the
+total pages, implement that in
+:py:meth:`~cli2.client.Paginator.pagination_initialize`:
 
 .. code-block:: python
 
-    # If you're given a total_items, this will suffice
-    @classmethod
-    def pagination_initialize(cls, paginator, data):
-        paginator.total_items = data['total_items']
-        paginator.per_page = len(data['items'])
+    class YourPaginator(cli2.Paginator):
+        def pagination_initialize(self, data):
+            self.total_pages = data['total_pages']
 
-    # deal with an offset/limit pagination
-    @classmethod
-    def pagination_initialize(cls, paginator, data):
-        paginator.total_items = data['total']
+    class YourClient(cli2.Client):
+        paginator = YourPaginator
 
-    @classmethod
-    def pagination_parameters(cls, paginator, page_number):
-        paginator.per_page = 1
-        return dict(
-            offset=(page_number - 1) * paginator.per_page,
-            limit=paginator.per_page,
-        )
+Perhaps you don't get the total pages from the API response, but you do get a
+total number of items, which you can set
+:py:attr:`~cli2.client.Paginator.total_items` and
+:py:attr:`~cli2.client.Paginator.total_pages` will auto-calculate:
 
-    # deal with a pagination that offers a next page key, ie. Dynatrace API
-    @classmethod
-    def pagination_initialize(cls, paginator, data):
-        paginator.next_page = data['next_page']
-        paginator.total_pages = data['total']
+.. code-block:: python
 
-    @classmethod
-    def pagination_parameters(cls, paginator, page_number):
-        if page_number > 1:
-            return dict(next_page=paginator.next_page)
+    class YourPaginator(cli2.Paginator):
+        def pagination_initialize(self, data):
+            self.total_items = data['total_items']
+
+Perhaps you're dealing with an offset/limit type of pagination, in which case,
+the default ``page`` GET parameter won't do, change it in
+:py:meth:`~cli2.client.Paginator.pagination_parameters`:
+
+.. code-block:: python
+
+    class OffsetPagination(cli2.Paginator):
+        def pagination_parameters(self, page_number):
+            paginator.per_page = 1
+            return dict(
+                offset=(page_number - 1) * paginator.per_page,
+                limit=paginator.per_page,
+            )
+
+        def pagination_initialize(self, data):
+            paginator.total_items = data['total']
 
 Creating a Model
 ----------------
@@ -174,6 +179,7 @@ anywhere in your model:
 
     class YourObject(YourClient.Model):
         @classmethod
+        @cli2.cmd
         async def some_command(cls):
             return await self.client.get('/some-page').json()
 
@@ -196,11 +202,6 @@ If you set the :py:attr:`url_list` attribute, then you can also use the
         pass
 
     paginator = YourObject.find(somefilter='test')
-
-You can also customize pagination per-model, in the same fashion as we already
-can per-client, by implementing and
-:py:meth:`~cli2.client.Model.pagination_initialize`,
-:py:meth:`~cli2.client.Model.pagination_parameters` in your Model class.
 
 Fields
 ------
@@ -239,7 +240,8 @@ Custom types
 The most painful stuff I've had to deal with in APIs are datetimes and, "json
 in json".
 
-The cures for that are :py:class:`JSONStringField` and :py:class:`DateTimeField`.
+The cures for that are :py:class:`~cli2.client.JSONStringField` and
+:py:class:`~cli2.client.DateTimeField`.
 
 .. _expressions:
 
@@ -396,6 +398,46 @@ you can work on the list return with the field descriptor:
     assert obj.data['related'][0]['bar'] == 5
 
 It's just magic I love it!
+
+Patterns
+========
+
+In this section, we'll document various patterns found over time.
+
+Filtering on external data
+--------------------------
+
+You may want to be able to filter on fields which won't be returned by the list
+API:
+
+.. code-block:: python
+
+    class DynatraceConfiguration(YourClient.Model):
+        url_list = '/configurations'
+
+        async def status_fetch(self):
+            response = self.client.get(self.url + '/status')
+            self.status = response.json()['status']
+
+        @classmethod
+        @cli2.cmd
+        async def find(cls, *expressions, **params):
+            paginator = super().find(
+                lambda item: item.status == 'OK',
+                *expressions,
+                **params,
+            )
+
+            async def callback(item):
+                await item.status_fetch()
+
+            paginator.callback = callback
+            return paginator
+
+Before yielding an item, paginator will call the callback causing an extra
+async request to the status URL of the object and set ``self.status``, this
+will cause a lot of requests, ensure you have configured
+:py:attr:`~cli2.client.Client.semaphore` to limit concurrent requests.
 
 API
 ===
