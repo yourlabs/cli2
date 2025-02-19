@@ -22,6 +22,10 @@ class YAMLFormatter:
 
 def configure():
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'WARNING').upper()
+
+    if os.getenv('DEBUG'):
+        LOG_LEVEL = 'DEBUG'
+
     timestamper = structlog.processors.TimeStamper(fmt='%Y-%m-%d %H:%M:%S')
     pre_chain = [
         # add log level and timestamp to event_dict
