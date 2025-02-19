@@ -389,6 +389,21 @@ async def test_pagination(httpx_mock):
     ]
 
 
+def test_paginator(client_class):
+    class Client(client_class):
+        paginator = 'foo'
+
+    class Model1(Client.Model):
+        pass
+
+    class Model2(Client.Model):
+        paginator = 'bar'
+
+    client = Client()
+    assert client.Model1.paginator == 'foo'
+    assert client.Model2.paginator == 'bar'
+
+
 @pytest.mark.asyncio
 async def test_pagination_initialize(httpx_mock):
     httpx_mock.add_response(url='http://lol/?page=1', json=dict(
