@@ -700,13 +700,7 @@ class ModelGroup(Group):
                 dict(model=cls),
             )
         )
-
-        url_list_methods = ['find', 'get', 'delete', 'create']
-        if cls.url_list:
-            for name in url_list_methods:
-                self.cmd(getattr(cls, name))
-
-        self.load_cls(cls, exclude=url_list_methods)
+        self.load_cls(cls)
 
 
 class ModelMetaclass(type):
@@ -820,7 +814,7 @@ class Model(metaclass=ModelMetaclass):
 
     @classmethod
     @hide('expressions')
-    @cmd(color='green')
+    @cmd(color='green', condition=lambda cls: cls.url_list)
     def find(cls, *expressions, **params):
         """
         Find objects filtered by GET params
@@ -874,7 +868,7 @@ class Model(metaclass=ModelMetaclass):
             raise Exception(f'{type(self).__name__}.url_list not set')
         return self.url_detail.format(self=self)
 
-    @cmd(color='red')
+    @cmd(color='red', condition=lambda cls: cls.url_list)
     async def delete(self):
         """
         Delete model.
@@ -884,7 +878,7 @@ class Model(metaclass=ModelMetaclass):
         return await self.client.delete(self.url)
 
     @classmethod
-    @cmd(doc="""
+    @cmd(condition=lambda cls: cls.url_list, doc="""
     POST request to create.
 
     Example:
@@ -900,7 +894,7 @@ class Model(metaclass=ModelMetaclass):
         return obj
 
     @classmethod
-    @cmd(color='green', doc="""
+    @cmd(color='green', condition=lambda cls: cls.url_list, doc="""
     Get a model based on kwargs.
 
     Example:

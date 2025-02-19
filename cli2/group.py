@@ -177,21 +177,35 @@ class Group(EntryPoint, dict):
                 self.group(name).load(target, parent=obj)
         return self
 
-    def load_cls(self, cls, exclude=None):
+    def load_cls(self, cls, leaf=None):
         """
         Load all methods which have been decorated with @cmd
+
+        Note that you can define conditions, this is how we hide functions such
+        as create/delete/get from models without url_list:
+
+        .. code-block:: python
+
+            @cli2.cmd(condition=lambda cls: cls.url_list)
         """
-        exclude = exclude or []
-        for name, method in cls.__dict__.items():
-            if name in exclude:
-                continue
-            wrapped_method = getattr(method, '__func__', None)
-            if hasattr(wrapped_method, 'cli2'):
-                self.cmd(wrapped_method)
-            elif hasattr(method, 'cli2'):
-                self.cmd(method)
+        leaf = leaf if leaf else cls
         for base in cls.__bases__:
-            self.load_cls(base, exclude=exclude)
+            self.load_cls(base, leaf=leaf)
+
+        for name, method in cls.__dict__.items():
+            wrapped_method = getattr(method, '__func__', None)
+            cfg = getattr(
+                wrapped_method,
+                'cli2',
+                getattr(method, 'cli2', None),
+            )
+            if cfg is None:
+                continue
+            condition = cfg.get('condition', None)
+            if condition:
+                if not condition(leaf):
+                    continue
+            self.cmd(method)
 
     def __call__(self, *argv):
         self.exit_code = 0

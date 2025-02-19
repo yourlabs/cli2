@@ -225,11 +225,11 @@ def test_load_cls():
         def test2(self):
             pass
 
-        @cli2.cmd
+        @cli2.cmd(condition=lambda cls: False)
         def exclude(self):
             pass
     group = Group()
-    group.load_cls(Foo, exclude=['exclude'])
+    group.load_cls(Foo)
     assert 'bar' not in group
     assert 'test' in group
     assert 'test2' in group
