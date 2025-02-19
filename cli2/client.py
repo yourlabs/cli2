@@ -34,19 +34,11 @@ class Paginator:
     """
     Generic pagination class.
 
-    You don't have to override that class to do basic paginator customization,
-    instead, you can also implement pagination specifics into:
+    Should work with most paginations by default, if you're extending this then
+    override:
 
-    - the :py:class:`~Client` class with the
-      :py:meth:`~Client.pagination_initialize` and
-      :py:meth:`~Client.pagination_parameters` methods
-
-    - or also, per model, in the :py:class:`~Model` class with the
-      :py:meth:`~Model.pagination_initialize` and
-      :py:meth:`~Model.pagination_parameters` methods
-
-    Refer to :py:meth:`pagination_parameters` and
-    :py:meth:`pagination_initialize` for details.
+    - :py:meth:`~Paginator.pagination_initialize`
+    - :py:meth:`~Paginator.pagination_parameters`
 
     .. py:attribute:: total_pages
 
@@ -76,17 +68,15 @@ class Paginator:
 
         :py:class:`Model` class or ``dict`` by default.
 
-    .. py:attribute:: postfilter
+    .. py:attribute:: callback
 
-        Callback called for every item after filtering.
-
-    .. py:attribute:: prefilter
-
-        Callback called for every item before filtering.
+        Callback called for every item before filtering by expressions.
+        This must return True or the item will be filtered *out* of yielded
+        results.
     """
 
     def __init__(self, client, url, params=None, model=None, expressions=None,
-                 prefilter=None, postfilter=None):
+                 callback=None):
         """
         Initialize a paginator object with a client on a URL with parameters.
 
@@ -102,8 +92,7 @@ class Paginator:
         self.page_start = 1
         self.per_page = None
         self.initialized = False
-        self.prefilter = prefilter
-        self.postfilter = postfilter
+        self.callback = callback
         self.expressions = []
         for expression in (expressions or []):
             if not isinstance(expression, Expression):
@@ -180,12 +169,6 @@ class Paginator:
 
         :param data: Data of the first response
         """
-        try:
-            self.model.pagination_initialize
-        except AttributeError:
-            return self.client.pagination_initialize(self, data)
-        else:
-            return self.model.pagination_initialize(self, data)
 
     def pagination_parameters(self, page_number):
         """
@@ -199,15 +182,12 @@ class Paginator:
 
         .. code-block:: python
 
-            def pagination_parameters(self, paginator, page_number):
+            def pagination_parameters(self, page_number):
+                # this is the default implementation
                 return dict(page=page_number)
         """
-        try:
-            self.model.pagination_parameters
-        except AttributeError:
-            return self.client.pagination_parameters(self, page_number)
-        else:
-            return self.model.pagination_parameters(self, page_number)
+        if page_number > 1:
+            return dict(page=page_number)
 
     def response_items(self, response):
         """
@@ -277,16 +257,17 @@ class Paginator:
             await self.initialize(response)
         return response
 
-    async def __aiter__(self, prefilter=None, postfilter=None):
+    async def __aiter__(self, callback=None):
         """
         Asynchronous iterator.
         """
-        prefilter = prefilter or self.prefilter
-        postfilter = postfilter or self.postfilter
+        callback = callback or self.callback
 
         if self._reverse and not self.total_pages:
             first_page_response = await self.page_response(1)
             page = self.total_pages
+            if not self.total_pages:
+                raise Exception('Reverse pagination without total_pages')
         else:
             page = self.page_start
 
@@ -294,11 +275,10 @@ class Paginator:
 
         async def yielder(items):
             for item in items:
-                if prefilter:
-                    await async_resolve(prefilter(item))
+                if callback:
+                    if not await async_resolve(callback(item)):
+                        continue
                 if not python_filter or python_filter.matches(item):
-                    if postfilter:
-                        await async_resolve(postfilter(item))
                     yield item
 
         while items := await self.page_items(page):
@@ -836,32 +816,6 @@ class Model(metaclass=ModelMetaclass):
         """
         return cls.paginator(cls.client, url, params, cls, expressions)
 
-    @classmethod
-    def pagination_initialize(cls, paginator, data):
-        """
-        Implement Model-specific pagination initialization here.
-
-        Otherwise, :py:meth:`Client.pagination_initialize` will
-        take place.
-
-        Refer to :py:meth:`Paginator.pagination_initialize` for
-        details.
-        """
-        cls.client.pagination_initialize(paginator, data)
-
-    @classmethod
-    def pagination_parameters(cls, paginator, page_number):
-        """
-        Implement Model-specific pagination parameters here.
-
-        Otherwise, :py:meth:`Client.pagination_parameters` will
-        take place.
-
-        Refer to :py:meth:`Paginator.pagination_parameters` for
-        details.
-        """
-        return cls.client.pagination_parameters(paginator, page_number)
-
     @property
     def cli2_display(self):
         return self.data
@@ -1179,9 +1133,7 @@ class Client(metaclass=ClientMetaclass):
 
     .. py:attribute:: paginator
 
-        :py:class:`Paginator` class, you can leave it by default and just
-        implement :py:meth:`pagination_initialize` and
-        :py:meth:`pagination_parameters`.
+        :py:class:`Paginator` class
 
     .. py:attribute:: semaphore
 
@@ -1607,7 +1559,8 @@ class Client(metaclass=ClientMetaclass):
         """ DELETE Request """
         return await self.request('DELETE', url, *args, **kwargs)
 
-    def paginate(self, url, params=None, model=None):
+    def paginate(self, url, *expressions, params=None, model=None,
+                 callback=None):
         """
         Return a paginator to iterate over results
 
@@ -1615,23 +1568,8 @@ class Client(metaclass=ClientMetaclass):
         :param params: GET parameters
         :param model: Model class to cast for items
         """
-        return self.paginator(self, url, params or {}, model or dict)
-
-    def pagination_parameters(self, paginator, page_number):
-        """
-        Implement Model-specific pagination parameters here.
-
-        Refer to :py:meth:`Paginator.pagination_parameters` for
-        details.
-        """
-
-    def pagination_initialize(self, paginator, data):
-        """
-        Implement Model-specific pagination initialization here.
-
-        Refer to :py:meth:`Paginator.pagination_initialize` for
-        details.
-        """
+        return self.paginator(self, url, params or {}, model or dict,
+                              expressions, callback)
 
 
 class Expression:
