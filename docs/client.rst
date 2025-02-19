@@ -174,6 +174,7 @@ anywhere in your model:
 
     class YourObject(YourClient.Model):
         @classmethod
+        @cli2.cmd
         async def some_command(cls):
             return await self.client.get('/some-page').json()
 
