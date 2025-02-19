@@ -102,6 +102,43 @@ There are a few methods that you might want to override:
 - :py:meth:`~cli2.client.Client.pagination_parameters`: if the endpoint dosen't
   support a ``page`` GET parameter
 
+Pagination examples
+-------------------
+
+Can be defined in model or client class:
+
+.. code-block:: python
+
+    # If you're given a total_items, this will suffice
+    @classmethod
+    def pagination_initialize(cls, paginator, data):
+        paginator.total_items = data['total_items']
+        paginator.per_page = len(data['items'])
+
+    # deal with an offset/limit pagination
+    @classmethod
+    def pagination_initialize(cls, paginator, data):
+        paginator.total_items = data['total']
+
+    @classmethod
+    def pagination_parameters(cls, paginator, page_number):
+        paginator.per_page = 1
+        return dict(
+            offset=(page_number - 1) * paginator.per_page,
+            limit=paginator.per_page,
+        )
+
+    # deal with a pagination that offers a next page key, ie. Dynatrace API
+    @classmethod
+    def pagination_initialize(cls, paginator, data):
+        paginator.next_page = data['next_page']
+        paginator.total_pages = data['total']
+
+    @classmethod
+    def pagination_parameters(cls, paginator, page_number):
+        if page_number > 1:
+            return dict(next_page=paginator.next_page)
+
 Creating a Model
 ----------------
 
