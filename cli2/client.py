@@ -34,19 +34,11 @@ class Paginator:
     """
     Generic pagination class.
 
-    You don't have to override that class to do basic paginator customization,
-    instead, you can also implement pagination specifics into:
+    Should work with most paginations by default, if you're extending this then
+    override:
 
-    - the :py:class:`~Client` class with the
-      :py:meth:`~Client.pagination_initialize` and
-      :py:meth:`~Client.pagination_parameters` methods
-
-    - or also, per model, in the :py:class:`~Model` class with the
-      :py:meth:`~Model.pagination_initialize` and
-      :py:meth:`~Model.pagination_parameters` methods
-
-    Refer to :py:meth:`pagination_parameters` and
-    :py:meth:`pagination_initialize` for details.
+    - :py:meth:`~Paginator.pagination_initialize`
+    - :py:meth:`~Paginator.pagination_parameters`
 
     .. py:attribute:: total_pages
 
@@ -180,12 +172,6 @@ class Paginator:
 
         :param data: Data of the first response
         """
-        try:
-            self.model.pagination_initialize
-        except AttributeError:
-            return self.client.pagination_initialize(self, data)
-        else:
-            return self.model.pagination_initialize(self, data)
 
     def pagination_parameters(self, page_number):
         """
@@ -199,15 +185,12 @@ class Paginator:
 
         .. code-block:: python
 
-            def pagination_parameters(self, paginator, page_number):
+            def pagination_parameters(self, page_number):
+                # this is the default implementation
                 return dict(page=page_number)
         """
-        try:
-            self.model.pagination_parameters
-        except AttributeError:
-            return self.client.pagination_parameters(self, page_number)
-        else:
-            return self.model.pagination_parameters(self, page_number)
+        if page_number > 1:
+            return dict(page=page_number)
 
     def response_items(self, response):
         """
@@ -287,6 +270,8 @@ class Paginator:
         if self._reverse and not self.total_pages:
             first_page_response = await self.page_response(1)
             page = self.total_pages
+            if not self.total_pages:
+                raise Exception('Reverse pagination without total_pages')
         else:
             page = self.page_start
 
@@ -836,32 +821,6 @@ class Model(metaclass=ModelMetaclass):
         """
         return cls.paginator(cls.client, url, params, cls, expressions)
 
-    @classmethod
-    def pagination_initialize(cls, paginator, data):
-        """
-        Implement Model-specific pagination initialization here.
-
-        Otherwise, :py:meth:`Client.pagination_initialize` will
-        take place.
-
-        Refer to :py:meth:`Paginator.pagination_initialize` for
-        details.
-        """
-        cls.client.pagination_initialize(paginator, data)
-
-    @classmethod
-    def pagination_parameters(cls, paginator, page_number):
-        """
-        Implement Model-specific pagination parameters here.
-
-        Otherwise, :py:meth:`Client.pagination_parameters` will
-        take place.
-
-        Refer to :py:meth:`Paginator.pagination_parameters` for
-        details.
-        """
-        return cls.client.pagination_parameters(paginator, page_number)
-
     @property
     def cli2_display(self):
         return self.data
@@ -1179,9 +1138,7 @@ class Client(metaclass=ClientMetaclass):
 
     .. py:attribute:: paginator
 
-        :py:class:`Paginator` class, you can leave it by default and just
-        implement :py:meth:`pagination_initialize` and
-        :py:meth:`pagination_parameters`.
+        :py:class:`Paginator` class
 
     .. py:attribute:: semaphore
 
@@ -1616,22 +1573,6 @@ class Client(metaclass=ClientMetaclass):
         :param model: Model class to cast for items
         """
         return self.paginator(self, url, params or {}, model or dict)
-
-    def pagination_parameters(self, paginator, page_number):
-        """
-        Implement Model-specific pagination parameters here.
-
-        Refer to :py:meth:`Paginator.pagination_parameters` for
-        details.
-        """
-
-    def pagination_initialize(self, paginator, data):
-        """
-        Implement Model-specific pagination initialization here.
-
-        Refer to :py:meth:`Paginator.pagination_initialize` for
-        details.
-        """
 
 
 class Expression:
