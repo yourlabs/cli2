@@ -188,11 +188,13 @@ class Group(EntryPoint, dict):
 
             @cli2.cmd(condition=lambda cls: cls.url_list)
         """
-        leaf = leaf if leaf else cls
+        final = leaf if leaf else cls
         for base in cls.__bases__:
-            self.load_cls(base, leaf=leaf)
+            self.load_cls(base, leaf=final)
 
         for name, method in cls.__dict__.items():
+            if leaf and getattr(final, name, '_') is None:
+                continue
             wrapped_method = getattr(method, '__func__', None)
             cfg = getattr(
                 wrapped_method,
@@ -203,7 +205,7 @@ class Group(EntryPoint, dict):
                 continue
             condition = cfg.get('condition', None)
             if condition:
-                if not condition(leaf):
+                if not condition(final):
                     continue
             self.cmd(method)
 

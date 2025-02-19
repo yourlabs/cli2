@@ -230,7 +230,11 @@ def test_load_cls():
             pass
     group = Group()
     group.load_cls(Foo)
-    assert 'bar' not in group
-    assert 'test' in group
-    assert 'test2' in group
-    assert 'exclude' not in group
+    assert list(group.keys()) == ['help', 'test', 'test2']
+
+    class Child(Foo):
+        test2 = None
+
+    group = Group()
+    group.load_cls(Child)
+    assert list(group.keys()) == ['help', 'test']

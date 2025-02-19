@@ -89,6 +89,11 @@ async def test_client_cli_override(client_class, httpx_mock):
     assert await Client.cli['testmodel2']['find'].async_call() == 'foo'
     assert 'get' not in Client.cli['testmodel2']
 
+    class TestModel3(Client.Model):
+        url_list = '{client.test}/foo'
+        create = None
+    assert 'create' not in Client.cli['testmodel3']
+
 
 def test_client_model(client_class):
     assert issubclass(client_class.Model, cli2.Model)
