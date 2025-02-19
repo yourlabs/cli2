@@ -715,7 +715,9 @@ class ModelMetaclass(type):
             client_class.models.append(cls)
             client_cli = getattr(client_class, 'cli', None)
             if client_cli:
-                cls.cli = client_cli[cls.__name__.lower()] = ModelGroup(cls)
+                group = ModelGroup(cls)
+                if len(group) > 1:
+                    cls.cli = client_cli[cls.__name__.lower()] = group
 
         cls._fields = dict()
 

@@ -51,6 +51,18 @@ async def test_client_cli(client_class, httpx_mock):
     httpx_mock.add_response(url='http://lol/', json=[dict(a=1)])
     await client_class.cli['testmodel']['find'].async_call()
 
+    class TestModel2(client_class.Model):
+        pass
+
+    assert 'testmodel2' not in client_class.cli
+
+    class TestModel3(client_class.Model):
+        @cli2.cmd
+        def find():
+            pass
+
+    assert list(client_class.cli['testmodel3'].keys()) == ['help', 'find']
+
 
 @pytest.mark.asyncio
 async def test_client_cli_override(client_class, httpx_mock):
