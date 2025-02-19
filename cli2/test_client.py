@@ -389,6 +389,21 @@ async def test_pagination(httpx_mock):
     ]
 
 
+def test_paginator(client_class):
+    class Client(client_class):
+        paginator = 'foo'
+
+    class Model1(Client.Model):
+        pass
+
+    class Model2(Client.Model):
+        paginator = 'bar'
+
+    client = Client()
+    assert client.Model1.paginator == 'foo'
+    assert client.Model2.paginator == 'bar'
+
+
 @pytest.mark.asyncio
 async def test_pagination_initialize(httpx_mock):
     httpx_mock.add_response(url='http://lol/?page=1', json=dict(
@@ -514,6 +529,34 @@ async def test_pagination_patterns(httpx_mock):
     assert paginator.total_pages == 2
     assert paginator.per_page == 1
     assert paginator.pagination_parameters(2) == dict(offset=1, limit=1)
+
+    class Key(Client.Model):
+        url_list = '/key'
+
+        @classmethod
+        def pagination_initialize(cls, paginator, data):
+            paginator.next_page = data['next_page']
+            paginator.total_pages = data['total']
+
+        @classmethod
+        def pagination_parameters(cls, paginator, page_number):
+            if page_number > 1:
+                return dict(next_page=paginator.next_page)
+
+    httpx_mock.add_response(
+        url='http://lol/key',
+        json=dict(total=2, items=[dict(a=1)], next_page='aoeu'),
+    )
+    httpx_mock.add_response(
+        url='http://lol/key?next_page=aoeu',
+        json=dict(total=2, items=[dict(a=2)]),
+    )
+
+    client = Client(base_url='http://lol')
+    items = []
+    async for item in client.Key.find():
+        items.append(item.data['a'])
+    assert items == [1, 2]
 
 
 @pytest.mark.asyncio

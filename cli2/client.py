@@ -708,6 +708,8 @@ class ModelMetaclass(type):
         cls = super().__new__(cls, name, bases, attributes)
         client = getattr(cls, 'client', None)
         if client:
+            if not cls.paginator:
+                cls.paginator = client.paginator
             return cls
 
         client_class = getattr(cls, '_client_class', None)
@@ -776,7 +778,7 @@ class Model(metaclass=ModelMetaclass):
 
         Object URL based on :py:attr:`url_detail` and :py:attr:`id_field`.
     """
-    paginator = Paginator
+    paginator = None
     model_command = ModelCommand
     model_group = ModelGroup
     url_list = None
