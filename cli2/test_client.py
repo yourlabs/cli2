@@ -347,7 +347,13 @@ async def test_pagination(httpx_mock):
     httpx_mock.add_response(url='http://lol/?page=2', json=[dict(a=2)])
     httpx_mock.add_response(url='http://lol/?page=3', json=[])
     client = Client(base_url='http://lol')
-    assert await client.paginate('/').list() == [dict(a=1), dict(a=2)]
+    paginator = client.paginate('/')
+    paginator.callback = mock.Mock()
+    assert await paginator.list() == [dict(a=1), dict(a=2)]
+    assert paginator.callback.call_args_list == [
+        mock.call({'a': 1}),
+        mock.call({'a': 2})
+    ]
 
 
 @pytest.mark.asyncio

@@ -75,9 +75,14 @@ class Paginator:
     .. py:attribute:: model
 
         :py:class:`Model` class or ``dict`` by default.
+
+    .. py:attribute:: callback
+
+        Callback called for every item.
     """
 
-    def __init__(self, client, url, params=None, model=None, expressions=None):
+    def __init__(self, client, url, params=None, model=None, expressions=None,
+                 callback=None):
         """
         Initialize a paginator object with a client on a URL with parameters.
 
@@ -93,6 +98,7 @@ class Paginator:
         self.page_start = 1
         self.per_page = None
         self.initialized = False
+        self.callback = callback
         self.expressions = []
         for expression in (expressions or []):
             if not isinstance(expression, Expression):
@@ -270,6 +276,8 @@ class Paginator:
         """
         Asynchronous iterator.
         """
+        callback = callback or self.callback
+
         if self._reverse and not self.total_pages:
             first_page_response = await self.page_response(1)
             page = self.total_pages
@@ -287,6 +295,8 @@ class Paginator:
 
             for item in items:
                 if not python_filter or python_filter.matches(item):
+                    if callback:
+                        callback(item)
                     yield item
 
             if self._reverse:
@@ -298,6 +308,8 @@ class Paginator:
                     items = self.response_items(first_page_response)
                     for item in reversed(items):
                         if not python_filter or python_filter.matches(item):
+                            if callback:
+                                callback(item)
                             yield item
                     break
             else:
