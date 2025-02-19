@@ -1038,7 +1038,7 @@ class Handler:
                 raise response
             # httpx session is rendered unusable after a TransportError
             if isinstance(response, httpx.TransportError):
-                log.warn('reconnect', exception=str(response))
+                log.warn('reconnect', error=repr(response))
                 await client.client_reset()
             return
 
