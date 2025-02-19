@@ -1434,6 +1434,9 @@ class Client(metaclass=ClientMetaclass):
         if not self.token and not self.token_getting:
             await self.token_refresh()
 
+        if not accepts and os.getenv('STRICT'):
+            raise Exception('Accepts not set')
+
         if handler is None:
             if accepts or refuses or tries or backoff:
                 # if any handler kwarg, clone our handler and override
