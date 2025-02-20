@@ -281,8 +281,14 @@ async def test_handler(client_class):
 
     response = httpx.Response(status_code=218)
     response.request = httpx.Request('POST', '/')
-    with pytest.raises(cli2.RefusedResponseError):
+    with pytest.raises(cli2.RefusedResponseError) as exc:
         await handler(client, response, 1, [], log)
+
+    assert exc.value.response
+    assert exc.value.request
+    assert exc.value.url
+    assert exc.value.status_code
+    assert exc.value.response
 
     response = httpx.Response(status_code=418)
     response.request = httpx.Request('POST', '/')

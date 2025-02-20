@@ -1046,13 +1046,52 @@ class ClientError(Exception):
 
 
 class ResponseError(ClientError):
+    """
+    Beautiful Response Error class.
+
+    .. py:attribute:: response
+
+        httpx Response object
+
+    .. py:attribute:: request
+
+        httpx Request object
+
+    .. py:attribute:: status_code
+
+        Response status code
+
+    .. py:attribute:: url
+
+        Request url
+
+    .. py:attribute:: method
+
+        Request method
+    """
     def __init__(self, client, response, tries, mask, msg=None):
         self.client = client
         self.response = response
         self.tries = tries
         self.mask = mask
-        msg = msg or getattr(self, 'msg', '').format(self=self)
-        super().__init__(self.enhance(msg))
+        self.msg = msg or getattr(self, 'msg', '').format(self=self)
+        super().__init__(self.enhance(self.msg))
+
+    @property
+    def request(self):
+        return self.response.request
+
+    @property
+    def method(self):
+        return str(self.request.method)
+
+    @property
+    def url(self):
+        return str(self.request.url)
+
+    @property
+    def status_code(self):
+        return str(self.response.status_code)
 
     def enhance(self, msg):
         """
