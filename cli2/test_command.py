@@ -684,3 +684,30 @@ def test_cli2():
 
     cmd = Command(test)
     assert cmd('x') == ('x', cmd)
+
+
+def test_keyboard_interrupt():
+    def func():
+        raise KeyboardInterrupt()
+
+    cmd = Command(func)
+    cmd()
+    assert cmd.exit_code == 1
+
+
+def test_keyboard_interrupt_async():
+    import asyncio
+    class YourCommand(Command):
+        async def post_call(self):
+            return 'foo'
+
+    async def foo():
+        raise KeyboardInterrupt()
+
+    async def func():
+        await asyncio.gather(foo())
+
+    cmd = YourCommand(func)
+    cmd()
+    assert cmd.exit_code == 1
+    assert cmd.post_result == 'foo'

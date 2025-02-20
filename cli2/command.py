@@ -278,7 +278,14 @@ class Command(EntryPoint, dict):
             return self.help()
 
         if self.async_mode():
-            return asyncio.run(self.async_call(*argv))
+            try:
+                return asyncio.run(self.async_call(*argv))
+            except KeyboardInterrupt:
+                print('exiting cleanly...')
+                self.exit_code = 1
+                return
+            finally:
+                self.post_result = asyncio.run(async_resolve(self.post_call()))
 
         error = self.parse(*argv)
         if error:
@@ -296,12 +303,12 @@ class Command(EntryPoint, dict):
                 for _ in result:
                     display.print(_)
                 result = None
+            return result
         except KeyboardInterrupt:
-            print('exiting')
-            sys.exit(1)
+            print('exiting cleanly...')
+            self.exit_code = 1
         finally:
             self.post_result = self.post_call()
-        return result
 
     async def async_call(self, *argv):
         """ Call with async stuff in single event loop """
@@ -324,15 +331,8 @@ class Command(EntryPoint, dict):
             for _, arg in enumerate(factories):
                 arg.value = results[_]
 
-        try:
-            result = self.call(*self.bound.args, **self.bound.kwargs)
-            result = await async_resolve(result, output=True)
-        except KeyboardInterrupt:
-            print('exiting')
-            sys.exit(1)
-        finally:
-            self.post_result = await async_resolve(self.post_call())
-        return result
+        result = self.call(*self.bound.args, **self.bound.kwargs)
+        return await async_resolve(result, output=True)
 
     def ordered(self, factories=False):
         """
