@@ -195,19 +195,29 @@ class Group(EntryPoint, dict):
         for name, method in cls.__dict__.items():
             if leaf and getattr(final, name, '_') is None:
                 continue
-            wrapped_method = getattr(method, '__func__', None)
-            cfg = getattr(
-                wrapped_method,
-                'cli2',
-                getattr(method, 'cli2', None),
-            )
-            if cfg is None:
-                continue
-            condition = cfg.get('condition', None)
-            if condition:
-                if not condition(final):
-                    continue
-            self.cmd(method)
+            self.load_method(final, method)
+
+    def load_obj(self, obj):
+        """
+        Load all methods which have been decorated with @cmd
+        """
+        for name in dir(obj):
+            self.load_method(obj, getattr(obj, name))
+
+    def load_method(self, obj, method):
+        wrapped_method = getattr(method, '__func__', None)
+        cfg = getattr(
+            wrapped_method,
+            'cli2',
+            getattr(method, 'cli2', None),
+        )
+        if cfg is None:
+            return
+        condition = cfg.get('condition', None)
+        if condition:
+            if not condition(obj):
+                return
+        self.cmd(method)
 
     def __call__(self, *argv):
         self.exit_code = 0

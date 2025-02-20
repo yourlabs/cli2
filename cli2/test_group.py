@@ -232,9 +232,17 @@ def test_load_cls():
     group.load_cls(Foo)
     assert list(group.keys()) == ['help', 'test', 'test2']
 
+    group = Group()
+    group.load_obj(Foo())
+    assert list(group.keys()) == ['help', 'test', 'test2']
+
     class Child(Foo):
         test2 = None
 
     group = Group()
     group.load_cls(Child)
+    assert list(group.keys()) == ['help', 'test']
+
+    group = Group()
+    group.load_obj(Child())
     assert list(group.keys()) == ['help', 'test']

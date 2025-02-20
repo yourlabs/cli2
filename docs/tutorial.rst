@@ -276,6 +276,30 @@ See the source code for the ``cli2`` command, which implements an infitely lazy
 loaded command tree based on introspection of the passed arguments with
 extremely little code.
 
+Loading classes and objects
+---------------------------
+
+:py:meth:`~cli2.group.Group.load_obj` will load all methods if they have been
+decorated with ``@cmd``:
+
+.. code-block:: python
+
+    class Foo:
+        @cli2.cmd
+        def your_command(self):
+            # ...
+
+    group.load_obj(Foo())
+
+If you really can't instanciate your object, you can still use
+:py:meth:`~cli2.group.Group.load_cls` to load a class. In which case, you'll
+have to declare a factory for self. ie.:
+
+.. code-block:: python
+
+    group.load_cls(Foo)
+    group.overrides['self']['factory'] = lambda: Foo()
+
 Lazy loading: using Group.load
 ------------------------------
 
