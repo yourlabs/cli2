@@ -45,7 +45,7 @@ def yaml_highlight(yaml_string):
     return highlight(yaml_string, 'Yaml')
 
 
-def render(arg):
+def render(arg, highlight=True):
     """
     Try to render arg as yaml.
 
@@ -78,6 +78,8 @@ def render(arg):
         pass
 
     string = arg if isinstance(arg, str) else yaml_dump(arg)
+    if not highlight:
+        return string
     return yaml_highlight(string)
 
 
