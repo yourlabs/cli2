@@ -162,9 +162,6 @@ class Client(cli2.Client):
         kwargs.setdefault('base_url', 'http://lol')
         super().__init__(*args, **kwargs)
 
-    def pagination_parameters(self, paginator, page_number):
-        return dict(page=page_number)
-
 
 raised = False
 
@@ -499,12 +496,10 @@ async def test_pagination_patterns(httpx_mock):
         def pagination_initialize(self, data):
             self.total_items = data['total']
 
-        def pagination_parameters(self, page_number):
+        def pagination_parameters(self, params, page_number):
             self.per_page = 1
-            return dict(
-                offset=(page_number - 1) * paginator.per_page,
-                limit=paginator.per_page,
-            )
+            params['offset'] = (page_number - 1) * self.per_page
+            params['limit'] = self.per_page
 
     class Offset(Client.Model):
         url_list = '/off'
@@ -532,7 +527,9 @@ async def test_pagination_patterns(httpx_mock):
     await paginator.initialize()
     assert paginator.total_pages == 2
     assert paginator.per_page == 1
-    assert paginator.pagination_parameters(2) == dict(offset=1, limit=1)
+    params = dict()
+    paginator.pagination_parameters(params, 2)
+    assert params == dict(offset=1, limit=1)
 
 
 @pytest.mark.asyncio

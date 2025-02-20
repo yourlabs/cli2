@@ -134,15 +134,13 @@ the default ``page`` GET parameter won't do, change it in
 .. code-block:: python
 
     class OffsetPagination(cli2.Paginator):
-        def pagination_parameters(self, page_number):
-            paginator.per_page = 1
-            return dict(
-                offset=(page_number - 1) * paginator.per_page,
-                limit=paginator.per_page,
-            )
+        def pagination_parameters(self, params, page_number):
+            self.per_page = 1
+            params['offset'] = (page_number - 1) * self.per_page
+            params['limit'] = self.per_page
 
         def pagination_initialize(self, data):
-            paginator.total_items = data['total']
+            self.total_items = data['total']
 
 Creating a Model
 ----------------

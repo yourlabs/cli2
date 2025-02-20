@@ -168,7 +168,7 @@ class Paginator:
         :param data: Data of the first response
         """
 
-    def pagination_parameters(self, page_number):
+    def pagination_parameters(self, params, page_number):
         """
         Return GET parameters for a given page.
 
@@ -180,12 +180,15 @@ class Paginator:
 
         .. code-block:: python
 
-            def pagination_parameters(self, page_number):
+            def pagination_parameters(self, params, page_number):
                 # this is the default implementation
-                return dict(page=page_number)
+                params['page'] = page_number
+
+        :param params: Dict of base GET parameters
+        :param page_number: Page number to get
         """
         if page_number > 1:
-            return dict(page=page_number)
+            params['page'] = page_number
 
     def response_items(self, response):
         """
@@ -228,10 +231,7 @@ class Paginator:
 
         :param page_number: Page number to get the items from
         """
-        try:
-            return self.response_items(await self.page_response(page_number))
-        except NotImplementedError:
-            return []
+        return self.response_items(await self.page_response(page_number))
 
     async def page_response(self, page_number):
         """
@@ -240,13 +240,7 @@ class Paginator:
         :param page_number: Page number to get the items from
         """
         params = self.params.copy()
-        pagination_parameters = self.pagination_parameters(page_number)
-        if pagination_parameters:
-            params.update(pagination_parameters)
-        elif page_number != 1:
-            raise NotImplementedError(
-                'pagination_parameters returned None, cannot paginate',
-            )
+        self.pagination_parameters(params, page_number)
         for expression in self.expressions:
             if expression.parameterable:
                 expression.params(params)
