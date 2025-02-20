@@ -609,6 +609,9 @@ def test_jsonstring():
     model.json = dict(a=1)
     assert model.data['json'] == '{"a": 1}'
 
+    model = client.Model(data=dict(json=''))
+    assert model.json == ''
+
 
 def test_datetime():
     class Model(Client.Model):

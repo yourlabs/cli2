@@ -527,6 +527,8 @@ class JSONStringField(MutableField):
         return json.dumps(data, **self.options)
 
     def externalize(self, obj, value):
+        if value == '':
+            return value
         return json.loads(value)
 
 
