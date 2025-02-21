@@ -176,10 +176,8 @@ your action plugin and set the documentation in YAML strings in there.
 
 Once your documentation outputs properly with ``ansible-doc`` command, you can
 have it in your Sphinx documentation with various plugins that you'll find
-easily on internet, except probably for mine which I prefer to use:
-`ansible-sphinx <https://yourlabs.io/oss/ansible-sphinx>`_ which currently
-lacks documentation although it does contain a test repo with all the examples
-you need.
+easily on internet, except probably for mine:
+`ansible-sphinx <https://yourlabs.io/oss/ansible-sphinx>`_.
 
 Example
 =======
