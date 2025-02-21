@@ -7,6 +7,8 @@ class APIClient(cli2.Client):
 
     Prior to using this, run at the root of this repository:
 
+    .. code-block::
+
         pip install django djangorestframework
         ./manage.py migrate
         ./manage.py runserver
