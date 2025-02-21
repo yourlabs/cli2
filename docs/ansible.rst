@@ -143,7 +143,7 @@ automatically.
         async def run_async(self):
             obj = await self.client.Object.find(name=self.name).first()
 
-            if self.task_vars['ansible_verbosity'] > 1:
+            if self.verbosity:
                 # don't display diff if not -v
                 self.before_set(obj.data)
 
@@ -153,13 +153,21 @@ automatically.
                 response = await obj.save()
                 self.result['changed'] = True
 
-                if self.verbosity > 1:
+                if self.verbosity:
                     self.after_set(obj.data)
 
                 # we can also get masked data
                 key, value = self.client.response_log_data(response)
                 self.result[key] = value
 
+Also, I note that I always forget to pass ``--diff`` anyway, so do my users,
+I'm assuming the user is trying to understand what's going on as soon as they
+pass a single ``-v``, so, this example will only check if any verbosity is
+activated at all to display the diff.
+
+If you really want the diff to display only with ``--diff``, then wrap your
+before_set/after_set in ``if self.task_vars['ansible_diff_mode']`` instead of
+``if self.verbosity``.
 
 Testing
 =======
