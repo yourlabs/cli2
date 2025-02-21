@@ -165,6 +165,19 @@ calls ansible-playbook in localhost, thanks to the
 The previous, mocking solution, is always preferable. But if you also want
 functional tests, then this works great.
 
+Documenting
+===========
+
+That's a bit trickier, you have to put a module plugin with a name matching
+your action plugin and set the documentation in YAML strings in there.
+
+Once your documentation outputs properly with ``ansible-doc`` command, you can
+have it in your Sphinx documentation with various plugins that you'll find
+easily on internet, except probably for mine which I prefer to use:
+`ansible-sphinx <https://yourlabs.io/oss/ansible-sphinx>`_ which currently
+lacks documentation although it does contain a test repo with all the examples
+you need.
+
 Example
 =======
 
