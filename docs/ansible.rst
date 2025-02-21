@@ -4,6 +4,9 @@ Tutorial for cli2.ansible: Ansible Action Plugin framework
 Experimental feature, requires ``ansible``, to build `custom action plugins
 <https://docs.ansible.com/ansible/latest/dev_guide/developing_plugins.html#action-plugins>`_
 
+Useful on its own, it also integrates very well with our HTTP client, so you
+probably want to read about that first:doc:`client`.
+
 Features
 ========
 
