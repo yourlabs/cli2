@@ -1509,8 +1509,7 @@ class Client(metaclass=ClientMetaclass):
         return response
 
     def response_log_data(self, response, mask=None):
-        if mask is None:
-            mask = self.mask
+        mask = mask if mask is not None else self.mask
         try:
             data = response.json()
         except json.JSONDecodeError:
@@ -1521,7 +1520,8 @@ class Client(metaclass=ClientMetaclass):
                 return 'json', self.mask_data(data, mask)
         return None, None
 
-    def request_log_data(self, request, mask, quiet=False):
+    def request_log_data(self, request, mask=None, quiet=False):
+        mask = mask if mask is not None else self.mask
         content = request.content.decode()
         if not content:
             return None, None

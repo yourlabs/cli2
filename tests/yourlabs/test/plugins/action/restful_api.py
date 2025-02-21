@@ -25,6 +25,8 @@ class ActionModule(ansible.ActionBase):
         if self.state == 'absent':
             if obj:
                 response = await obj.delete()
+                # this returns masked json or content in value
+                # key will be "json" or "content"
                 key, value = self.client.response_log_data(response)
                 self.result[key] = value
                 self.result['changed'] = True

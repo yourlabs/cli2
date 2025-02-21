@@ -176,6 +176,18 @@ class ActionBase(ActionBase):
 
             if isinstance(exc, AnsibleError):
                 self.result['error'] = exc.message
+            elif isinstance(exc, cli2.ResponseError):
+                self.result.update(dict(
+                    method=exc.method,
+                    url=exc.url,
+                    status_code=exc.status_code,
+                ))
+                key, value = self.client.response_log_data(exc.response)
+                if key:
+                    self.result[f'response_{key}'] = value
+                key, value = self.client.request_log_data(exc.request)
+                if key:
+                    self.result[f'request_{key}'] = value
             elif self.verbosity:
                 traceback.print_exc()
 

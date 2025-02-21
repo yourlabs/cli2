@@ -1,10 +1,39 @@
 import cli2
+import httpx
 import mock
 import pytest
 import textwrap
 import yaml
 
 from cli2 import ansible
+
+
+@pytest.mark.asyncio
+async def test_response_error(httpx_mock):
+    class Client(cli2.Client):
+        mask = ['secret']
+
+    class Action(ansible.ActionBase):
+        async def client_factory(self):
+            return Client(base_url='http://foo')
+
+        async def run_async(self):
+            await self.client.post('/', json=dict(secret=2, foo=1))
+
+    httpx_mock.add_response(
+        url='http://foo/',
+        status_code=400,
+        json=dict(foo=2, secret=3),
+    )
+    module = await Action.run_test_async(fail=True)
+    assert module.result == {
+        'failed': True,
+        'method': 'POST',
+        'url': 'http://foo/',
+        'status_code': '400',
+        'response_json': {'foo': 2, 'secret': '***MASKED***'},
+        'request_json': {'secret': '***MASKED***', 'foo': 1}
+    }
 
 
 @pytest.mark.asyncio
