@@ -593,6 +593,12 @@ def test_descriptor(client_class):
 
     model = Model()
     assert model.foo == ''
+    assert not model.changed_fields
+    model.foo = 'bar'
+    assert model.changed_fields == dict(foo='')
+    model = Model(foo='bar')
+    model.foo = 'foo'
+    assert model.changed_fields == dict(foo='bar')
 
 
 def test_jsonstring(client_class):

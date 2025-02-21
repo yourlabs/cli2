@@ -371,6 +371,12 @@ class Field:
         - Use :py:meth:`internal_set` to actually set the internal
           :py:attr:`Model.data`
         """
+        try:
+            old_value = getattr(obj, self.name)
+            if self.name not in obj.changed_fields and value != old_value:
+                obj.changed_fields[self.name] = old_value
+        except FieldExternalizeError:
+            obj.changed_fields[self.name] = None
         value = self.internalize(obj, value)
         self.internal_set(obj, value)
 
@@ -777,8 +783,12 @@ class Model(metaclass=ModelMetaclass):
         self._dirty_fields = []
         self._field_cache = dict()
 
+        self.changed_fields = dict()
         for key, value in values.items():
             setattr(self, key, value)
+
+        # actually reset that
+        self.changed_fields = dict()
 
     @property
     def data(self):
@@ -874,6 +884,7 @@ class Model(metaclass=ModelMetaclass):
         """
         response = await self.client.get(self.url)
         self.data.update(response.json())
+        self.changed_fields = dict()
 
     async def save(self):
         """
