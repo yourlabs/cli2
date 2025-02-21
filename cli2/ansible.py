@@ -1,7 +1,5 @@
 """
 Experimental: my base class for Ansible actions.
-
-TODO: Turn this into a cool framework.
 """
 
 import asyncio
