@@ -26,6 +26,39 @@ With :py:class:`cli2.ansible.ActionBase`, we don't define run, we define
             self.task_vars  # is the usual task_vars arg
             self.result['failed'] = True
 
+Logging
+-------
+
+.. code-block:: python
+
+    from cli2 import ansible
+
+    class ActionModule(ansible.ActionBase):
+        async def run_async(self):
+            self.logger.debug('Getting something')
+            something = get_something()
+            self.logger.info('Got something', json=something)
+
+And then you get absolutely beautiful logging:
+
+- ``json`` logger key is configured to render as colored yaml
+- with ``-v``: log level will be set to ``INFO``, which you should you use to
+  indicate that something **has been done**
+- with ``-vv``: log level will be set to ``DEBUG``, which you should you use to
+  indicate that something **is going to be attempted**
+
+Without ``-v``:
+
+.. image:: ansible_log_nov.png
+
+With ``-v``:
+
+.. image:: ansible_log_v.png
+
+With ``-vv``:
+
+.. image:: ansible_log_vv.png
+
 Option
 ------
 
@@ -39,6 +72,9 @@ fiddling with task_vars:
 
         async def run_async(self):
             self.result['name'] = self.name
+
+An option can specify an argument name, and/or a global fact name, and a
+default.
 
 Client
 ------
@@ -67,10 +103,10 @@ And then you get absolutely beautiful logging:
 - with ``-vv``: log level will be set to ``DEBUG``, which means you will see
   requests too.
 
-There is no way to set :envvar:`DEBUG`, as we never want masked secrets to
-output in an Ansible Tower job. But you can still export ``DEBUG=1`` prior to
-executing Ansible manually, which will dump all pagination requests/responses
-and secrets.
+There is no way to set :envvar:`DEBUG` from ansible, as we never want masked
+secrets to output in an Ansible Tower job. But you can still export ``DEBUG=1``
+prior to executing Ansible manually, which will dump all pagination
+requests/responses and secrets.
 
 Without ``-v``:
 

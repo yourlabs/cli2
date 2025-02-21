@@ -8,6 +8,7 @@ import copy
 import mock
 import os
 import re
+import structlog
 import traceback
 
 from cli2 import logging
@@ -166,6 +167,9 @@ class ActionBase(ActionBase):
                 self.client = await self.client_factory()
             except NotImplementedError:
                 self.client = None
+                self.logger = structlog.get_logger('cli2')
+            else:
+                self.logger = self.client.logger
             await self.run_async()
         except Exception as exc:
             self.result['failed'] = True

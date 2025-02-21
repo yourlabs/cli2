@@ -19,12 +19,16 @@ class ActionModule(ansible.ActionBase):
         elif self.name:
             obj = await self.client.Object.find(name=self.name).first()
 
+        if obj:
+            self.logger.info(f'Found object')
+
         if self.state == 'absent':
             if obj:
                 response = await obj.delete()
                 key, value = self.client.response_log_data(response)
                 self.result[key] = value
                 self.result['changed'] = True
+                self.logger.info(f'Deleted object')
             return
 
         if obj is not None:
@@ -40,6 +44,7 @@ class ActionModule(ansible.ActionBase):
 
         if obj.changed_fields:
             response = await obj.save()
+            self.logger.info(f'Object changes saved')
             key, value = self.client.response_log_data(response)
             self.result[key] = value
             self.result['changed'] = True

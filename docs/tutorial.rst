@@ -114,7 +114,6 @@ Same if you want to use the posix style:
     cmd.parse('a', 'b', '--c=d')
     assert cmd.bound.arguments == dict(somearg='a', x='b', kwargs={'c': 'd'})
 
-
 Entry point
 -----------
 
