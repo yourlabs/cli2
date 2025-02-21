@@ -181,14 +181,12 @@ class Paginator:
         .. code-block:: python
 
             def pagination_parameters(self, params, page_number):
-                # this is the default implementation
                 params['page'] = page_number
 
         :param params: Dict of base GET parameters
         :param page_number: Page number to get
         """
-        if page_number > 1:
-            params['page'] = page_number
+        raise NotImplementedError("pagination_parameters not implemented")
 
     def response_items(self, response):
         """
@@ -231,7 +229,11 @@ class Paginator:
 
         :param page_number: Page number to get the items from
         """
-        return self.response_items(await self.page_response(page_number))
+        try:
+            return self.response_items(await self.page_response(page_number))
+        except NotImplementedError:
+            # pagination_parameters not implemented, can't paginate
+            return []
 
     async def page_response(self, page_number):
         """
@@ -240,7 +242,11 @@ class Paginator:
         :param page_number: Page number to get the items from
         """
         params = self.params.copy()
-        self.pagination_parameters(params, page_number)
+        try:
+            self.pagination_parameters(params, page_number)
+        except NotImplementedError:
+            if page_number > 1:
+                raise
         for expression in self.expressions:
             if expression.parameterable:
                 expression.params(params)
@@ -678,6 +684,8 @@ class ModelGroup(Group):
 
 class ModelMetaclass(type):
     def __new__(cls, name, bases, attributes):
+        if 'Paginator' in attributes:
+            attributes['paginator'] = attributes['Paginator']
         cls = super().__new__(cls, name, bases, attributes)
         client = getattr(cls, 'client', None)
         if client:
@@ -919,6 +927,8 @@ class Model(metaclass=ModelMetaclass):
 
 class ClientMetaclass(type):
     def __new__(cls, name, bases, attributes):
+        if 'Paginator' in attributes:
+            attributes['paginator'] = attributes['Paginator']
         cls = super().__new__(cls, name, bases, attributes)
 
         # bind ourself as _client_class to any inherited model

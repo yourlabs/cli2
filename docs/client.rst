@@ -100,21 +100,29 @@ There are a few methods that you might want to override:
 Pagination
 ----------
 
-The default :py:class:`~cli2.client.Paginator` is pretty dump, it just
-increments a ``page`` GET parameter until it gets an empty results list.
-
-It's sub-optimal, for the paginator to know when to stop, it needs to know the
-total pages, implement that in
-:py:meth:`~cli2.client.Paginator.pagination_initialize`:
+The default :py:class:`~cli2.client.Paginator` doesn't know how to paginate.
+Let's teach it to make a page GET parameter:
 
 .. code-block:: python
 
-    class YourPaginator(cli2.Paginator):
-        def pagination_initialize(self, data):
-            self.total_pages = data['total_pages']
+    class YourClient(cli2.Client):
+        class Paginator(cli2.Paginator):
+            def pagination_parameters(self, params, page_number):
+                params['page'] = page_number
+
+That will increments a ``page`` GET parameter until it gets an empty results
+list, which works but is still sub-optimal. Let's teach it when to stop by
+setting total_pages in :py:meth:`~cli2.client.Paginator.pagination_initialize`:
+
+.. code-block:: python
 
     class YourClient(cli2.Client):
-        paginator = YourPaginator
+        class Paginator(cli2.Paginator):
+            def pagination_parameters(self, params, page_number):
+                params['page'] = page_number
+
+            def pagination_initialize(self, data):
+                self.total_pages = data['total_pages']
 
 Perhaps you don't get the total pages from the API response, but you do get a
 total number of items, which you can set
@@ -123,7 +131,7 @@ total number of items, which you can set
 
 .. code-block:: python
 
-    class YourPaginator(cli2.Paginator):
+    class Paginator(cli2.Paginator):
         def pagination_initialize(self, data):
             self.total_items = data['total_items']
 
@@ -165,6 +173,13 @@ from the client:
 
     client = YourClient()
     model_class = client.YourObject
+
+You can also define a specific paginator:
+
+.. code-block:: python
+
+    class YourModel(YourClient.Model):
+        paginator = YourPaginator
 
 Model.client
 ------------
