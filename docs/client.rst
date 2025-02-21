@@ -138,7 +138,7 @@ total number of items, which you can set
             self.total_items = data['total_items']
 
 Perhaps you're dealing with an offset/limit type of pagination, in which case,
-the default ``page`` GET parameter won't do, change it in
+``page`` GET parameter won't do, set offlet/limit instead in
 :py:meth:`~cli2.client.Paginator.pagination_parameters`:
 
 .. code-block:: python
