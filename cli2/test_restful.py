@@ -58,6 +58,19 @@ async def test_update(httpx_mock):
             ),
         )],
     )
+
+    # testing for idempotence
+    module = await restful_api.ActionModule.run_test_async(
+        args=dict(
+            name='test',
+            capacity='5',
+            price='3',
+        )
+    )
+    assert not module.result['changed']
+    assert module.result['json']['id'] == 1
+
+    # testing for update
     httpx_mock.add_response(
         url='http://localhost:8000/objects/1/',
         method='PUT',
@@ -80,13 +93,3 @@ async def test_update(httpx_mock):
     )
     assert module.result['json']['id'] == 1
     assert module.result['changed']
-
-    module = await restful_api.ActionModule.run_test_async(
-        args=dict(
-            name='test',
-            capacity='5',
-            price='3',
-        )
-    )
-    assert not module.result['changed']
-    assert module.result['json']['id'] == 1
