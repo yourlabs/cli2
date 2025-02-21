@@ -149,12 +149,12 @@ async def test_client_cli_side_effect(client_class, httpx_mock):
     )
 
     # Test that Model's __init_subclass__ did setup a factory for cls
-    httpx_mock.add_response(url='https://api.restful-api.dev/1', json=[1])
+    httpx_mock.add_response(url='http://localhost:8000/1', json=[1])
     result = await example_client.cli['get'].async_call('/1')
     assert result.json() == [1]
 
     httpx_mock.add_response(
-        url='https://api.restful-api.dev/objects/1',
+        url='http://localhost:8000/objects/1/',
         json=dict(id=1, a=2),
     )
     result = await example_client.cli['object']['get'].async_call('id=1')

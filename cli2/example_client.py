@@ -4,9 +4,17 @@ import cli2
 class APIClient(cli2.Client):
     """
     Client for restful-api.dev
+
+    Prior to using this, run at the root of this repository:
+
+        pip install django djangorestframework
+        ./manage.py migrate
+        ./manage.py runserver
     """
+    mask = ["Capacity"]
+
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault('base_url', 'https://api.restful-api.dev/')
+        kwargs.setdefault('base_url', 'http://localhost:8000')
         super().__init__(*args, **kwargs)
 
     @cli2.cmd
@@ -23,8 +31,8 @@ class Object(APIClient.Model):
 
     cli2-example-client object create name=cli2 capacity=2TB
     """
-    url_list = '/objects'
-    url_detail = '/objects/{self.id}'
+    url_list = '/objects/'
+    url_detail = '/objects/{self.id}/'
 
     id = cli2.Field()
     name = cli2.Field()

@@ -116,11 +116,10 @@ def diff(diff, **kwargs):
     _print(diff_highlight(diff), **kwargs)
 
 
-
 def diff_data(before, after, before_label='before', after_label='after'):
-    return diff(difflib.unified_diff(
+    return difflib.unified_diff(
         yaml.dump(before).splitlines(),
         yaml.dump(after).splitlines(),
         before_label,
         after_label,
-    ))
+    )

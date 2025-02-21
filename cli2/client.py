@@ -807,6 +807,10 @@ class Model(metaclass=ModelMetaclass):
     def data(self, value):
         self._data = value
 
+    @property
+    def data_masked(self):
+        return self.client.mask_data(self.data)
+
     @classmethod
     @hide('expressions')
     @cmd(color='green', condition=lambda cls: cls.url_list)
@@ -1504,7 +1508,9 @@ class Client(metaclass=ClientMetaclass):
 
         return response
 
-    def response_log_data(self, response, mask):
+    def response_log_data(self, response, mask=None):
+        if mask is None:
+            mask = self.mask
         try:
             data = response.json()
         except json.JSONDecodeError:
