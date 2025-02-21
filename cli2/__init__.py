@@ -28,7 +28,7 @@ except ImportError:
     # httpx not installed
     pass
 from .decorators import arg, cmd
-from .display import diff, print, highlight
+from .display import diff, diff_data, render, print, highlight
 from .group import Group
 from .node import Node
 from .table import Table

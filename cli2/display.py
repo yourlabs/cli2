@@ -4,8 +4,10 @@ Generic pretty display utils.
 This module defines a print function that's supposed to be able to pretty-print
 anything, as well as a pretty diff printer.
 """
+import difflib
 import os
 import sys
+import yaml
 
 try:
     import jsonlight as json
@@ -34,7 +36,6 @@ def highlight(string, lexer):
 
 
 def yaml_dump(data):
-    import yaml
     if isinstance(data, dict):
         # ensure that objects inheriting from dict render nicely
         data = dict(data)
@@ -45,7 +46,7 @@ def yaml_highlight(yaml_string):
     return highlight(yaml_string, 'Yaml')
 
 
-def render(arg):
+def render(arg, highlight=True):
     """
     Try to render arg as yaml.
 
@@ -78,6 +79,8 @@ def render(arg):
         pass
 
     string = arg if isinstance(arg, str) else yaml_dump(arg)
+    if not highlight:
+        return string
     return yaml_highlight(string)
 
 
@@ -111,3 +114,12 @@ def diff(diff, **kwargs):
         cli2.diff(difflib.unified_diff(old, new))
     """
     _print(diff_highlight(diff), **kwargs)
+
+
+def diff_data(before, after, before_label='before', after_label='after'):
+    return difflib.unified_diff(
+        yaml.dump(before).splitlines(),
+        yaml.dump(after).splitlines(),
+        before_label,
+        after_label,
+    )

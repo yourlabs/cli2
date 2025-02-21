@@ -15,9 +15,9 @@ class YAMLFormatter:
 
     def __call__(self, key, value):
         value = cli2.display.yaml_dump(value)
-        if not self.colors:
-            return value
-        return cli2.display.yaml_highlight(value)
+        if self.colors:
+            value = cli2.display.yaml_highlight(value)
+        return '\n' + value
 
 
 def configure():

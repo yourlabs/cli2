@@ -181,14 +181,12 @@ class Paginator:
         .. code-block:: python
 
             def pagination_parameters(self, params, page_number):
-                # this is the default implementation
                 params['page'] = page_number
 
         :param params: Dict of base GET parameters
         :param page_number: Page number to get
         """
-        if page_number > 1:
-            params['page'] = page_number
+        raise NotImplementedError("pagination_parameters not implemented")
 
     def response_items(self, response):
         """
@@ -231,7 +229,11 @@ class Paginator:
 
         :param page_number: Page number to get the items from
         """
-        return self.response_items(await self.page_response(page_number))
+        try:
+            return self.response_items(await self.page_response(page_number))
+        except NotImplementedError:
+            # pagination_parameters not implemented, can't paginate
+            return []
 
     async def page_response(self, page_number):
         """
@@ -240,7 +242,11 @@ class Paginator:
         :param page_number: Page number to get the items from
         """
         params = self.params.copy()
-        self.pagination_parameters(params, page_number)
+        try:
+            self.pagination_parameters(params, page_number)
+        except NotImplementedError:
+            if page_number > 1:
+                raise
         for expression in self.expressions:
             if expression.parameterable:
                 expression.params(params)
@@ -365,6 +371,12 @@ class Field:
         - Use :py:meth:`internal_set` to actually set the internal
           :py:attr:`Model.data`
         """
+        try:
+            old_value = getattr(obj, self.name)
+            if self.name not in obj.changed_fields and value != old_value:
+                obj.changed_fields[self.name] = old_value
+        except FieldExternalizeError:
+            obj.changed_fields[self.name] = None
         value = self.internalize(obj, value)
         self.internal_set(obj, value)
 
@@ -678,6 +690,8 @@ class ModelGroup(Group):
 
 class ModelMetaclass(type):
     def __new__(cls, name, bases, attributes):
+        if 'Paginator' in attributes:
+            attributes['paginator'] = attributes['Paginator']
         cls = super().__new__(cls, name, bases, attributes)
         client = getattr(cls, 'client', None)
         if client:
@@ -769,8 +783,12 @@ class Model(metaclass=ModelMetaclass):
         self._dirty_fields = []
         self._field_cache = dict()
 
+        self.changed_fields = dict()
         for key, value in values.items():
             setattr(self, key, value)
+
+        # actually reset that
+        self.changed_fields = dict()
 
     @property
     def data(self):
@@ -788,6 +806,10 @@ class Model(metaclass=ModelMetaclass):
     @data.setter
     def data(self, value):
         self._data = value
+
+    @property
+    def data_masked(self):
+        return self.client.mask_data(self.data)
 
     @classmethod
     @hide('expressions')
@@ -866,6 +888,7 @@ class Model(metaclass=ModelMetaclass):
         """
         response = await self.client.get(self.url)
         self.data.update(response.json())
+        self.changed_fields = dict()
 
     async def save(self):
         """
@@ -919,6 +942,8 @@ class Model(metaclass=ModelMetaclass):
 
 class ClientMetaclass(type):
     def __new__(cls, name, bases, attributes):
+        if 'Paginator' in attributes:
+            attributes['paginator'] = attributes['Paginator']
         cls = super().__new__(cls, name, bases, attributes)
 
         # bind ourself as _client_class to any inherited model
@@ -1046,13 +1071,52 @@ class ClientError(Exception):
 
 
 class ResponseError(ClientError):
+    """
+    Beautiful Response Error class.
+
+    .. py:attribute:: response
+
+        httpx Response object
+
+    .. py:attribute:: request
+
+        httpx Request object
+
+    .. py:attribute:: status_code
+
+        Response status code
+
+    .. py:attribute:: url
+
+        Request url
+
+    .. py:attribute:: method
+
+        Request method
+    """
     def __init__(self, client, response, tries, mask, msg=None):
         self.client = client
         self.response = response
         self.tries = tries
         self.mask = mask
-        msg = msg or getattr(self, 'msg', '').format(self=self)
-        super().__init__(self.enhance(msg))
+        self.msg = msg or getattr(self, 'msg', '').format(self=self)
+        super().__init__(self.enhance(self.msg))
+
+    @property
+    def request(self):
+        return self.response.request
+
+    @property
+    def method(self):
+        return str(self.request.method)
+
+    @property
+    def url(self):
+        return str(self.request.url)
+
+    @property
+    def status_code(self):
+        return str(self.response.status_code)
 
     def enhance(self, msg):
         """
@@ -1444,7 +1508,9 @@ class Client(metaclass=ClientMetaclass):
 
         return response
 
-    def response_log_data(self, response, mask):
+    def response_log_data(self, response, mask=None):
+        if mask is None:
+            mask = self.mask
         try:
             data = response.json()
         except json.JSONDecodeError:

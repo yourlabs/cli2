@@ -40,5 +40,8 @@ setup(
             'cli2-example-client = cli2.example_client:cli.entry_point',
             'cli2-example-client-complex = cli2.example_client_complex:cli.entry_point',
         ],
+        'pytest11': [
+            'cli2-ansible-fixtures = cli2.pytest_ansible',
+        ],
     },
 )

@@ -1,0 +1,35 @@
+- hosts: localhost
+  tasks:
+  - name: Create object
+    register: object_create
+    yourlabs.test.restful_api:
+      name: test-cli2-ansible
+      capacity: 10To
+      price: 1
+
+  - name: Update object
+    yourlabs.test.restful_api:
+      id: '{{ object_create.json.id }}'
+      name: test-cli2-ansible
+      capacity: 1To
+      price: 2
+
+  - name: Idempotence
+    register: idempotence
+    yourlabs.test.restful_api:
+      id: '{{ object_create.json.id }}'
+      name: test-cli2-ansible
+      capacity: 1To
+      price: 2
+
+  - assert:
+      that:
+      - not idempotence.changed
+
+  - name: Delete object
+    yourlabs.test.restful_api:
+      id: '{{ object_create.json.id }}'
+      name: test-cli2-ansible
+      capacity: 1To
+      price: 2
+      state: absent
