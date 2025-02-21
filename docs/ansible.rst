@@ -170,6 +170,9 @@ Example
 Plugin
 ------
 
+This uses the example cli2 Client that we developed in :ref:`the cli2.client
+example<Example Client>`:
+
 .. literalinclude:: ../tests/yourlabs/test/plugins/action/restful_api.py
 
 Tests

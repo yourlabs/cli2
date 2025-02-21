@@ -27,6 +27,8 @@ you have a library for an API, which you're going to embed in god knows what
 (your API server, an Ansible plugin ...), you'll want to work with a CLI to
 debug stuff: discover the API and implement features incrementally.
 
+.. _Example Client:
+
 Source code
 -----------
 
