@@ -289,7 +289,7 @@ Combine ands and ors:
             & (lambda item: item.company_name.lower().endswith('bar'))
         )
         # OR with name test
-        | item.company_name == 'test'
+        | YourModel.company_name == 'test'
     )
 
 Parameterable
