@@ -182,3 +182,6 @@ API
 
 .. automodule:: cli2.ansible
    :members:
+
+.. automodule:: cli2.pytest_ansible
+   :members:
