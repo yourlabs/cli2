@@ -12,6 +12,7 @@ cli2: Dynamic CLI for Python 3
 
    tutorial
    client
+   ansible
    api
 
 Example Sphinx
