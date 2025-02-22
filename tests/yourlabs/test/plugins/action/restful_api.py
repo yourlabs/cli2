@@ -1,7 +1,7 @@
 import cli2
 import copy
 from cli2 import ansible
-from cli2.example_client import APIClient
+from cli2.examples.client import APIClient
 
 
 class ActionModule(ansible.ActionBase):
@@ -12,6 +12,7 @@ class ActionModule(ansible.ActionBase):
     state = ansible.Option('state', None, 'present')
 
     async def run_async(self):
+        self.log = cli2.log.bind(id=self.id, name=self.name)
         obj = None
 
         if self.id:
@@ -20,7 +21,7 @@ class ActionModule(ansible.ActionBase):
             obj = await self.client.Object.find(name=self.name).first()
 
         if obj:
-            self.logger.info(f'Found object')
+            self.log.info(f'Found object')
 
         if self.state == 'absent':
             if obj:
@@ -30,7 +31,7 @@ class ActionModule(ansible.ActionBase):
                 key, value = self.client.response_log_data(response)
                 self.result[key] = value
                 self.result['changed'] = True
-                self.logger.info(f'Deleted object')
+                self.log.info(f'Deleted object')
             return
 
         if obj is not None:
@@ -46,7 +47,7 @@ class ActionModule(ansible.ActionBase):
 
         if obj.changed_fields:
             response = await obj.save()
-            self.logger.info(f'Object changes saved')
+            self.log.info(f'Object changes saved')
             key, value = self.client.response_log_data(response)
             self.result[key] = value
             self.result['changed'] = True

@@ -82,9 +82,12 @@ class Configuration(dict):
 
         :param prompt: Prompt text to display.
         """
+        self.print()
+
         value = input(prompt + '\n> ')
         confirm = None
         while confirm not in ('', 'y', 'Y', 'n'):
+            self.print()
             confirm = input(f'Confirm value of:\n{value}\n(Y/n) >')
         if confirm in ('', 'y', 'Y'):
             # user is satisfied

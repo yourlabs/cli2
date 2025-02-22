@@ -24,10 +24,8 @@ except ImportError:
 
 from . import display
 from .asyncio import async_resolve
-from .command import Command
+from .cli import Command, Group, cmd, hide
 from .colors import colors
-from .group import Group
-from .decorators import cmd, hide
 
 
 class Paginator:
@@ -685,7 +683,7 @@ class ModelGroup(Group):
                 dict(model=cls),
             )
         )
-        self.load_cls(cls)
+        self.load(cls)
 
 
 class ModelMetaclass(type):
@@ -960,7 +958,7 @@ class ClientMetaclass(type):
         )
         cli_kwargs.update(cls.__dict__.get('cli_kwargs', dict()))
         cls.cli = Group(**cli_kwargs)
-        cls.cli.load_cls(cls)
+        cls.cli.load(cls)
         return cls
 
 

@@ -11,8 +11,6 @@ import re
 import structlog
 import traceback
 
-from cli2 import logging
-
 from ansible.plugins.action import ActionBase
 
 # colors:
@@ -153,23 +151,18 @@ class ActionBase(ActionBase):
     async def run_wrapped_async(self):
         self.verbosity = self.task_vars.get('ansible_verbosity', 0)
 
-        if 'LOG_LEVEL' in os.environ or 'DEBUG' in os.environ:
-            logging.configure()
-        else:
+        if 'LOG_LEVEL' not in os.environ and 'DEBUG' not in os.environ:
             if self.verbosity == 1:
                 os.environ['LOG_LEVEL'] = 'INFO'
             elif self.verbosity >= 2:
                 os.environ['LOG_LEVEL'] = 'DEBUG'
-            logging.configure()
+            cli2.configure()
 
         try:
             try:
                 self.client = await self.client_factory()
             except NotImplementedError:
                 self.client = None
-                self.logger = structlog.get_logger('cli2')
-            else:
-                self.logger = self.client.logger
             await self.run_async()
         except Exception as exc:
             self.result['failed'] = True

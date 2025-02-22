@@ -1,5 +1,6 @@
 """
-Table module for cli2.
+cli2 also offers a simple table rendering data that will do it's best to word
+wrap cell data so that it fits in the terminal.
 
 This Table module behaves like a list, and is pretty simple. Its purpose is to
 tabulate data and it's going to brute force output sizes until it finds a
@@ -7,6 +8,30 @@ match.
 
 As such, it's not a good module to display really a lot of data because it
 sacrifies performance for human readability.
+
+.. code-block:: python
+
+    cli2.Table.factory(['foo', 'bar'], ['much longer', 'test']).print()
+
+.. code-block::
+
+    foo          bar
+    much longer  test
+
+.. note:: This would look better with :py:mod:`~cli2.color`
+
+.. code-block:: python
+
+    cli2.Table.factory(dict(foo=1, bar=2), dict(foo=3, bar=4)).print()
+
+Renders:
+
+.. code-block::
+
+    foo  bar
+    ===  ===
+    1    2
+    3    4
 """
 
 import os
@@ -16,6 +41,8 @@ from .colors import colors
 
 
 class Column:
+    """ Column object """
+
     def __init__(self):
         self.maxlength = 1
         self.minlength = 1
@@ -31,11 +58,19 @@ def sumsize(columns):
 
 
 class Table(list):
+    """
+    Table object
+    """
     def __init__(self, *args):
         super().__init__(args)
 
     @classmethod
     def factory(cls, *items):
+        """
+        Instanciate a table with a bunch of items.
+
+        :params items: Iterable of lists or dicts or tuples
+        """
         self = cls()
         first = True
         kind = None
@@ -56,6 +91,9 @@ class Table(list):
         return self
 
     def calculate_columns(self, termsize):
+        """
+        Calculate columns size based on termsize.
+        """
         columns = self.columns = []
 
         for row in self:
@@ -103,6 +141,9 @@ class Table(list):
         return columns
 
     def print(self, print_function=None, termsize=None):
+        """
+        Print the table.
+        """
         print_function = print_function or print
         if not termsize:
             try:

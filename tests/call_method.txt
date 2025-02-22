@@ -1,4 +1,4 @@
-command: cli2 cli2.test_node.example_object.example_method a b=c
+command: cli2 cli2.examples.test.example_object.example_method a b=c
 retcode: 0
 stdout:
 [36m!!python/tuple[39;49;00m[37m[39;49;00m
