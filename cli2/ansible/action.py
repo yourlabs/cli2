@@ -271,9 +271,21 @@ class ActionBase(ActionBase):
         self._after_data = UNSET_DEFAULT
 
     def before_set(self, data, label='before'):
+        """
+        Set the data we're going to display the diff for at the end.
+
+        :param data: Dictionnary of data
+        :param label: Label to show in diff
+        """
         self._before_data = copy.deepcopy(data)
         self._before_label = label
 
     def after_set(self, data, label='after'):
+        """
+        Set the data we're going to display the diff for at the end.
+
+        :param data: Dictionnary of data
+        :param label: Label to show in diff
+        """
         self._after_data = copy.deepcopy(data)
         self._after_label = label

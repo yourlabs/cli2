@@ -55,16 +55,30 @@ With ``-vv``:
 Option
 ------
 
-With :py:class:`cli2.ansible.Option`, we can declare task options instead of
-fiddling with task_vars:
+With :py:class:`~cli2.ansible.action.Option`, we can declare task options
+instead of fiddling with task_vars:
 
 .. code-block:: python
 
     class ActionModule(ansible.ActionBase):
+        # an option with a default
         name = ansible.Option('name', default='test')
+
+        # an option without default: if not specified, the module will fail and
+        # request that the user configures a value for this option
+        nodefault = ansible.Option('nodefault')
+
+        # option that takes value from a fact
+        global_option = ansible.Option(fact='your_fact')
+
+        # an option that takes value from a task arg if available, otherwise
+        # from a fact, otherwise default
+        region = ansible.Option('region', fact='region', default='EU')
 
         async def run_async(self):
             self.result['name'] = self.name
+            self.result['region'] = self.region
+            # ...
 
 An option can specify an argument name, and/or a global fact name, and a
 default.
