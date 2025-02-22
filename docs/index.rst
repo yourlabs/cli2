@@ -7,13 +7,19 @@ cli2: Dynamic CLI for Python 3
 ==============================
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
    :caption: Contents:
 
-   tutorial
+   configuration
+   log
+   display
+   colors
+   table
+   cli
    client
    ansible
-   api
+   lock
+   cli2
 
 Example Sphinx
 --------------

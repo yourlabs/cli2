@@ -1,8 +1,10 @@
 """
 Generic pretty display utils.
 
-This module defines a print function that's supposed to be able to pretty-print
-anything, as well as a pretty diff printer.
+.. envvar:: FORCE_COLOR
+
+    By default, we will not color strings in non-interactive ttys, but you can
+    force it with :envvar:`FORCE_COLOR`, ie. gitlab-ci etc
 """
 import difflib
 import os
@@ -19,6 +21,12 @@ _print = print
 
 
 def highlight(string, lexer):
+    """
+    Use pygments to render a string with a lexer.
+
+    :param string: String to render
+    :param lexer: Lexer name, Yaml, Diff, etc
+    """
     FORCE_COLOR = bool(os.getenv('FORCE_COLOR', ''))
     if not sys.stdout.isatty() and not FORCE_COLOR:
         return string
@@ -43,6 +51,7 @@ def yaml_dump(data):
 
 
 def yaml_highlight(yaml_string):
+    """ Return highlighted YAML """
     return highlight(yaml_string, 'Yaml')
 
 
@@ -99,6 +108,9 @@ def print(*args, **kwargs):
 
 
 def diff_highlight(diff):
+    """
+    Return highlighted unified diff.
+    """
     output = '\n'.join([line.rstrip() for line in diff if line.strip()])
     return highlight(output, 'Diff')
 
@@ -117,6 +129,15 @@ def diff(diff, **kwargs):
 
 
 def diff_data(before, after, before_label='before', after_label='after'):
+    """
+    YAML Dump before and after objects and return the unified diff, printable
+    with :py:func:`diff`.
+
+    :param before: First object to compare
+    :param after: Second object to compare
+    :param before_label: Name of the first object to display in diff
+    :param after_label: Name of the second object to display in diff
+    """
     return difflib.unified_diff(
         yaml.dump(before).splitlines(),
         yaml.dump(after).splitlines(),

@@ -24,10 +24,8 @@ except ImportError:
 
 from . import display
 from .asyncio import async_resolve
-from .command import Command
+from .cli import Command, Group, cmd, hide
 from .colors import colors
-from .group import Group
-from .decorators import cmd, hide
 
 
 class Paginator:
@@ -685,7 +683,7 @@ class ModelGroup(Group):
                 dict(model=cls),
             )
         )
-        self.load_cls(cls)
+        self.load(cls)
 
 
 class ModelMetaclass(type):
@@ -960,7 +958,7 @@ class ClientMetaclass(type):
         )
         cli_kwargs.update(cls.__dict__.get('cli_kwargs', dict()))
         cls.cli = Group(**cli_kwargs)
-        cls.cli.load_cls(cls)
+        cls.cli.load(cls)
         return cls
 
 
@@ -1509,8 +1507,7 @@ class Client(metaclass=ClientMetaclass):
         return response
 
     def response_log_data(self, response, mask=None):
-        if mask is None:
-            mask = self.mask
+        mask = mask if mask is not None else self.mask
         try:
             data = response.json()
         except json.JSONDecodeError:
@@ -1521,7 +1518,8 @@ class Client(metaclass=ClientMetaclass):
                 return 'json', self.mask_data(data, mask)
         return None, None
 
-    def request_log_data(self, request, mask, quiet=False):
+    def request_log_data(self, request, mask=None, quiet=False):
+        mask = mask if mask is not None else self.mask
         content = request.content.decode()
         if not content:
             return None, None

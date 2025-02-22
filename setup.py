@@ -34,14 +34,14 @@ setup(
     python_requires='>=3.6',
     entry_points={
         'console_scripts': [
-            'cli2 = cli2.cli:main.entry_point',
-            'cli2-example = cli2.example_obj:cli.entry_point',
-            'cli2-example-nesting = cli2.example_nesting:cli.entry_point',
-            'cli2-example-client = cli2.example_client:cli.entry_point',
-            'cli2-example-client-complex = cli2.example_client_complex:cli.entry_point',
+            'cli2 = cli2.cli2:main.entry_point',
+            'cli2-example = cli2.examples.obj:cli.entry_point',
+            'cli2-example2 = cli2.examples.obj2:cli.entry_point',
+            'cli2-example-nesting = cli2.examples.nesting:cli.entry_point',
+            'cli2-example-client = cli2.examples.client:cli.entry_point',
         ],
         'pytest11': [
-            'cli2-ansible-fixtures = cli2.pytest_ansible',
+            'cli2-ansible-fixtures = cli2.ansible.pytest',
         ],
     },
 )

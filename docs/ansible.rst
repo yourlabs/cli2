@@ -1,11 +1,14 @@
-Tutorial for cli2.ansible: Ansible Action Plugin framework
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Ansible Action Plugin framework
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Experimental feature, requires ``ansible``, to build `custom action plugins
 <https://docs.ansible.com/ansible/latest/dev_guide/developing_plugins.html#action-plugins>`_
 
-Useful on its own, it also integrates very well with our HTTP client, so you
-probably want to read about that first :doc:`client`.
+Useful on its own, it also integrates very well with the rest of our stuff:
+
+- :doc:`log`
+- :doc:`client`
+- :doc:`lock`
 
 Features
 ========
@@ -13,11 +16,12 @@ Features
 Async
 -----
 
-With :py:class:`cli2.ansible.ActionBase`, we don't define run, we define
-:py:meth:`~cli2.ansible.ActionBase.run_async`
+With :py:class:`~cli2.ansible.action.ActionBase`, we don't define run, we define
+:py:meth:`~cli2.ansible.action.ActionBase.run_async`
 
 .. code-block:: python
 
+    import cli2
     from cli2 import ansible
 
     class ActionModule(ansible.ActionBase):
@@ -25,19 +29,7 @@ With :py:class:`cli2.ansible.ActionBase`, we don't define run, we define
             self.tmp        # is the usual tmp arg
             self.task_vars  # is the usual task_vars arg
             self.result['failed'] = True
-
-Logging
--------
-
-.. code-block:: python
-
-    from cli2 import ansible
-
-    class ActionModule(ansible.ActionBase):
-        async def run_async(self):
-            self.logger.debug('Getting something')
-            something = get_something()
-            self.logger.info('Got something', json=something)
+            cli2.log.info('Got something', json=something)
 
 And then you get absolutely beautiful logging:
 
@@ -80,7 +72,7 @@ Client
 ------
 
 You need to return a :py:class:`~cli2.client.Client` instance in the
-:py:meth:`~cli2.ansible.ActionBase.client_factory` method to have a
+:py:meth:`~cli2.ansible.action.ActionBase.client_factory` method to have a
 ``self.client`` attribute:
 
 .. code-block:: python
@@ -127,8 +119,8 @@ We're going to be changing stuff, and Ansible doesn't interpret before/after
 result keys which means it won't dump a diff even with ``--diff``.
 
 Instead of calling :py:func:`~cli2.display.diff_data` manually, you can call
-:py:meth:`~cli2.ansible.ActionBase.before_set` and
-:py:meth:`~cli2.ansible.ActionBase.after_set`, then a diff will be displayed
+:py:meth:`~cli2.ansible.action.ActionBase.before_set` and
+:py:meth:`~cli2.ansible.action.ActionBase.after_set`, then a diff will be displayed
 automatically.
 
 .. code-block:: python
@@ -176,7 +168,7 @@ Mock
 ----
 
 You can run the module in mocked mode in tests with the
-:py:meth:`~cli2.ansible.ActionModule.run_test_async` method:
+:py:meth:`~cli2.ansible.action.ActionModule.run_test_async` method:
 
 .. code-block:: python
 
@@ -237,13 +229,13 @@ example<Example Client>`:
 Tests
 -----
 
-.. literalinclude:: ../cli2/test_restful.py
+.. literalinclude:: ../test/test_restful.py
 
 API
 ===
 
-.. automodule:: cli2.ansible
+.. automodule:: cli2.ansible.action
    :members:
 
-.. automodule:: cli2.pytest_ansible
+.. automodule:: cli2.ansible.playbook
    :members:

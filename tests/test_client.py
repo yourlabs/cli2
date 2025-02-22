@@ -137,7 +137,7 @@ async def test_async_factory(httpx_mock, client_class):
 
 @pytest.mark.asyncio
 async def test_client_cli_side_effect(client_class, httpx_mock):
-    from cli2 import example_client
+    from cli2.examples import client as example_client
 
     # test that this didn't spill over client_class
     test_client_cli(client_class, httpx_mock)

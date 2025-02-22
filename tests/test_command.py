@@ -1,13 +1,9 @@
 import asyncio
+import cli2
+import cli2.test
 import inspect
 import pytest
 import os
-
-from .decorators import arg
-from .argument import Argument
-from .command import Command
-from .group import Group
-from .test import autotest, Outfile
 
 
 os.environ['FORCE_COLOR'] = '1'
@@ -15,7 +11,7 @@ os.environ['FORCE_COLOR'] = '1'
 
 def test_int():
     def foo(one: int): return one
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     cmd.parse('1')
     assert cmd['one'].value == 1
     assert not cmd['one'].accepts
@@ -25,7 +21,7 @@ def test_int():
 
 def test_vararg():
     def foo(*one): return dict(result=one)
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     cmd.parse('a', 'b')
     assert cmd['one'].value == ['a', 'b']
     assert cmd['one'].accepts
@@ -34,7 +30,7 @@ def test_vararg():
 
 def test_kwarg():
     def foo(one=None): return one
-    cmd = Command(foo, posix=False)
+    cmd = cli2.Command(foo, posix=False)
     cmd.parse('one=b')
     assert cmd['one'].value == 'b'
     assert not cmd['one'].accepts
@@ -43,13 +39,13 @@ def test_kwarg():
 
 def test_kwarg_posix():
     def foo(one=None): return one
-    cmd = Command(foo, posix=True)
+    cmd = cli2.Command(foo, posix=True)
     assert cmd('--one=b') == 'b'
 
 
 def test_varkwarg():
     def foo(**one): return one
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     cmd.parse('a=b', 'c=d')
     assert cmd['one'].value == dict(a='b', c='d')
     assert cmd['one'].accepts
@@ -58,10 +54,10 @@ def test_varkwarg():
 def test_skip():
     def foo(a=None, b=None, c=None):
         return dict(result=(a, b, c))
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     assert cmd('b=x') == dict(result=(None, 'x', None))
 
-    cmd = Command(foo, posix=True)
+    cmd = cli2.Command(foo, posix=True)
     assert cmd('-b=x') == dict(result=(None, 'x', None))
 
 
@@ -70,14 +66,14 @@ def test_nested_typeerror():
     # swallowed to display help
     def foo():
         raise TypeError('Lol')
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     with pytest.raises(TypeError):
         cmd()
 
 
 def test_vararg_varkwarg_natural():
     def foo(*one, **two): return dict(result=(one, two))
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     cmd.parse('x', 'y', 'a=b', 'c=d')
     assert cmd['one'].value == ['x', 'y']
     assert cmd['two'].value == dict(a='b', c='d')
@@ -91,7 +87,7 @@ def test_vararg_varkwarg_natural():
 
 def test_vararg_varkwarg_asterisk():
     def foo(*one, **two): return (one, two)
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     cmd.parse('*["x"]', '**{"y" :"z"}')
     assert cmd['one'].value == ['x']
     assert cmd['two'].value == dict(y='z')
@@ -99,7 +95,7 @@ def test_vararg_varkwarg_asterisk():
 
 def test_vararg_after_kwarg():
     def foo(one=None, *two): return (one, two)
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
 
     cmd.parse('x')
     assert cmd['one'].value == 'x'
@@ -110,7 +106,7 @@ def test_vararg_after_kwarg():
 def test_positional_only_looksahead():
     def foo(one=None, /, *two, three=None, **kwargs):  # noqa
         return (one, two)
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
 
     cmd.parse('y.-7=e', 'three=z', 'x', 'y')
     assert cmd['one'].value == 'x'
@@ -122,7 +118,7 @@ def test_positional_only_looksahead():
 
 def test_keyword_only():
     def foo(*one, two=None): return (one, two)
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
 
     cmd.parse('x')
     assert cmd['one'].value == ['x']
@@ -131,7 +127,7 @@ def test_keyword_only():
 
 def test_bool():
     def foo(one: bool): return one
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
 
     cmd.parse('yes')
     assert cmd['one'].value is True
@@ -148,7 +144,7 @@ def test_bool():
 def test_bool_flag():
     def foo(one: bool): return one
     foo.cli2_one = dict(alias='-o')
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     assert cmd['one'].alias == ('-o',)
     cmd.parse('-o')
     assert cmd['one'].value is True
@@ -156,7 +152,7 @@ def test_bool_flag():
 
 def test_bool_flag_posix():
     def foo(fuzz=None, hi: bool = None): return hi
-    cmd = Command(foo, posix=True)
+    cmd = cli2.Command(foo, posix=True)
     assert cmd('-nh') is False
     assert cmd('--no-hi') is False
     assert cmd('--hi') is True
@@ -166,14 +162,14 @@ def test_bool_flag_posix():
 def test_bool_flag_negate():
     def foo(one: bool): return one
     foo.cli2_one = dict(alias='-o', negate='!o')
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     cmd.parse('!o')
     assert cmd['one'].value is False
 
 
 def test_bool_kwarg_negate():
     def foo(one: bool = True): return one
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     assert cmd['one'].negates == ['no-one']
 
     cmd.parse('no-one')
@@ -195,14 +191,14 @@ def test_json_cast():
     import json
     def foo(one): return one
     foo.cli2_one = dict(cast=lambda v: json.loads(v))
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     cmd.parse('[1]')
     assert cmd['one'].value == [1]
 
 
 def test_further_search():
     def foo(a=None, one: bool = None): return one
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     assert cmd['one'].match('one=yes') == 'yes'
 
     cmd.parse('one=yes')
@@ -213,7 +209,7 @@ def test_further_search():
 
 def test_list():
     def foo(one: list = None): return dict(result=(one))
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     assert cmd['one'].match('one=[1,2]') == '[1,2]'
 
     cmd.parse('one=[1,2]')
@@ -229,7 +225,7 @@ def test_list():
 
 def test_dict():
     def foo(one: dict = None): return one
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     assert cmd['one'].match('one={"a": 1}') == '{"a": 1}'
 
     cmd.parse('one={"a": 1}')
@@ -246,7 +242,7 @@ def test_dict():
 def test_override():
     def foo(one): return one
     foo.cli2 = dict(color=1, name='lol', doc='foodoc')
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     assert cmd.color == 1
     assert cmd.name == 'lol'
     assert cmd.doc == 'foodoc'
@@ -255,7 +251,7 @@ def test_override():
 def test_cast_override():
     def foo(one): return dict(result=one)
     foo.cli2_one = dict(cast=lambda v: [int(i) for i in v.split(',')])
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     cmd.parse('1,2')
     assert cmd['one'].value == [1, 2]
     assert cmd('1,2') == dict(result=[1, 2])
@@ -265,13 +261,13 @@ def test_weird_pattern():
     # show off our algorithms weakness, while it's still fresh in my head :)
     def foo(a=None, b=None):
         return dict(result=(a, b))
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
 
     cmd.parse('b=x')
     assert cmd['b'].value == 'x'
     assert cmd('b=x') == dict(result=(None, 'x'))
 
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     cmd.parse('a=b=x')
     assert cmd['a'].value == 'b=x'
     assert cmd('a=b=x') == dict(result=('b=x', None))
@@ -288,7 +284,7 @@ class Foo:
 
 
 def test_mixed():
-    cmd = Command(Foo())
+    cmd = cli2.Command(Foo())
     cmd('1', '[2]', 'yes', 'var1', 'var2', 'kw1=1', 'kw2=2')
     assert cmd.target.a == 1
     assert cmd.target.b == [2]
@@ -298,7 +294,7 @@ def test_mixed():
 
 
 def test_mixed_posix():
-    cmd = Command(Foo(), posix=True)
+    cmd = cli2.Command(Foo(), posix=True)
     cmd('1', '[2]', 'yes', 'var1', 'var2', '--kw1=1', '--kw2=2')
     assert cmd.target.a == 1
     assert cmd.target.b == [2]
@@ -310,7 +306,7 @@ def test_mixed_posix():
 def test_missing():
     def foo(missing):
         """docstring"""
-    cmd = Command(foo, outfile=Outfile())
+    cmd = cli2.Command(foo, outfile=cli2.test.Outfile())
     cmd()
     assert 'missing 1 required' in cmd.outfile
     assert 'docstring' in cmd.outfile
@@ -319,7 +315,7 @@ def test_missing():
 def test_kwarg_priority():
     def foo(missing, **kwarg):
         """docstring"""
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     cmd.parse('foo=bar')
     with pytest.raises(ValueError):
         cmd['missing'].value
@@ -328,7 +324,7 @@ def test_kwarg_priority():
 def test_kwargs_find_their_values():
     def foo(*a, b: str = '', c: str = '', **d):
         """docstring"""
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     cmd.parse('c=3', 'e=5', '1', 'b=2')
     assert cmd['a'].value == ['1']
     assert cmd['b'].value == '2'
@@ -339,7 +335,7 @@ def test_kwargs_find_their_values():
 def test_kwarg_priority_doesnt_break_positional():
     def foo(missing, **kwarg):
         return missing
-    cmd = Command(foo, outfile=Outfile())
+    cmd = cli2.Command(foo, outfile=cli2.test.Outfile())
     cmd.parse('y', 'foo=bar')
     assert cmd['missing'].value == 'y'
     assert cmd['kwarg'].value == dict(foo='bar')
@@ -353,7 +349,7 @@ def test_kwarg_priority_doesnt_break_positional():
 
 
 def test_extra():
-    cmd = Command(lambda: True, outfile=Outfile())
+    cmd = cli2.Command(lambda: True, outfile=cli2.test.Outfile())
     cmd('a')
     assert 'No parameters for these' in cmd.outfile
 
@@ -362,7 +358,7 @@ def test_asyncio():
     async def test():
         return 'foo'
 
-    class AsyncCommand(Command):
+    class AsyncCommand(cli2.Command):
         async def post_call(self):
             return 'hi'
 
@@ -376,7 +372,7 @@ def test_aliases():
         pass
     foo.cli2_he_llo = dict(alias=['-h', '--he-llo'])
 
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     assert cmd['he_llo'].aliases == ['-h', '--he-llo']
     cmd('-h=x')
     assert cmd['he_llo'].value == 'x'
@@ -389,7 +385,7 @@ def test_posix_style():
     def foo(he_llo=None):
         pass
 
-    cmd = Command(foo, posix=True)
+    cmd = cli2.Command(foo, posix=True)
     assert cmd['he_llo'].alias == ['-h', '--he-llo']
 
     cmd.parse('-h=x')
@@ -403,7 +399,7 @@ def test_negates():
     def foo(he_llo=None):
         pass
     foo.cli2_he_llo = dict(negate=['nh', 'no-he_llo'])
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     assert cmd['he_llo'].negates == ['nh', 'no-he_llo']
     cmd('nh')
     assert cmd['he_llo'].value is False
@@ -411,7 +407,7 @@ def test_negates():
 
 def test_posix_style_spaces():
     def foo(aa=None, *args): pass
-    cmd = Command(foo, posix=True)
+    cmd = cli2.Command(foo, posix=True)
     cmd('--aa', 'foo', 'bar')
     assert cmd['aa'].value == 'foo'
     assert cmd['args'].value == ['bar']
@@ -431,7 +427,7 @@ def test_docstring():
             Another argument documentation that's unfortunnately going
             to span over multiple lines and without type annotation inside
         '''
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     assert cmd['lol'].doc == (
         "Another argument documentation that's unfortunnately going"
         " to span over multiple lines and without type annotation inside"
@@ -443,7 +439,7 @@ def test_docstring():
 
 
 def test_print(mocker):
-    cmd = Command(lambda: True, outfile=mocker.Mock())
+    cmd = cli2.Command(lambda: True, outfile=mocker.Mock())
     cmd.print('orangebold', 'foo', 'bar')
     assert cmd.outfile.write.call_args_list[0].args == (
         '\x1b[1;38;5;202mfoo bar\x1b[0m',
@@ -451,7 +447,7 @@ def test_print(mocker):
 
 
 def test_print_bold(mocker):
-    cmd = Command(lambda: True, outfile=mocker.Mock())
+    cmd = cli2.Command(lambda: True, outfile=mocker.Mock())
     cmd.print('ORANGE', 'foo', 'bar')
     assert cmd.outfile.write.call_args_list[0].args == (
         '\x1b[1;38;5;202mfoo bar\x1b[0m',
@@ -463,44 +459,44 @@ def test_print_bold(mocker):
     ('yourcmd_help', 'python example.py', {'POSIX': ''}),
 ])
 def test_help(name, command, env):
-    autotest(f'tests/{name}.txt', command, env)
+    cli2.test.autotest(f'tests/{name}.txt', command, env)
 
 
 def test_arg_reorder():
-    class TestCommand(Command):
+    class TestCommand(cli2.Command):
         def call(self, *args, **kwargs):
             return (args, kwargs)
 
     cmd = TestCommand(lambda: True)
-    cmd['vk'] = Argument(
+    cmd['vk'] = cli2.Argument(
         cmd,
         inspect.Parameter(
             'vk',
             inspect.Parameter.VAR_KEYWORD,
         )
     )
-    cmd['vargs'] = Argument(
+    cmd['vargs'] = cli2.Argument(
         cmd,
         inspect.Parameter(
             'varg',
             inspect.Parameter.VAR_POSITIONAL,
         )
     )
-    cmd['kwarg'] = Argument(
+    cmd['kwarg'] = cli2.Argument(
         cmd,
         inspect.Parameter(
             'kwarg',
             inspect.Parameter.POSITIONAL_OR_KEYWORD,
         )
     )
-    cmd['kw'] = Argument(
+    cmd['kw'] = cli2.Argument(
         cmd,
         inspect.Parameter(
             'kw',
             inspect.Parameter.KEYWORD_ONLY,
         )
     )
-    cmd['arg'] = Argument(
+    cmd['arg'] = cli2.Argument(
         cmd,
         inspect.Parameter(
             'arg',
@@ -518,7 +514,7 @@ def test_arg_reorder():
 
 
 def test_arg():
-    cmd = Command(lambda foo: foo)
+    cmd = cli2.Command(lambda foo: foo)
     cmd.arg('bar', position=0)
     assert list(cmd.keys()) == ['bar', 'foo']
     assert cmd('bar', 'foo') == 'foo'
@@ -526,7 +522,7 @@ def test_arg():
 
 
 def test_helphack():
-    class TestCommand(Command):
+    class TestCommand(cli2.Command):
         def help(self):
             self.help_shown = True
 
@@ -545,7 +541,7 @@ def test_helphack():
 def test_generator(capsys):
     def foo():
         yield 'foo'
-    cmd = Command(foo)
+    cmd = cli2.Command(foo)
     result = cmd()
     assert result is None
     captured = capsys.readouterr()
@@ -566,12 +562,12 @@ def non_async_factory():
 ))
 def test_factory(factory, isasync):
     class Foo:
-        @arg('self', factory=lambda cmd, arg: Foo())
-        @arg('auto', factory=factory)
+        @cli2.arg('self', factory=lambda cmd, arg: Foo())
+        @cli2.arg('auto', factory=factory)
         def test(self, auto, arg):
             return dict(result=(auto, arg))
 
-    cmd = Command(Foo.test)
+    cmd = cli2.Command(Foo.test)
     assert cmd.async_mode() == isasync
     assert cmd('hello') == dict(result=('autoval', 'hello'))
 
@@ -581,14 +577,14 @@ def test_factory_async():
         return 'stuff'
 
     class Foo:
-        @arg('self', factory=lambda cmd, arg: Foo())
-        @arg('auto', factory=lambda: 'autoval')
-        @arg('afact', factory=get_stuff)
-        @arg('afact2', factory=get_stuff)
+        @cli2.arg('self', factory=lambda cmd, arg: Foo())
+        @cli2.arg('auto', factory=lambda: 'autoval')
+        @cli2.arg('afact', factory=get_stuff)
+        @cli2.arg('afact2', factory=get_stuff)
         async def test(self, auto, arg, afact, afact2):
             return auto, arg, afact, afact2
 
-    class AsyncCommand(Command):
+    class AsyncCommand(cli2.Command):
         async def post_call(self):
             yield 'hello'
 
@@ -604,7 +600,7 @@ def test_async_resolve():
     async def test():
         return foo()
 
-    cmd = Command(test)
+    cmd = cli2.Command(test)
     cmd()
 
 
@@ -612,7 +608,7 @@ def test_async_yield(capsys):
     async def async_yield():
         yield 'foo'
 
-    cmd = Command(async_yield)
+    cmd = cli2.Command(async_yield)
     assert cmd() is None
     captured = capsys.readouterr()
     assert captured.out == 'foo\x1b[37m\x1b[39;49;00m\n\n'
@@ -626,7 +622,7 @@ def test_async_iter(capsys):
     async def async_iter():
         return Foo()
 
-    cmd = Command(async_iter)
+    cmd = cli2.Command(async_iter)
     assert cmd() is None
     captured = capsys.readouterr()
     assert captured.out == 'foo\x1b[37m\x1b[39;49;00m\n\n'
@@ -638,7 +634,7 @@ def test_class_method():
 
     class Foo:
         @classmethod
-        @arg('cls', factory=factory)
+        @cli2.arg('cls', factory=factory)
         def bar(cls, foo):
             return foo
 
@@ -646,11 +642,11 @@ def test_class_method():
         def foo(cls, foo):
             return foo
 
-    cmd = Command(Foo.bar)
+    cmd = cli2.Command(Foo.bar)
     assert cmd['cls'].factory == factory
     assert cmd('x') == 'x'
 
-    cmd = Command(Foo.foo)
+    cmd = cli2.Command(Foo.foo)
     assert cmd('a') == 'a'
 
 
@@ -662,18 +658,18 @@ def test_self():
         def __init__(self, x):
             self.x = x
 
-        @arg('self', factory=factory)
+        @cli2.arg('self', factory=factory)
         def bar(self, foo):
             return self.x, foo
 
         def foo(self, foo):
             return self.x, foo
 
-    cmd = Command(Foo.bar)
+    cmd = cli2.Command(Foo.bar)
     assert cmd['self'].factory == factory
     assert cmd('x') == (2, 'x')
 
-    group = Group(overrides=dict(self=dict(factory=lambda: Foo(1))))
+    group = cli2.Group(overrides=dict(self=dict(factory=lambda: Foo(1))))
     group.cmd(Foo.foo)
     assert group['foo']('a') == (1, 'a')
     assert group['foo']['self'].factory
@@ -683,7 +679,7 @@ def test_cli2():
     def test(some, _cli2=None):
         return some, _cli2
 
-    cmd = Command(test)
+    cmd = cli2.Command(test)
     assert cmd('x') == ('x', cmd)
 
 
@@ -691,13 +687,13 @@ def test_keyboard_interrupt():
     def func():
         raise KeyboardInterrupt()
 
-    cmd = Command(func)
+    cmd = cli2.Command(func)
     cmd()
     assert cmd.exit_code == 1
 
 
 def test_keyboard_interrupt_async():
-    class YourCommand(Command):
+    class YourCommand(cli2.Command):
         async def post_call(self):
             return 'foo'
 

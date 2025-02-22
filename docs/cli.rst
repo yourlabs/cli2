@@ -1,5 +1,5 @@
-Tutorial for cli2: Dynamic CLI for Python 3
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+CLI framework
+~~~~~~~~~~~~~
 
 Architecture
 ============
@@ -10,40 +10,36 @@ Overview
 cli2 is built on 3 moving parts which you can swap with your own or inherit
 from with ease:
 
-- :py:class:`~cli2.command.Command`: Represents a target callback, in charge
+- :py:class:`~cli2.cli.Command`: Represents a target callback, in charge
   of CLI args parsing and execution, can serve as entry point.
-- :py:class:`~cli2.group.Group`: Same as above, except that it routes multiple
+- :py:class:`~cli2.cli.Group`: Same as above, except that it routes multiple
   Commands, can serve as entry point as well.
-- :py:class:`~cli2.argument.Argument`: Represents a target callback argument,
+- :py:class:`~cli2.cli.Argument`: Represents a target callback argument,
   in charge of deciding if it wants to take an argument as well as casting it
   into a Python value.
 
-Also, despite this package name which certainly reminds some female genitalia
-parts (maybe intentionally), we're going to be kind of gay with CLIs and
-require very pretty outputs, so `cli2` also provides a couple of helper
-modules:
+All outputs are fed into :py:func:`~cli2.display.print`, meaning the outputs
+are colored too. Any kind of output will work: normal return, generator, async
+coroutine, async generator.
 
-- :py:mod:`~cli2.colors`, available in the `cli2.c` namespace, provides a bunch
-  of arbitrary ANSI color codes which I like.
-- :py:mod:`cli2.display` provides a :py:func:`~cli2.display.print` function
-  you're supposed to be able to throw anything at, it will try to prettify any
-  command result with colored YAML output. **To disable colors in output, set
-  `NO_COLORS=1` environment variable!**
-  Python's standard `difflib` module's `unified_diff` method.
-- :py:mod:`~cli2.configuration`, available in ``cli2.cfg`` variable, provides a
-  lazy environment variable configuration wrapper
-- :doc:`cli2.client<client>`, turned out to be a framework to build ORMs on top of
-  REST APIs
+Tutorial
+========
 
-Command
-=======
+Functions
+---------
 
-Create a command from any callable:
+In general, you want to create a command :py:class:`~cli2.cli.Group`:
 
 .. code-block:: python
 
+    """
+    Welcome to your CLI
+    """
     import cli2
 
+    cli =  cli2.Group(doc=__doc__)
+
+    @cli.cmd
     def yourcmd(somearg: str):
         """
         Your own command.
@@ -52,99 +48,60 @@ Create a command from any callable:
         """
         return somearg
 
-    # this if is not necessary, but prevents CLI execution when the module is
-    # only imported
+
     if __name__ == '__main__':
-        cli2.Command(yourcmd).entry_point()
+        cli.entry_point()
 
-Running the script without argument will show the generated help:
+Entrypoint
+----------
 
-.. image:: example.png
-
-Also, passing `--help` will display help for a command.
-
-Complex signature
------------------
-
-The same function with a rich signature like this:
+You can also add this command to console_scripts in setup.py:
 
 .. code-block:: python
 
-    def yourcmd(somearg, x=None, verbose : bool = False, *args, foo=None, **kwargs):
+    setup(
+        # ...
+        entry_points={
+            'console_scripts': [
+                'your-cli-name = your_cli:cli.entry_point',
+        },
+    )
 
-Will display help as such:
+Classes and objects
+-------------------
 
-.. image:: example2.png
-
-Posix style
------------
-
-You might prefer to have dashes in front of argument names in the typical style
-of command lines, you just need to enable the posix attribute:
+:py:meth:`~cli2.cli.Group.load` will load all methods if they have been
+decorated with ``@cmd``:
 
 .. code-block:: python
 
-    cli2.Command(yourcmd, posix=True).entry_point()
+    class YourStuff:
+        @classmethod
+        @cli2.cmd
+        def factory(cls):
+            return cls()
 
-In this case, help will look like this:
+        @cli2.cmd(color='green')
+        def instance_method(self, arg):
+            return arg
 
-.. image:: example2posix.png
+    cli = cli2.Group()
+    cli.load(YourStuff)
+    # you'll leverage the factory override to hide an argument from the CLI and
+    # instead provide a callable (they can be async too)
+    cli.overrides['self']['factory'] = lambda: YourStuff()
+    cli.overrides['cls']['factory'] = lambda: YourStuff
 
-.. warning:: I still don't use the POSIX mode, it's far from perfect, but I'll
-             gladly try to fix bugs!
-
-Testing
+Example
 -------
 
-The :py:meth:`~cli2.command.Command.parse` method will provision the
-:py:attr:`~cli2.command.Command.bound` attribute which is a Python 3
-BoundArguments instance, so you could test parsing as such:
+The command group will look a bit like this:
 
-.. code-block:: python
+.. image:: group.png
 
-    cmd = cli2.Command(yourcmd)
-    cmd.parse('a', 'b', 'c=d')
-    assert cmd.bound.arguments == dict(somearg='a', x='b', kwargs={'c': 'd'})
+The command itself like that:
 
-Same if you want to use the posix style:
-
-.. code-block:: python
-
-    cmd = cli2.Command(yourcmd, posix=True)
-    cmd.parse('a', 'b', '--c=d')
-    assert cmd.bound.arguments == dict(somearg='a', x='b', kwargs={'c': 'd'})
-
-Entry point
------------
-
-Another possibility is to add an entry point to your setup.py as such:
-
-.. code-block:: python
-
-    entry_points={
-        'console_scripts': [
-            'yourcmd = yourcmd:cli.entry_point',
-        ],
-    },
-
-Then, declare the command in a ``cli`` variable in ``yourcmd.py``:
-
-.. code-block:: python
-
-    # if __name__ == '__main__':  if block not required in entry point
-    cli = cli2.Command(yourcmd)
-
-Method commands
----------------
-
-We've seen how to expose functions to the CLI. If you want to expose methods of
-an object, constructed based on CLI arguments, see the example in
-example_obj.py:
-
-.. literalinclude:: ../example_obj.py
-   :language: python
-
-The rest of the tutorial will describe each part used in there.
+.. image:: command.png
 
 ``_cli2``
 ---------
@@ -160,189 +117,55 @@ If you need to know if a function is executed from cli2, you can add a
         else:
             return some
 
-``_cli2`` will be the :py:class:`~cli2.command.Command` instance if detected in
+``_cli2`` will be the :py:class:`~cli2.cli.Command` instance if detected in
 function signature.
 
-Group
-=====
+Posix style
+-----------
 
-:py:class:`~cli2.group.Group` can be used in place of
-:py:class:`~cli2.argument.Command`, and new commands can be added into it.
-
-Decorator syntax
-----------------
-
-Example using :py:meth:`~cli2.group.Group.cmd`:
+You might prefer to have dashes in front of argument names in the typical style
+of command lines, you just need to enable the posix attribute:
 
 .. code-block:: python
 
-    """My command docstring"""
-    import cli2
+    cli2.cli(yourcmd, posix=True).entry_point()
 
-    cli = cli2.Group(doc=__doc__)
+In this case, help will look like this:
 
-    @cli.cmd
-    def yourcmd():
-        """Your command"""
+.. image:: example2posix.png
 
-    @cli.cmd(color='red')
-    def dangerzone(something):
-        """A dangerous command"""
+.. warning:: I still don't use the POSIX mode, it's far from perfect, but I'll
+             gladly try to fix bugs!
 
-    if __name__ == '__main__':
-        cli.entry_point()
+Testing
+=======
 
-As you can see, the decorator may be called with or without arguments, any
-argument that are passed would override the default attributes from the
-generated :py:class:`~cli2.argument.Command`. Running this script without
-argument will show:
+Direct calls
+------------
 
-.. image:: example3.png
-
-Group overrides
----------------
-
-A group may define default overrides for arguments:
+The :py:meth:`~cli2.cli.Command.parse` method will provision the
+:py:attr:`~cli2.cli.Command.bound` attribute which is a Python 3
+BoundArguments instance, so you could test parsing as such:
 
 .. code-block:: python
 
-    cli = cli2.Group('foo')
+    cmd = cli2.cli(yourcmd)
+    cmd.parse('a', 'b', 'c=d')
+    assert cmd.bound.arguments == dict(somearg='a', x='b', kwargs={'c': 'd'})
 
-    class Foo:
-        @classmethod
-        def factory(cls):
-            return cls()
-
-        @cli.cmd
-        def send(self, something):
-            return something
-
-    cli['foo'].overrides['self']['factory'] = Foo.factory
-
-
-Will shadow ``self`` from the CLI and instead call Foo.factory.
-
-Python API
-----------
-
-Equivalent example using :py:meth:`~cli2.group.Group.add`:
+Same if you want to use the posix style:
 
 .. code-block:: python
 
-    import cli2
+    cmd = cli2.cli(yourcmd, posix=True)
+    cmd.parse('a', 'b', '--c=d')
+    assert cmd.bound.arguments == dict(somearg='a', x='b', kwargs={'c': 'd'})
 
-    def yourcmd():
-        """Your command"""
+autotest
+--------
 
-    def dangerzone(something):
-        """A dangerous command"""
-
-    if __name__ == '__main__':
-        cli = cli2.Group()
-        cli.add(yourcmd)
-        cli.add(dangerzone, color='red')
-        cli.entry_point()
-
-Lazy loading: overriding Group
-------------------------------
-
-Equivalent example, but built during runtime, having the arguments at disposal:
-
-.. code-block:: python
-
-    import cli2
-
-    def yourcmd():
-        """Your command"""
-
-    def dangerzone(something):
-        """A dangerous command"""
-
-    class Cli(cli2.Group):
-        def __call__(self, *argv):
-            # you could use the *argv variable here
-            self.add(yourcmd)
-            self.add(dangerzone, color='red')
-            return super().__call__(*argv)
-
-    if __name__ == '__main__':
-        Cli().entry_point()
-
-This is the same as the other command group examples above, but here the Group
-is built during runtime.
-
-See the source code for the ``cli2`` command, which implements an infitely lazy
-loaded command tree based on introspection of the passed arguments with
-extremely little code.
-
-Loading classes and objects
----------------------------
-
-:py:meth:`~cli2.group.Group.load_obj` will load all methods if they have been
-decorated with ``@cmd``:
-
-.. code-block:: python
-
-    class Foo:
-        @cli2.cmd
-        def your_command(self):
-            # ...
-
-    group.load_obj(Foo())
-
-If you really can't instanciate your object, you can still use
-:py:meth:`~cli2.group.Group.load_cls` to load a class. In which case, you'll
-have to declare a factory for self. ie.:
-
-.. code-block:: python
-
-    group.load_cls(Foo)
-    group.overrides['self']['factory'] = lambda: Foo()
-
-Lazy loading: using Group.load
-------------------------------
-
-You could also load commands more massively with the
-:py:meth:`~cli2.group.Group.load` method which will load any callable given as
-Python object or as dotted python path, all the following work:
-
-.. code-block:: python
-
-    group = cli2.Group()
-    group.load(YourClass)
-    group.load(your_object)
-    group.load('your_module')
-    group.load('your_module.your_object')
-
-Injecting CLIs from submodules
-------------------------------
-
-You don't need to declare all your commands in a single script because ny
-script can declare a :py:class:`~cli2.group.Group` that can be imported in the
-main CLI.
-
-For example, in `foo.py`:
-
-.. code-block:: python
-
-    cli = cli2.Group()
-
-    @cli.cmd
-    def foo():
-        pass
-
-You can load it in another main CLI script, `cli.py`:
-
-.. code-block:: python
-
-    from . import foo
-
-    cli = cli2.Group()
-    cli['foo'] = foo.cli
-
-    @cli.cmd
-    def bar():
-        pass
+.. automodule:: cli2.test
+   :members:
 
 Argument
 ========
@@ -361,16 +184,16 @@ being exposed to the user CLI. This is what argument factories are for:
         def test(self, auto, arg):
             return auto, arg
 
-    cli2.Command(Foo.test)
+    cli2.cli(Foo.test)
 
 This command will only expose the `arg` argument to the user.  Both self and
 auto will have the result of the lambda passed as factory.
 
 If the factory callback takes an `arg` argument, then the
-:py:class:`~cli2.argument.Argument` object will be passed.
+:py:class:`~cli2.cli.Argument` object will be passed.
 
 If the factory callback takes an `cmd` argument, then the
-:py:class:`~cli2.command.Command` object will be passed.
+:py:class:`~cli2.cli.Command` object will be passed.
 
 Aliases
 -------
@@ -382,7 +205,7 @@ from their Python argument names. For example:
 
     def yourcmd(foo=True):
         print(foo)
-    cmd = cli2.Command(yourcmd)
+    cmd = cli2.cli(yourcmd)
     cmd.help()
 
 Will render help as such:
@@ -401,7 +224,7 @@ generated.
 Overrides
 ---------
 
-You may overrides :py:class:`~cli2.argument.Argument` attributes for a callable
+You may overrides :py:class:`~cli2.cli.Argument` attributes for a callable
 argument with the :py:func:`~cli2.decorators.arg` decorator:
 
 .. code-block:: python
@@ -445,7 +268,7 @@ integer argument:
     def yourcmd(i : int):
         pass
 
-    cmd = cli2.Command(yourcmd)
+    cmd = cli2.cli(yourcmd)
     cmd.parse('1')
     assert cmd.bound.arguments == dict(i=1)
 
@@ -470,7 +293,7 @@ it to True.
 
 Since the mere presence of argument aliases suffice to bind a parameter to
 True, an equivalent is also possible to bind it to False:
-:py:attr:`~cli2.argument.Argument.negate`. It is by default generated by
+:py:attr:`~cli2.cli.Argument.negate`. It is by default generated by
 prefixing ``no-`` to the argument name, as such, passing ``no-yourbool`` on the
 command line will bind ``yourbool`` to ``False``, or in posix mode by passing
 ``--no-yourbool``. Note that a single-dash two-letter negate is also generated
@@ -543,7 +366,7 @@ Custom type casting
 You may also hack how arguments are casted into python values at a per argument
 level, using decorator syntax or the lower level Python API.
 
-For example, you can override the :py:meth:`~cli2.argument.Argument.cast()`
+For example, you can override the :py:meth:`~cli2.cli.Argument.cast()`
 method for a given argument as such:
 
 .. code-block:: python
@@ -560,49 +383,9 @@ You can also easily write an automated test:
 
 .. code-block:: python
 
-    cmd = cli2.Command(yourcmd)
+    cmd = cli2.cli(yourcmd)
     cmd.parse('1,2')
     assert cmd.bound.arguments == dict(ages=[1, 2])
-
-Logging
-=======
-
-By default, :py:class:`~cli2.entry_point.EntryPoint`: will setup a default
-logger streaming all python logs to stdout with info level.
-
-Use the ``LOG`` environment variable to change it, ie::
-
-    LOG=debug yourcommand ...
-    LOG=error yourcommand ...
-
-Or, disable this default feature with ``log=False``::
-
-    cli = cli2.Group(log=False)
-
-Tables
-======
-
-cli2 also offers a simple table rendering data that will do it's best to word
-wrap cell data so that it fits in the terminal. Example:
-
-.. code-block:: python
-
-    cli2.Table(*rows).print()
-
-Documentation
-=============
-
-Add ``'cli2.sphinx'`` to your extensions in ``docs/conf.py``, then use the
-following directive to generate full documentation for your CLI:
-``.. cli2:auto:: cli2-example``
-
-Then, you can refer to your commands and arguments as such:
-
-- ``:cli2:grp:`cli2-example```
-- ``:cli2:cmd:`cli2-example get```
-- ``:cli2:arg:`cli2-example get base_url```
-
-Shown in :doc:`example`
 
 Overridding default code
 ========================
@@ -615,7 +398,7 @@ argument, here's an example with the age argument again:
 
 .. code-block:: python
 
-    class AgesArgument(cli2.Argument):
+    class AgesArgument(cli2.cli):
         def cast(self, value):
             # logic to convert the ages argument from the command line to
             # python goes in this method
@@ -637,7 +420,7 @@ Example:
 
 .. code-block:: python
 
-    class YourThingCommand(cli2.Command):
+    class YourThingCommand(cli2.cli):
         def call(self, *args, **kwargs):
             # do something
             return self.target(*args, **kwargs)
@@ -646,14 +429,14 @@ Example:
     def yourthing():
         pass
 
-    cmd = cli2.Command(yourthing)  # will be a YourThingCommand
+    cmd = cli2.cli(yourthing)  # will be a YourThingCommand
 
 You may also override at the group level, basically instanciate your
-:py:class:`~cli2.group.Group`: with the ``cmdclass`` argument:
+:py:class:`~cli2.cli.Group`: with the ``cmdclass`` argument:
 
 .. code-block:: python
 
-    cli = cli2.Group(cmdclass=YourThingCommand)
+    cli = cli2.cli(cmdclass=YourThingCommand)
     cli.add(your_function)
 
 CLI only arguments
@@ -684,7 +467,7 @@ Solution:
 
 .. code-block:: python
 
-    class YourCommand(cli2.Command):
+    class YourCommand(cli2.cli):
         def setargs(self):
             super().setargs()
 
@@ -726,11 +509,6 @@ Check `cli2/test_inject.py` for edge cases and more fun examples!
 
 .. literalinclude:: ../cli2/test_inject.py
    :language: python
-
-Configuration
-=============
-
-See :py:mod:`cli2.configuration`
 
 Edge cases
 ==========
@@ -812,3 +590,9 @@ keyword arguments ...
 ... Because the parser considers token that start with a keyword of a keyword
 argument prioritary to positional arguments once the positional arguments have
 all been bound.
+
+API
+===
+
+.. automodule:: cli2.cli
+   :members:
