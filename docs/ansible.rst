@@ -6,6 +6,7 @@ Experimental feature, requires ``ansible``, to build `custom action plugins
 
 Useful on its own, it also integrates very well with the rest of our stuff:
 
+- :doc:`display`
 - :doc:`log`
 - :doc:`client`
 - :doc:`lock`
