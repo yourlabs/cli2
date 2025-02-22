@@ -5,11 +5,11 @@ from cli2.examples.client import APIClient
 
 
 class ActionModule(ansible.ActionBase):
-    id = ansible.Option('id', None, None)
+    id = ansible.Option('id', default=None)
     name = ansible.Option('name')
-    capacity = ansible.Option('capacity', None, '1To')
+    capacity = ansible.Option('capacity', default='1To')
     price = ansible.Option('price')
-    state = ansible.Option('state', None, 'present')
+    state = ansible.Option('state', default='present')
 
     async def run_async(self):
         self.log = cli2.log.bind(id=self.id, name=self.name)
