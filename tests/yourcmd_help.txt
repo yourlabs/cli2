@@ -1,4 +1,4 @@
-command: python example.py
+command: python cli2/examples/example.py
 retcode: 1
 stdout:
 [1;38;5;1mERROR: [0mmissing 1 required argument: somearg[0m

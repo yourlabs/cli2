@@ -29,5 +29,4 @@ class Client:
 
 
 if __name__ == '__main__':
-    import os
     cli.entry_point()

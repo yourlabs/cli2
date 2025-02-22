@@ -3,8 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-cli2: Dynamic CLI for Python 3
-==============================
+.. include:: ../README.rst
 
 .. toctree::
    :maxdepth: 1
