@@ -29,6 +29,7 @@ With :py:class:`~cli2.ansible.action.ActionBase`, we don't define run, we define
         async def run_async(self):
             self.tmp        # is the usual tmp arg
             self.task_vars  # is the usual task_vars arg
+            cli2.log.debug('Getting something')
             self.result['failed'] = True
             cli2.log.info('Got something', json=something)
 
