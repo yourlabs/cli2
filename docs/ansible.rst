@@ -229,7 +229,7 @@ example<Example Client>`:
 Tests
 -----
 
-.. literalinclude:: ../test/test_restful.py
+.. literalinclude:: ../tests/test_restful.py
 
 API
 ===
