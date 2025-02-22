@@ -1,5 +1,5 @@
-Ansible Action Plugin framework
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Ansible Action Plugin
+~~~~~~~~~~~~~~~~~~~~~
 
 Experimental feature, requires ``ansible``, to build `custom action plugins
 <https://docs.ansible.com/ansible/latest/dev_guide/developing_plugins.html#action-plugins>`_
