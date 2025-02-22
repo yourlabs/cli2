@@ -1,42 +1,41 @@
-from .command import Command
-from .group import Group
-from .test import Outfile
+import cli2
+import cli2.test
 
 
 def test_group_command_not_found():
-    group = Group(outfile=Outfile())
+    group = cli2.Group(outfile=cli2.test.Outfile())
     group('a', 'b')
     assert 'Command a not found' in group.outfile
 
 
 def test_group_subcommand_not_found():
-    group = Group(outfile=Outfile())
-    group['a'] = Group(name='a')
+    group = cli2.Group(outfile=cli2.test.Outfile())
+    group['a'] = cli2.Group(name='a')
     group('a', 'b')
     assert 'Command b not found' in group.outfile
 
 
 def test_group_no_command():
-    group = Group(outfile=Outfile())
+    group = cli2.Group(outfile=cli2.test.Outfile())
     group()
     assert 'No sub-command' in group.outfile
 
 
 def test_missing_arg():
-    cmd = Group(outfile=Outfile()).add(lambda b: True, name='a')
+    cmd = cli2.Group(outfile=cli2.test.Outfile()).add(lambda b: True, name='a')
     cmd('a')
     assert "missing 1 required argument: b" in cmd.outfile
 
 
 def test_repr():
-    assert repr(Group('foo')) == 'Group(foo)'
+    assert repr(cli2.Group('foo')) == 'Group(foo)'
 
 
 def test_help():
     def foo():
         """foodoc"""
 
-    group = Group('lol', doc='loldoc', outfile=Outfile())
+    group = cli2.Group('lol', doc='loldoc', outfile=cli2.test.Outfile())
     group.add(foo)
     group()
     assert 'foodoc' in group.outfile
@@ -74,7 +73,7 @@ def test_help():
 
 def test_help_nested():
     def c(): 'cdoc'
-    a = Group('a', outfile=Outfile())
+    a = cli2.Group('a', outfile=cli2.test.Outfile())
     b = a.group('b')
     b.cmd(c)
 
@@ -86,37 +85,16 @@ def test_help_nested():
     assert 'cdoc' in a.outfile
 
 
-def test_load_module():
-    from cli2 import test_group
-    group = Group()
-    group.load(test_group)
-    assert 'test_load_module' in group
-
-
-def test_load_module_str():
-    group = Group()
-    group.load('cli2.test_group')
-    assert 'test_load_module' in group
-
-
-def test_load_object():
-    class Lol:
-        def __call__(self): pass  # noqa
-    group = Group()
-    group.load(Lol())
-    assert 'Lol' in group
-
-
 def test_posix_group():
     def foo():
         """foodoc"""
-    group = Group(posix=True)
+    group = cli2.Group(posix=True)
     group.add(foo)
     assert group.posix
     assert group['foo'].posix
 
 
-class CommandSubject(Command):
+class CommandSubject(cli2.Command):
     pass
 
 
@@ -125,30 +103,30 @@ def example():
 
 
 def test_cmd_cls():
-    group = Group()
+    group = cli2.Group()
     group.cmd(cls=CommandSubject)(example)
     assert isinstance(group['example'], CommandSubject)
 
 
 def test_group_cmdclass():
-    group = Group(cmdclass=CommandSubject)
+    group = cli2.Group(cmdclass=CommandSubject)
     group.cmd()(example)
     assert isinstance(group['example'], CommandSubject)
     assert not isinstance(group['help'], CommandSubject)
 
 
 def test_inject():
-    outer = Group(name="outer")
-    inner = Group()
+    outer = cli2.Group(name="outer")
+    inner = cli2.Group()
     outer["inner"] = inner
     assert inner.name == "inner"
 
 
 def test_group_cmdclass_override():
-    class MyCmd(Command):
+    class MyCmd(cli2.Command):
         pass
 
-    outer = Group(name="outer")
+    outer = cli2.Group(name="outer")
     inner = outer.group("test", cmdclass=MyCmd)
     assert inner.cmdclass == MyCmd
 
@@ -157,7 +135,7 @@ def test_factories():
     """ Test group level factories """
 
     # test takes factory by default
-    group = Group(name='test')
+    group = cli2.Group(name='test')
 
     def test(foo):
         return foo
@@ -175,7 +153,7 @@ def test_factories():
     assert group['test2']() == 2
 
     # test the example in documentation
-    cli = Group('foo')
+    cli = cli2.Group('foo')
     cli.overrides['self']['factory'] = lambda: Foo.factory()
 
     class Foo:
@@ -204,12 +182,12 @@ def test_factories():
 
 
 def test_overrides():
-    group = Group('foo')
+    group = cli2.Group('foo')
     group.overrides['self']['factory'] = lambda: 1
     assert group.overrides['self']['factory']() == 1
 
 
-def test_load_cls():
+def test_load():
     import cli2
 
     class Bar:
@@ -217,32 +195,41 @@ def test_load_cls():
         def test(self):
             pass
 
+        @classmethod
+        @cli2.cmd
+        def classmeth(cls, arg):
+            return cls, arg
+
     class Foo(Bar):
         def bar(self):
             pass
 
         @cli2.cmd
         def test2(self):
-            pass
+            return self
 
         @cli2.cmd(condition=lambda cls: False)
         def exclude(self):
             pass
-    group = Group()
-    group.load_cls(Foo)
-    assert list(group.keys()) == ['help', 'test', 'test2']
 
-    group = Group()
-    group.load_obj(Foo())
-    assert list(group.keys()) == ['help', 'test', 'test2']
+    group = cli2.Group()
+    group.load(Foo)
+    assert list(group.keys()) == ['help', 'test', 'classmeth', 'test2']
+
+    group = cli2.Group(overrides=dict(self=dict(factory=lambda: Foo())))
+    group.load(Foo())
+    assert list(group.keys()) == ['help', 'classmeth', 'test', 'test2']
+
+    assert isinstance(group['test2'](), Foo)
 
     class Child(Foo):
         test2 = None
 
-    group = Group()
-    group.load_cls(Child)
-    assert list(group.keys()) == ['help', 'test']
+    group = cli2.Group()
+    group.load(Child)
+    assert list(group.keys()) == ['help', 'test', 'classmeth']
 
-    group = Group()
-    group.load_obj(Child())
-    assert list(group.keys()) == ['help', 'test']
+    group = cli2.Group(overrides=dict(cls=dict(factory=lambda: Child)))
+    group.load(Child())
+    assert list(group.keys()) == ['help', 'classmeth', 'test']
+    assert group['classmeth'](1) == (Child, 1)

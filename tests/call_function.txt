@@ -1,4 +1,4 @@
-command: cli2 cli2.test_node.example_function a b c=1 d=2
+command: cli2 cli2.examples.test.example_function a b c=1 d=2
 retcode: 0
 stdout:
 [37m    [39;49;00m[94mYou have called example_function with[39;49;00m:[37m[39;49;00m

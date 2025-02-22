@@ -1,5 +1,5 @@
-Tutorial for cli2.Client: HTTP Client framework
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+HTTP client
+~~~~~~~~~~~
 
 Experimental feature, to enjoy it fully, install cli2 with ``client`` as such::
 

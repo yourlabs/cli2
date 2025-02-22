@@ -1,9 +1,7 @@
+import cli2
 import inspect
 import pytest
 from unittest import mock
-
-from .argument import Argument
-from .command import Command
 
 
 with open(__file__, 'r') as f:
@@ -61,11 +59,11 @@ def test_syntaxes(kwargs, command, expected):
     for kind in kinds:
         kwargs['kind'] = kind
 
-        class TestCommand(Command):
+        class TestCommand(cli2.Command):
             def setargs(self):
                 super().setargs()
                 param = inspect.Parameter('test', **kwargs)
-                self[param.name] = Argument(self, param)
+                self[param.name] = cli2.Argument(self, param)
 
         cbs = (
             lambda: True,
@@ -90,7 +88,7 @@ def test_syntaxes(kwargs, command, expected):
 def test_call():
     sentinel = mock.sentinel.test_call
 
-    class TestCommand(Command):
+    class TestCommand(cli2.Command):
         def setargs(self):
             super().setargs()
             param = inspect.Parameter(
@@ -98,7 +96,7 @@ def test_call():
                 kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
                 default=sentinel,
             )
-            self[param.name] = Argument(self, param)
+            self[param.name] = cli2.Argument(self, param)
 
     # argument is passed when defined in signature
     cmd = TestCommand(lambda test: test)

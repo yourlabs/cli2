@@ -1,6 +1,5 @@
 import copy
 import os
-import pytest
 import re
 import shlex
 import shutil
@@ -214,8 +213,3 @@ class Playbook:
         if not exception:
             check_ansible_output_for_exception(result['exception'])
         return result
-
-
-@pytest.fixture
-def playbook(tmp_path, request):
-    return Playbook(tmp_path, name=request.node.originalname)

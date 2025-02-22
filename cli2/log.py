@@ -1,3 +1,53 @@
+"""
+Structlog based beautiful logging.
+
+This configuration offers YAML rendering for the ``json`` key in every log
+calls.
+
+.. code-block:: python
+
+    import cli2
+
+    cli2.log.warn("something happened", custom=key, json=will_be_prettyfied)
+
+In general, you'll want to use want to use:
+
+- ``log.debug()``: to indicate that something is going to happen, or a
+  request is being sent
+- ``log.info()``: to indicate that something **has** happened, or a response
+  was received
+- ``log.warn()``: something hasn't happened as expected, but your program
+  can recover from that (ie. retrying a connection)
+- ``log.error()``: your program couldn't perform some function
+- ``log.critical()``: your program may not be able to continue running
+
+Anyway, it's structlog so you can also create bound loggers that will carry on
+the given parameters:
+
+.. code-block:: python
+
+    import cli2
+    log = cli2.log.bind(some='var')
+    log.warn('hello')  # will log with some=var
+
+Log level is set to warning by default, configurable over environment
+variables.
+
+.. envvar:: LOG_LEVEL
+
+    Setting this to ``INFO``, ``DEBUG``, or any other log level is safe.
+
+.. envvar:: DEBUG
+
+    Setting this will set :envvar:`LOG_LEVEL` to `DEBUG`, but also activate
+    otherwise hidden outputs, such as, in cli2.client: long pagination outputs,
+    secret/masked variables.
+    This variable is designed to **never** be enabled in automated runs, to
+    avoid leaking way to much information in say Ansible Tower and stuff like
+    that.
+    But if you're debugging manually, you will surely need that at some point.
+"""
+
 import datetime
 import logging.config
 import os
@@ -18,6 +68,9 @@ class YAMLFormatter:
         if self.colors:
             value = cli2.display.yaml_highlight(value)
         return '\n' + value
+
+
+configured = False
 
 
 def configure():
@@ -146,3 +199,18 @@ def configure():
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
         ],
     )
+
+    global configured
+    configured = True
+
+
+def get_logger():
+    """
+    Return the beautiful and configured cli2 logger.
+    """
+    if not configured:
+        configure()
+    return structlog.get_logger('cli2')
+
+
+log = get_logger()
