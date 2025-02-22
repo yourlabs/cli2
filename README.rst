@@ -5,11 +5,12 @@
 .. image:: https://img.shields.io/pypi/v/cli2.svg
    :target: https://pypi.python.org/pypi/cli2
 
-cli2: Command Line Framework
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cli2: Python Automation Framework
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A Python command line framework that loves meta programming: do less and get
-more out of it, perfect for many kinds of DevOps gigs to automate everything.
+A Python command line and Ansible Action plugin framework that loves meta
+programming: do less and get more out of it, perfect for many kinds of DevOps
+gigs to automate everything.
 
 Batteries included, all of which are useful on their own:
 
