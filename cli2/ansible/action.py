@@ -5,7 +5,6 @@ Experimental: my base class for Ansible actions.
 import asyncio
 import cli2
 import copy
-import mock
 import os
 import re
 import traceback
@@ -238,6 +237,7 @@ class ActionBase(ActionBase):
         :param client: Client instance, overrides the factory
         :param fail: Allow this test to fail without exception
         """
+        import mock
         obj = cls(*[mock.Mock()] * 6)
         obj.tmp = None
         obj.task_vars = mock.Mock()
