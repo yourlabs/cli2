@@ -38,7 +38,7 @@ except ImportError:
     pass
 from .display import diff, diff_data, render, print, highlight
 from .lock import Lock
-from .log import configure, log, get_logger
+from .log import log
 from .table import Table
 
 
