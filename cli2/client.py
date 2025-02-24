@@ -1029,11 +1029,14 @@ class Handler:
         self.backoff = self.backoff_default if backoff is None else backoff
 
     async def __call__(self, client, response, tries, mask, log):
+        seconds = tries * self.backoff
+
         if isinstance(response, Exception):
             if tries >= self.tries:
                 raise response
             # httpx session is rendered unusable after a TransportError
             if isinstance(response, httpx.TransportError):
+                await asyncio.sleep(seconds)
                 log.warn('reconnect', error=repr(response))
                 await client.client_reset()
             return
@@ -1050,7 +1053,6 @@ class Handler:
         if tries >= self.tries:
             raise RetriesExceededError(client, response, tries, mask)
 
-        seconds = tries * self.backoff
         kwargs = dict(
             status_code=response.status_code,
             tries=tries,
