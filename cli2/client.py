@@ -956,6 +956,8 @@ class ClientMetaclass(type):
                 self=dict(factory=lambda: cls())
             ),
         )
+        if new_kwargs := getattr(cls, 'cli2', None):
+            cli_kwargs.update(new_kwargs)
         cli_kwargs.update(cls.__dict__.get('cli_kwargs', dict()))
         cls.cli = Group(**cli_kwargs)
         cls.cli.load(cls)
@@ -1203,6 +1205,20 @@ class Client(metaclass=ClientMetaclass):
     .. py:attribute:: mask
 
         List of keys to mask in logging, ie.: ``['password', 'secret']``
+
+    .. py:attribute:: cli
+
+        Generated :py:class:`~cli2.cli.Group` for this client.
+
+    .. py:attribute:: cli2
+
+        Dict of overrides for the generated :py:class:`~cli2.cli.Group`.
+        Example:
+
+        .. code-block:: python
+
+            class YourClient(cli2.Client):
+                cli2 = dict(cmdclass=YourCommandClass)
 
     .. py:attribute:: debug
 

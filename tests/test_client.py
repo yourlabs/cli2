@@ -1135,3 +1135,13 @@ async def test_client_token_apply(client_class, httpx_mock):
     await client.client_reset()
     assert client.token == 2
     assert client.client.token == 2
+
+
+def test_client_kwargs(client_class):
+    class TestCmd(cli2.Command):
+        pass
+
+    class TestClient(client_class):
+        cli2 = dict(cmdclass=TestCmd)
+
+    assert TestClient.cli.cmdclass == TestCmd

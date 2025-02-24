@@ -98,6 +98,8 @@ There are a few methods that you might want to override:
   actual httpx AsyncClient instance before it is used by cli2 Client.
 - :py:meth:`~cli2.client.Client.token_get`: if you want your client to do some
   authentication dance to get a token
+- :py:attr:`~cli2.client.Client.cli2`: Overrides for the for the
+  :py:attr:`~cli2.client.Client.cli` :py:class:`~cli2.cli.Group`
 
 Pagination
 ----------
