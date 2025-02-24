@@ -237,7 +237,7 @@ class ActionBase(ActionBase):
         :param client: Client instance, overrides the factory
         :param fail: Allow this test to fail without exception
         """
-        import mock
+        from unittest import mock
         obj = cls(*[mock.Mock()] * 6)
         obj.tmp = None
         obj.task_vars = mock.Mock()
