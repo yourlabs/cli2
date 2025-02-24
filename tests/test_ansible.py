@@ -39,30 +39,34 @@ async def test_response_error(httpx_mock):
 @pytest.mark.asyncio
 async def test_option():
     class Action(ansible.ActionBase):
-        name = ansible.Option('name', 'object_name', 'Test object')
+        fact = ansible.Option(fact='fact', default='default fact')
+        arg = ansible.Option(arg='arg', fact='arg_fact')
 
         async def run_async(self):
-            self.result['name'] = self.name
+            self.result['arg'] = self.arg
+            self.result['fact'] = self.fact
 
-    module = await Action.run_test_async(args=dict(name='foo'))
-    assert module.result['name'] == 'foo'
 
-    module = await Action.run_test_async(facts=dict(object_name='foo'))
-    assert module.result['name'] == 'foo'
+    # test setting arg and fact
+    module = await Action.run_test_async(
+        args=dict(arg='arg'),
+        facts=dict(fact='fact'),
+    )
+    assert module.result['arg'] == 'arg'
+    assert module.result['fact'] == 'fact'
 
-    module = await Action.run_test_async()
-    assert module.result['name'] == 'Test object'
+    # test default
+    module = await Action.run_test_async(
+        args=dict(arg='arg'),
+    )
+    assert module.result['arg'] == 'arg'
+    assert module.result['fact'] == 'default fact'
 
-    class Action(ansible.ActionBase):
-        name = ansible.Option('name', 'object_name')
-
-        async def run_async(self):
-            self.result['name'] = self.name
-
+    # test failing for missing default
     module = await Action.run_test_async(fail=True)
     assert module.result == dict(
         failed=True,
-        error="Missing arg `name` or fact `object_name`",
+        error="Missing arg `arg` or fact `arg_fact`",
     )
 
     class Action(ansible.ActionBase):

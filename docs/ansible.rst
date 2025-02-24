@@ -63,7 +63,7 @@ instead of fiddling with task_vars:
 
     class ActionModule(ansible.ActionBase):
         # an option with a default
-        name = ansible.Option('name', default='test')
+        name = ansible.Option(arg='name', default='test')
 
         # an option without default: if not specified, the module will fail and
         # request that the user configures a value for this option
@@ -74,7 +74,7 @@ instead of fiddling with task_vars:
 
         # an option that takes value from a task arg if available, otherwise
         # from a fact, otherwise default
-        region = ansible.Option('region', fact='region', default='EU')
+        region = ansible.Option(arg='region', fact='region', default='EU')
 
         async def run_async(self):
             self.result['name'] = self.name
