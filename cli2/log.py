@@ -70,9 +70,6 @@ class YAMLFormatter:
         return '\n' + value
 
 
-configured = False
-
-
 def configure():
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'WARNING').upper()
 
@@ -200,17 +197,6 @@ def configure():
         ],
     )
 
-    global configured
-    configured = True
 
-
-def get_logger():
-    """
-    Return the beautiful and configured cli2 logger.
-    """
-    if not configured:
-        configure()
-    return structlog.get_logger('cli2')
-
-
-log = get_logger()
+configure()
+log = structlog.get_logger('cli2')

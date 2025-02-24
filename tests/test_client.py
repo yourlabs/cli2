@@ -1,5 +1,6 @@
 from datetime import datetime
 import cli2
+import cli2.client
 import httpx
 import inspect
 import mock
@@ -858,11 +859,12 @@ def test_datetime_default_fmt(client_class):
 
 
 @pytest.mark.asyncio
-async def test_mask_recursive(client_class):
+async def test_mask_recursive(client_class, monkeypatch):
     client = client_class(mask=['scrt', 'password'])
     client.client.send = mock.AsyncMock()
 
-    client.logger = mock.Mock()
+    log = mock.Mock()
+    monkeypatch.setattr(cli2.client, 'log', log)
     response = httpx.Response(
         status_code=200,
         content='{"pub": 1, "foo": [{"scrt": "pass"}]}',
@@ -871,11 +873,11 @@ async def test_mask_recursive(client_class):
     response.request = httpx.Request('POST', '/', json=data)
     client.client.send.return_value = response
     await client.post('/', json=data)
-    client.logger.bind.assert_called_once_with(
+    log.bind.assert_called_once_with(
         method='POST',
         url='http://lol/',
     )
-    log = client.logger.bind.return_value
+    log = log.bind.return_value
     log.debug.assert_called_once_with(
         'request',
         json=[{'foo': [{'src': 'pass'}]}],
@@ -891,11 +893,12 @@ async def test_mask_recursive(client_class):
 @pytest.mark.parametrize(
     'key', ('json', 'data'),
 )
-async def test_mask_logs(client_class, key):
+async def test_mask_logs(client_class, key, monkeypatch):
     client = client_class(mask=['scrt', 'password'])
     client.client.send = mock.AsyncMock()
 
-    client.logger = mock.Mock()
+    log = mock.Mock()
+    monkeypatch.setattr(cli2.client, 'log', log)
     response = httpx.Response(
         status_code=200,
         content='{"pub": 1, "scrt": "pass"}',
@@ -904,11 +907,11 @@ async def test_mask_logs(client_class, key):
     response.request = httpx.Request('POST', '/', **{key: data})
     client.client.send.return_value = response
     await client.post('/', **{key: data})
-    client.logger.bind.assert_called_once_with(
+    log.bind.assert_called_once_with(
         method='POST',
         url='http://lol/',
     )
-    log = client.logger.bind.return_value
+    log = log.bind.return_value
     log.debug.assert_called_once_with(
         'request',
         **{key: dict(foo='bar', password='***MASKED***')},
@@ -942,11 +945,12 @@ async def test_mask_exceptions(client_class):
 
 
 @pytest.mark.asyncio
-async def test_request_mask(client_class):
+async def test_request_mask(client_class, monkeypatch):
     client = client_class(mask=['password'])
     client.client.send = mock.AsyncMock()
 
-    client.logger = mock.Mock()
+    log = mock.Mock()
+    monkeypatch.setattr(cli2.client, 'log', log)
     response = httpx.Response(
         status_code=200,
         content='{"pub": 1, "scrt": "pass"}',
@@ -955,11 +959,11 @@ async def test_request_mask(client_class):
     response.request = httpx.Request('POST', '/', json=data)
     client.client.send.return_value = response
     await client.post('/', json=data, mask=['scrt'])
-    client.logger.bind.assert_called_once_with(
+    log.bind.assert_called_once_with(
         method='POST',
         url='http://lol/'
     )
-    log = client.logger.bind.return_value
+    log = log.bind.return_value
     log.debug.assert_called_once_with(
         'request',
         json=dict(foo='bar', password='secret'),
@@ -972,19 +976,20 @@ async def test_request_mask(client_class):
 
 
 @pytest.mark.asyncio
-async def test_log_content(client_class):
+async def test_log_content(client_class, monkeypatch):
     client = client_class()
     client.client.send = mock.AsyncMock()
-    client.logger = mock.Mock()
+    log = mock.Mock()
+    monkeypatch.setattr(cli2.client, 'log', log)
     response = httpx.Response(status_code=200, content='lol:]bar')
     response.request = httpx.Request('POST', '/')
     client.client.send.return_value = response
     await client.post('/', content='lol:]foo')
-    client.logger.bind.assert_called_once_with(
+    log.bind.assert_called_once_with(
         method='POST',
         url='http://lol/'
     )
-    log = client.logger.bind.return_value
+    log = log.bind.return_value
     log.debug.assert_called_once_with('request', content='lol:]foo')
     log.info.assert_called_once_with(
         'response', status_code=200, content=b'lol:]bar'
@@ -992,20 +997,20 @@ async def test_log_content(client_class):
 
 
 @pytest.mark.asyncio
-async def test_log_quiet(client_class):
+async def test_log_quiet(client_class, monkeypatch):
     client = client_class()
     client.client.send = mock.AsyncMock()
-    client.logger = mock.Mock()
+    log = mock.Mock()
+    monkeypatch.setattr(cli2.client, 'log', log)
     response = httpx.Response(status_code=200, content='[1]')
     response.request = httpx.Request('GET', '/')
     client.client.send.return_value = response
     await client.get('/', json=[1], quiet=True)
-    log = client.logger.bind.return_value
-    client.logger.bind.assert_called_once_with(
+    log.bind.assert_called_once_with(
         method='GET',
         url='http://lol/',
     )
-    log = client.logger.bind.return_value
+    log = log.bind.return_value
     assert not log.debug.call_args_list
     log.info.assert_called_once_with('response', status_code=200)
 
@@ -1068,11 +1073,13 @@ def test_id_value(client_class):
 
 
 @pytest.mark.asyncio
-async def test_debug(client_class):
+async def test_debug(client_class, monkeypatch):
     client = client_class(mask=['scrt', 'password'], debug=True)
     client.client.send = mock.AsyncMock()
 
-    client.logger = mock.Mock()
+    log = mock.Mock()
+    monkeypatch.setattr(cli2.client, 'log', log)
+
     response = httpx.Response(
         status_code=200,
         content='{"pub": 1, "scrt": "pass"}',
@@ -1081,11 +1088,11 @@ async def test_debug(client_class):
     response.request = httpx.Request('POST', '/', json=data)
     client.client.send.return_value = response
     await client.post('/', json=data, quiet=True)
-    client.logger.bind.assert_called_once_with(
+    log.bind.assert_called_once_with(
         method='POST',
         url='http://lol/',
     )
-    log = client.logger.bind.return_value
+    log = log.bind.return_value
     log.debug.assert_called_once_with(
         'request',
         json=dict(foo='bar', password='secret'),

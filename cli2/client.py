@@ -10,7 +10,6 @@ import json
 import math
 import os
 import ssl
-import structlog
 import yaml
 
 from datetime import datetime
@@ -26,6 +25,7 @@ from . import display
 from .asyncio import async_resolve
 from .cli import Command, Group, cmd, hide
 from .colors import colors
+from .log import log
 
 
 class Paginator:
@@ -1265,7 +1265,6 @@ class Client(metaclass=ClientMetaclass):
                 truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT),
             )
 
-        self.logger = structlog.get_logger('cli2')
         self.token_getting = False
         self.token = None
 
@@ -1502,13 +1501,13 @@ class Client(metaclass=ClientMetaclass):
             extensions=extensions,
         )
 
-        log = self.logger.bind(method=method, url=str(request.url))
+        _log = log.bind(method=method, url=str(request.url))
         if not quiet or self.debug:
             key, value = self.request_log_data(request, mask, quiet)
             kwargs = dict()
             if value:
                 kwargs[key] = value
-            log.debug('request', **kwargs)
+            _log.debug('request', **kwargs)
 
         response = await self.send(
             request,
@@ -1521,13 +1520,13 @@ class Client(metaclass=ClientMetaclass):
             follow_redirects=follow_redirects,
         )
 
-        _log = dict(status_code=response.status_code)
+        kwargs = dict(status_code=response.status_code)
         if not quiet or self.debug:
             key, value = self.response_log_data(response, mask)
             if value:
-                _log[key] = value
+                kwargs[key] = value
 
-        log.info('response', **_log)
+        _log.info('response', **kwargs)
 
         return response
 
