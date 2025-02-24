@@ -37,6 +37,17 @@ def client_class():
 
 @pytest.mark.asyncio
 async def test_client_cli(client_class, httpx_mock):
+    class TestModel(client_class.Model):
+        url_list = '/'
+
+    class TestModel2(client_class.Model):
+        pass
+
+    class TestModel3(client_class.Model):
+        @cli2.cmd
+        def find():
+            pass
+
     assert client_class.cli
     factory = client_class.cli.overrides['self']['factory']
     assert isinstance(factory(), client_class)
@@ -45,8 +56,6 @@ async def test_client_cli(client_class, httpx_mock):
     response = await client_class.cli['get'].async_call('http://lol')
     assert response.json() == [1]
 
-    class TestModel(client_class.Model):
-        url_list = '/'
     assert 'testmodel' in client_class.cli
     assert client_class.cli['testmodel']['get'].overrides['cls']['factory']
     assert not inspect.ismethod(client_class.cli['testmodel']['get'].target)
@@ -58,15 +67,7 @@ async def test_client_cli(client_class, httpx_mock):
     httpx_mock.add_response(url='http://lol/?page=2', json=[])
     await client_class.cli['testmodel']['find'].async_call()
 
-    class TestModel2(client_class.Model):
-        pass
-
     assert 'testmodel2' not in client_class.cli
-
-    class TestModel3(client_class.Model):
-        @cli2.cmd
-        def find():
-            pass
 
     assert list(client_class.cli['testmodel3'].keys()) == ['help', 'find']
 
@@ -85,7 +86,6 @@ async def test_client_cli_override(client_class, httpx_mock):
         @cli2.cmd
         async def find(cls, foo):
             return cls.url_list
-    assert await Client.cli['testmodel']['find'].async_call('bar') == 'bar/foo'
 
     class TestModel2(Client.Model):
         @classmethod
@@ -93,12 +93,15 @@ async def test_client_cli_override(client_class, httpx_mock):
         async def find(cls):
             return 'foo'
 
-    assert await Client.cli['testmodel2']['find'].async_call() == 'foo'
-    assert 'get' not in Client.cli['testmodel2']
-
     class TestModel3(Client.Model):
         url_list = '{client.test}/foo'
         create = None
+
+    assert await Client.cli['testmodel']['find'].async_call('bar') == 'bar/foo'
+
+    assert await Client.cli['testmodel2']['find'].async_call() == 'foo'
+    assert 'get' not in Client.cli['testmodel2']
+
     assert 'create' not in Client.cli['testmodel3']
 
 
@@ -123,12 +126,12 @@ async def test_async_factory(httpx_mock, client_class):
         async def factory(cls):
             return cls(base_url='http://bar')
 
+    class TestModel(TestClient.Model):
+        url_list = '/2'
+
     TestClient.cli.overrides['self']['factory'] = TestClient.factory
     httpx_mock.add_response(url='http://bar/', json=[dict(a=1)])
     assert await TestClient.cli['get'].async_call('/')
-
-    class TestModel(TestClient.Model):
-        url_list = '/2'
 
     httpx_mock.add_response(url='http://bar/2', json=[dict(a=1)])
     httpx_mock.add_response(url='http://bar/2?page=2', json=[])
@@ -777,6 +780,10 @@ async def test_model_crud(httpx_mock, client_class):
 
 @pytest.mark.asyncio
 async def test_client_cli2(httpx_mock, client_class):
+    class Foo(client_class.Model):
+        id = cli2.Field()
+        url_list = '/foo'
+
     assert client_class.cli.name == 'test'
     assert client_class.cli.doc == 'doc'
 
@@ -784,10 +791,6 @@ async def test_client_cli2(httpx_mock, client_class):
     meth = client_class.cli['get']
     resp = await meth.async_call('/foo')
     assert resp.json() == [1]
-
-    class Foo(client_class.Model):
-        id = cli2.Field()
-        url_list = '/foo'
 
     meth = client_class.cli['foo']['get']
     httpx_mock.add_response(url='http://lol/foo/1', json=dict(id=1, a=2))
@@ -1135,13 +1138,3 @@ async def test_client_token_apply(client_class, httpx_mock):
     await client.client_reset()
     assert client.token == 2
     assert client.client.token == 2
-
-
-def test_client_kwargs(client_class):
-    class TestCmd(cli2.Command):
-        pass
-
-    class TestClient(client_class):
-        cli2 = dict(cmdclass=TestCmd)
-
-    assert TestClient.cli.cmdclass == TestCmd

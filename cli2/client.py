@@ -690,6 +690,7 @@ class ModelMetaclass(type):
     def __new__(cls, name, bases, attributes):
         if 'Paginator' in attributes:
             attributes['paginator'] = attributes['Paginator']
+
         cls = super().__new__(cls, name, bases, attributes)
         client = getattr(cls, 'client', None)
         if client:
@@ -700,11 +701,6 @@ class ModelMetaclass(type):
         client_class = getattr(cls, '_client_class', None)
         if client_class:
             client_class.models.append(cls)
-            client_cli = getattr(client_class, 'cli', None)
-            if client_cli:
-                group = ModelGroup(cls)
-                if len(group) > 1:
-                    cls.cli = client_cli[cls.__name__.lower()] = group
 
         cls._fields = dict()
 
@@ -939,6 +935,8 @@ class Model(metaclass=ModelMetaclass):
 
 
 class ClientMetaclass(type):
+    cli_kwargs = dict()
+
     def __new__(cls, name, bases, attributes):
         if 'Paginator' in attributes:
             attributes['paginator'] = attributes['Paginator']
@@ -947,21 +945,28 @@ class ClientMetaclass(type):
         # bind ourself as _client_class to any inherited model
         cls.Model = type('Model', (Model,), dict(_client_class=cls))
         cls.models = []
-
-        cli_kwargs = dict(
-            name=cls.__name__.lower().replace('client', '') or 'client',
-            doc=inspect.getdoc(cls),
-            overrides=dict(
-                cls=dict(factory=lambda: cls),
-                self=dict(factory=lambda: cls())
-            ),
-        )
-        if new_kwargs := getattr(cls, 'cli2', None):
-            cli_kwargs.update(new_kwargs)
-        cli_kwargs.update(cls.__dict__.get('cli_kwargs', dict()))
-        cls.cli = Group(**cli_kwargs)
-        cls.cli.load(cls)
         return cls
+
+    @property
+    def cli(cls):
+        if '_cli' not in cls.__dict__:
+            cli_kwargs = dict(
+                name=cls.__name__.lower().replace('client', '') or 'client',
+                doc=inspect.getdoc(cls),
+                overrides=dict(
+                    cls=dict(factory=lambda: cls),
+                    self=dict(factory=lambda: cls())
+                ),
+            )
+            cli_kwargs.update(cls.cli_kwargs)
+            cli = Group(**cli_kwargs)
+            cli.load(cls)
+            for model in cls.models:
+                group = ModelGroup(model)
+                if len(group) > 1:
+                    cli[model.__name__.lower()] = group
+            cls._cli = cli
+        return cls._cli
 
 
 class Handler:
@@ -1209,8 +1214,10 @@ class Client(metaclass=ClientMetaclass):
     .. py:attribute:: cli
 
         Generated :py:class:`~cli2.cli.Group` for this client.
+        Uses :py:attr:`cli_kwargs` to pass kwargs to the generated group.
+        Note that this is a cached property.
 
-    .. py:attribute:: cli2
+    .. py:attribute:: cli_kwargs
 
         Dict of overrides for the generated :py:class:`~cli2.cli.Group`.
         Example:
@@ -1218,7 +1225,7 @@ class Client(metaclass=ClientMetaclass):
         .. code-block:: python
 
             class YourClient(cli2.Client):
-                cli2 = dict(cmdclass=YourCommandClass)
+                cli_kwargs = dict(cmdclass=YourCommandClass)
 
     .. py:attribute:: debug
 
