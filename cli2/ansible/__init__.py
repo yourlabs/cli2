@@ -6,3 +6,4 @@ from .action import (
     AnsibleOptionError,
     ActionBase,
 )
+from .variables import Variables

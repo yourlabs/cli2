@@ -1,8 +1,18 @@
-Ansible Action Plugin
-~~~~~~~~~~~~~~~~~~~~~
+Ansible
+~~~~~~~
 
-Experimental feature, requires ``ansible``, to build `custom action plugins
+Ansible Action Plugin micro framework
+=====================================
+
+Requires ``ansible``, to build `custom action plugins
 <https://docs.ansible.com/ansible/latest/dev_guide/developing_plugins.html#action-plugins>`_
+
+Action plugins are generally preferable to Module plugins:
+
+- they execute on the Ansible controller
+- which is faster
+- they can still call any module on the target host
+- they can stream output (logs) in real-time
 
 Useful on its own, it also integrates very well with the rest of our stuff:
 
@@ -11,8 +21,13 @@ Useful on its own, it also integrates very well with the rest of our stuff:
 - :doc:`client`
 - :doc:`lock`
 
-Features
-========
+Example Plugin
+--------------
+
+This uses the example cli2 Client that we developed in :ref:`the cli2.client
+example<Example Client>`:
+
+.. literalinclude:: ../tests/yourlabs/test/plugins/action/restful_api.py
 
 Async
 -----
@@ -178,10 +193,7 @@ before_set/after_set in ``if self.task_vars['ansible_diff_mode']`` instead of
 ``if self.verbosity``.
 
 Testing
-=======
-
-Mock
-----
+-------
 
 You can run the module in mocked mode in tests with the
 :py:meth:`~cli2.ansible.action.ActionModule.run_test_async` method:
@@ -200,10 +212,18 @@ You can run the module in mocked mode in tests with the
         assert module.result['changed']
 
 For HTTP response mocking, you should use httpx_mock from pytest-httpx, as seen
-in the example below.
+in the example below:
 
-Subprocess
-----------
+.. literalinclude:: ../tests/test_restful.py
+
+Variables reader
+================
+
+.. automodule:: cli2.ansible.variables
+   :members:
+
+Playbook generator
+==================
 
 You can also create playbooks on the fly and run them in a subprocess that
 calls ansible-playbook in localhost, thanks to the
@@ -220,6 +240,9 @@ calls ansible-playbook in localhost, thanks to the
 The previous, mocking solution, is always preferable. But if you also want
 functional tests, then this works great.
 
+While the internal Python API of Ansible would also work, this uses Ansible
+public API which is less subject to change.
+
 Documenting
 ===========
 
@@ -230,22 +253,6 @@ Once your documentation outputs properly with ``ansible-doc`` command, you can
 have it in your Sphinx documentation with various plugins that you'll find
 easily on internet, except probably for mine:
 `ansible-sphinx <https://yourlabs.io/oss/ansible-sphinx>`_.
-
-Example
-=======
-
-Plugin
-------
-
-This uses the example cli2 Client that we developed in :ref:`the cli2.client
-example<Example Client>`:
-
-.. literalinclude:: ../tests/yourlabs/test/plugins/action/restful_api.py
-
-Tests
------
-
-.. literalinclude:: ../tests/test_restful.py
 
 API
 ===
