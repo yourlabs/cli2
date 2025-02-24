@@ -1565,6 +1565,8 @@ class Client(metaclass=ClientMetaclass):
                     data[key] = '***MASKED***'
                 if isinstance(value, dict):
                     data[key] = self.mask_data(value, mask)
+                if isinstance(value, list):
+                    data[key] = [self.mask_data(item, mask) for item in value]
             return data
 
         return data
