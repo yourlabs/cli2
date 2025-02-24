@@ -1,4 +1,5 @@
 import cli2
+import functools
 import cli2.test
 
 
@@ -188,9 +189,12 @@ def test_overrides():
 
 
 def test_load():
-    import cli2
+    class BarMetaclass(type):
+        @property
+        def fails3(self):
+            raise Exception('fails')
 
-    class Bar:
+    class Bar(metaclass=BarMetaclass):
         @cli2.cmd
         def test(self):
             pass
@@ -211,6 +215,14 @@ def test_load():
         @cli2.cmd(condition=lambda cls: False)
         def exclude(self):
             pass
+
+        @property
+        def fails(self):
+            raise Exception('Loading should not eval properties')
+
+        @functools.cached_property
+        def fails2(self):
+            raise Exception('Loading should not eval properties')
 
     group = cli2.Group()
     group.load(Foo)

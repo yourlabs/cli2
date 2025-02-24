@@ -308,6 +308,8 @@ class Group(EntryPoint, dict):
         for name in dir(obj):
             if name.startswith('_'):
                 continue
+            if not callable(getattr(type(obj), name)):
+                continue
             self.load_method(obj, getattr(obj, name))
 
     def load_method(self, obj, method):
