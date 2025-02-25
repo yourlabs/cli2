@@ -1145,3 +1145,19 @@ async def test_client_token_apply(client_class, httpx_mock):
     await client.client_reset()
     assert client.token == 2
     assert client.client.token == 2
+
+
+def test_client_command(client_class):
+    class Client(client_class):
+        class Command(cli2.Command):
+            pass
+
+    class Model(Client.Model):
+        url_list = '/foo'
+        class Command(Client.Command, cli2.Model.Command):
+            pass
+
+    assert issubclass(Client.cli.cmdclass, Client.Command)
+    assert issubclass(Client.cli['model'].cmdclass, Client.Command)
+    assert issubclass(Client.cli['model'].cmdclass, cli2.Model.Command)
+    assert 'get' in Client.cli['model']

@@ -233,6 +233,22 @@ You can also define fields for your Model as such:
 You guessed it: this will may the ``id`` key of the :py:attr:`Model.data` to
 the ``.id`` property. Which allows for more interesting things as we'll see...
 
+Customizing Commands
+--------------------
+
+You can override the command class for :py:class:`~cli2.client.Client` object
+by defining a :py:attr:`~cli2.client.Client.Command` subclass.
+
+.. code-block:: python
+
+    class YourClient(cli2.Client):
+        class Command(cli2.Client.Command):
+            pass  # add your overrides here, ie. to setargs
+
+    class YourModel(YourClient.Model):
+        class Command(cli2.Model.Command):
+            pass  # add your overrides here, ie. to setargs
+
 Nested fields
 `````````````
 

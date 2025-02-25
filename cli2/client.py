@@ -699,6 +699,11 @@ class ModelMetaclass(type):
             attributes['paginator'] = attributes['Paginator']
 
         cls = super().__new__(cls, name, bases, attributes)
+        cls.Command = type(
+            'ModelCommand',
+            (cls.Command,),
+            dict(model=cls),
+        )
         client = getattr(cls, 'client', None)
         if client:
             if not cls.paginator:
@@ -733,6 +738,19 @@ class ModelMetaclass(type):
 
         return cls
 
+    @property
+    def cli(cls):
+        if '_cli' not in cls.__dict__:
+            cli_kwargs = dict(
+                name=cls.__name__.lower(),
+                doc=inspect.getdoc(cls),
+                cmdclass=cls.Command,
+            )
+            cli_kwargs.update(cls.cli_kwargs)
+            cls._cli = Group(**cli_kwargs)
+            cls._cli.load(cls)
+        return cls._cli
+
 
 class Model(metaclass=ModelMetaclass):
     """
@@ -765,13 +783,29 @@ class Model(metaclass=ModelMetaclass):
     .. py:attribute:: url
 
         Object URL based on :py:attr:`url_detail` and :py:attr:`id_field`.
+
+    .. py:attribute:: cli_kwargs
+
+        Dict of kwargs to use to create the :py:class:`~cli2.cli.Group` for
+        this model.
+
+    .. py:attribute:: Command
+
+        Define a Command class inside the ModelClass to use a specific
+        :py:class:`~cli2.cli.Command` class for a model.
+        Don't inherit from anything: a new class will be generated for you
+        inheriting from both :py:class:`~cls.cli2.client.ModelCommand` and
+        :py:attr:`~cli2.cli.Client.Command`.
     """
     paginator = None
     model_command = ModelCommand
-    model_group = ModelGroup
     url_list = None
     url_detail = '{self.url_list}/{self.id_value}'
     id_field = 'id'
+    cli_kwargs = dict()
+
+    class Command(ModelCommand):
+        pass
 
     def __init__(self, data=None, **values):
         """
@@ -947,7 +981,14 @@ class ClientMetaclass(type):
     def __new__(cls, name, bases, attributes):
         if 'Paginator' in attributes:
             attributes['paginator'] = attributes['Paginator']
+
         cls = super().__new__(cls, name, bases, attributes)
+
+        cls.Command = type(
+            'ClientCommand',
+            (cls.Command, Command),
+            dict(),
+        )
 
         # bind ourself as _client_class to any inherited model
         cls.Model = type('Model', (Model,), dict(_client_class=cls))
@@ -964,12 +1005,13 @@ class ClientMetaclass(type):
                     cls=dict(factory=lambda: cls),
                     self=dict(factory=lambda: cls())
                 ),
+                cmdclass=cls.Command,
             )
             cli_kwargs.update(cls.cli_kwargs)
             cli = Group(**cli_kwargs)
             cli.load(cls)
             for model in cls.models:
-                group = ModelGroup(model)
+                group = model.cli
                 if len(group) > 1:
                     cli[model.__name__.lower()] = group
             cls._cli = cli
@@ -1236,6 +1278,13 @@ class Client(metaclass=ClientMetaclass):
             class YourClient(cli2.Client):
                 cli_kwargs = dict(cmdclass=YourCommandClass)
 
+    .. py:attribute:: Command
+
+        Define a Command class inside the Client class to use a specific
+        :py:class:`~cli2.cli.Command` class for a model.
+        Don't inherit from anything: a new class will be generated for you
+        inheriting from :py:attr:`~cli2.cli.Client.Command` for you.
+
     .. py:attribute:: debug
 
         Enforce full logging: quiet requests are logged, masking does not
@@ -1250,6 +1299,9 @@ class Client(metaclass=ClientMetaclass):
     semaphore = None
     mask = []
     debug = False
+
+    class Command:
+        pass
 
     def __init__(self, *args, handler=None, semaphore=None, mask=None,
                  debug=False, **kwargs):
