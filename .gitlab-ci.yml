@@ -7,7 +7,7 @@ qa:
 pytest:
   stage: test
   script:
-  - pip install --user -e .[client,test]
+  - pip install --user -e .[client,test] -e pytest-cli2-ansible
   - unset DEBUG && pytest -vv --cov cli2 --cov-report=xml:coverage.xml --junitxml=report.xml --cov-report=term-missing --strict
   - CI_PROJECT_PATH=yourlabs/cli2 CI_BUILD_REPO=https://github.com/yourlabs/cli2 codecov-bash -f coverage.xml
   artifacts:
@@ -17,4 +17,9 @@ pytest:
 pypi:
   stage: deploy
   script: pypi-release
+  only: [tags]
+
+pypi-pytest-cli2-ansible:
+  stage: deploy
+  script: cd pytest-cli2-ansible && export TWINE_PASSWORD="${TWINE_PASSWORD_PYTEST_CLI2_ANSIBLE}" && echo hello $TWINE_PASSWORD_PYTEST_CLI2_ANSIBLE fiend && pypi-release
   only: [tags]
