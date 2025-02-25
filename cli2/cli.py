@@ -1161,6 +1161,9 @@ class Argument:
         command object.
 
         If the factory function takes an `arg` argument, it will pass self.
+
+        It will forward any argument to the factory function if detected in
+        it's signature.
         """
         kwargs = dict()
         sig = inspect.signature(self.factory)
@@ -1168,4 +1171,7 @@ class Argument:
             kwargs['cmd'] = self.cmd
         if 'arg' in sig.parameters:
             kwargs['arg'] = self
+        for key, arg in self.cmd.items():
+            if key in sig.parameters:
+                kwargs[key] = arg.value
         return self.factory(**kwargs)

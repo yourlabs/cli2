@@ -707,3 +707,15 @@ def test_keyboard_interrupt_async():
     cmd()
     assert cmd.exit_code == 1
     assert cmd.post_result == 'foo'
+
+
+def test_factory_value_args():
+    def myfactory(foo):
+        return foo
+
+    @cli2.arg('bar', factory=myfactory)
+    def mycmd(foo, bar):
+        return foo
+
+    cmd = cli2.Command(mycmd)
+    assert cmd('a') == 'a'
