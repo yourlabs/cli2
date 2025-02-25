@@ -40,8 +40,9 @@ setup(
             'cli2-example-nesting = cli2.examples.nesting:cli.entry_point',
             'cli2-example-client = cli2.examples.client:cli.entry_point',
         ],
-        'pytest11': [
-            'cli2-ansible-fixtures = cli2.ansible.pytest',
-        ],
+        # breaks alotastuff
+        #'pytest11': [
+        #    'cli2-ansible-fixtures = cli2.ansible.pytest',
+        #],
     },
 )
