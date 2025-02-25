@@ -18,3 +18,8 @@ pypi:
   stage: deploy
   script: pypi-release
   only: [tags]
+
+pypi-pytest-cli2-ansible:
+  stage: deploy
+  script: cd pytest-cli2-ansible && pypi-release
+  only: [tags]
