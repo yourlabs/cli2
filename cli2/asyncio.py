@@ -1,3 +1,4 @@
+import asyncio
 import inspect
 from . import display
 
@@ -25,3 +26,17 @@ async def async_resolve(result, output=False):
                 results.append(await async_resolve(_))
         return None if output else results
     return result
+
+
+def async_run(coroutine):
+    """
+    Run an async coroutineutine, in running loop or new loop.
+
+    :param coroutine: The return value of an async function call.
+    """
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coroutine)
+    else:
+        return loop.create_task(coroutine)
