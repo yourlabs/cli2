@@ -196,7 +196,14 @@ class Paginator:
             data = response.json()
         except json.JSONDecodeError:
             return []
+        return self.data_items(data)
 
+    def data_items(self, data):
+        """
+        Given response data, return items.
+
+        :param data: Response JSON data
+        """
         items_list = []
         if isinstance(data, list):
             items_list = data
