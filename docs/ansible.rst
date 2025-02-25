@@ -225,6 +225,9 @@ Variables reader
 Playbook generator
 ==================
 
+.. danger:: Requires ``pip install pytest-cli2-ansible`` to register the pytest
+            plugin.
+
 You can also create playbooks on the fly and run them in a subprocess that
 calls ansible-playbook in localhost, thanks to the
 :py:class:`~cli2.pytest_ansible.Playbook` fixture:
@@ -237,11 +240,13 @@ calls ansible-playbook in localhost, thanks to the
         assert result['changed'] == 0
         assert result['ok'] == 2
 
-The previous, mocking solution, is always preferable. But if you also want
-functional tests, then this works great.
+The previous, mocking solution, is always preferable when possible, because it
+doesn't depend on the network to succeed. But if your action plugin is more
+complicated than that then this works great.
 
 While the internal Python API of Ansible would also work, this uses Ansible
-public API which is less subject to change.
+public API which is less subject to change, and emulates exactly what a user
+would do with your plugin.
 
 Documenting
 ===========
