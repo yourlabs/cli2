@@ -40,7 +40,7 @@ async def test_create(httpx_mock):
             capacity='5',
         )
     )
-    assert module.result['json']['id'] == 1
+    assert module.result['data']['id'] == 1
 
 
 @pytest.mark.asyncio
@@ -68,7 +68,7 @@ async def test_update(httpx_mock):
         )
     )
     assert not module.result['changed']
-    assert module.result['json']['id'] == 1
+    assert module.result['data']['id'] == 1
 
     # testing for update
     httpx_mock.add_response(
@@ -91,5 +91,5 @@ async def test_update(httpx_mock):
             price='6',
         )
     )
-    assert module.result['json']['id'] == 1
+    assert module.result['data']['id'] == 1
     assert module.result['changed']
