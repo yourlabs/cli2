@@ -5,6 +5,7 @@ setup(
     name='cli2',
     versioning='dev',
     setup_requires='setupmeta',
+    packages=['cli2'],
     install_requires=[
         'docstring_parser',
         'pyyaml',
