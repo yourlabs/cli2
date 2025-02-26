@@ -25,11 +25,8 @@ class ActionModule(ansible.ActionBase):
 
         if self.state == 'absent':
             if obj:
-                response = await obj.delete()
-                # this returns masked json or content in value
-                # key will be "json" or "content"
-                key, value = self.client.response_log_data(response)
-                self.result[key] = value
+                self.result['deleted'] = obj.data
+                await obj.delete()
                 self.result['changed'] = True
                 self.log.info(f'Deleted object')
             return
@@ -48,14 +45,13 @@ class ActionModule(ansible.ActionBase):
         if obj.changed_fields:
             response = await obj.save()
             self.log.info(f'Object changes saved')
-            key, value = self.client.response_log_data(response)
-            self.result[key] = value
+            self.result['data'] = response.json()
             self.result['changed'] = True
             if self.verbosity:
                 # causes a diff to be displayed
                 self.after_set(obj.data)
         else:
-            self.result['json'] = obj.data_masked
+            self.result['data'] = obj.data
             self.result['changed'] = False
 
     async def client_factory(self):
