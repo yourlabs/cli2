@@ -1178,6 +1178,7 @@ def test_client_command(client_class, httpx_mock):
 
     assert 'get' in Client.cli['model']
 
+    assert Client.cli['get'].client is None
     cmd = Client.cli['get']
     assert isinstance(cmd, Client.cmdclass)
     httpx_mock.add_response(url='http://x/foo', json=[])
@@ -1187,5 +1188,6 @@ def test_client_command(client_class, httpx_mock):
 
     httpx_mock.add_response(url='http://x/foo', json=[])
     httpx_mock.add_response(url='http://x/logoff')
+    assert Client.cli['model']['get'].client is None
     cmd = Client.cli['model']['find']
     cmd('http://x')

@@ -661,6 +661,7 @@ class ModelCommand(Command):
         super().__init__(target, *args, **kwargs)
         self.overrides['self']['factory'] = self.get_object
         self.overrides['cls']['factory'] = self.get_model
+        self.client = None
 
     def setargs(self):
         """
@@ -1263,6 +1264,9 @@ class ClientCommand(Command):
 
         The client object that was constructed from :py:meth:`Client.factory`
     """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.client = None
 
     def setargs(self):
         """
