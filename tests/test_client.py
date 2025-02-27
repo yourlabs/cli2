@@ -299,10 +299,14 @@ async def test_handler(client_class):
         await handler(client, response, 1, [], log)
 
     assert not client.client_reset.await_count
-    result = await handler(client, httpx.TransportError('foo'), 0, [], log)
+    exc = httpx.TransportError('foo')
+    exc.request = response.request
+    result = await handler(client, exc, 0, [], log)
     log.warn.assert_called_once_with(
         'reconnect',
         error="TransportError('foo')",
+        method='POST',
+        url='/',
     )
     assert not result
     assert client.client_reset.await_count == 1
