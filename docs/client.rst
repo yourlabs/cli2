@@ -233,22 +233,6 @@ You can also define fields for your Model as such:
 You guessed it: this will may the ``id`` key of the :py:attr:`Model.data` to
 the ``.id`` property. Which allows for more interesting things as we'll see...
 
-Customizing Commands
---------------------
-
-You can override the command class for :py:class:`~cli2.client.Client` object
-by defining a :py:attr:`~cli2.client.Client.Command` subclass.
-
-.. code-block:: python
-
-    class YourClient(cli2.Client):
-        class Command(cli2.Client.Command):
-            pass  # add your overrides here, ie. to setargs
-
-    class YourModel(YourClient.Model):
-        class Command(cli2.Model.Command):
-            pass  # add your overrides here, ie. to setargs
-
 Nested fields
 `````````````
 
@@ -435,7 +419,45 @@ It's just magic I love it!
 Patterns
 ========
 
-In this section, we'll document various patterns found over time.
+In this section, we'll document various patterns found over time refactoring
+complex clients.
+
+Customizing Commands
+--------------------
+
+You can customize the generated commands in the following methods of the
+:py:class:`~cli2.client.Client` class:
+
+- :py:meth:`~cli2.Client.setargs`: to set :ref:`cli-only-arguments`.
+- :py:meth:`~cli2.Client.factory`: to construct your Client with the said cli
+  only arguments
+- :py:meth:`~cli2.Client.post_call`: to logout or do whatever you want
+
+Example:
+
+.. code-block:: python
+
+    class CyberArkClient(cli2.Client):
+        def __init__(self, something, *args, **kwargs):
+            self.something = something
+            super().__init__(*args, **kwargs)
+
+        @classmethod
+        def setargs(self, cmd):
+            # declare an argument that will be visible in command line only
+            cmd.arg('something', position=0, kind='POSITIONAL_ONLY')
+
+        async def factory(cls, something):
+            # something will be passed by the ClientCommand class
+            return cls(something)
+
+        async def token_get(self):
+            # do something to get a token
+            return token
+
+        async def post_call(self, cmd):
+            # release the token
+            await self.client.post('/logoff')
 
 Filtering on external data
 --------------------------

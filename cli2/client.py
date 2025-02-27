@@ -23,7 +23,7 @@ except ImportError:
 
 from . import display
 from .asyncio import async_resolve
-from .cli import Command, Group, cmd, hide
+from .cli import Argument, Command, Group, cmd, hide
 from .colors import colors
 from .log import log
 
@@ -663,34 +663,40 @@ class ModelCommand(Command):
         self.overrides['cls']['factory'] = self.get_model
 
     def setargs(self):
+        """
+        ModelCommand setargs which calls setargs on the client class and
+        defines an id argument for object commands.
+        """
         super().setargs()
+        self.group.parent.client_class.setargs(self)
         if 'self' in self:
             self.arg('id', position=0, kind='POSITIONAL_ONLY', doc='ID')
 
-    async def get_client(self):
-        client = self.group.parent.overrides['self']['factory']()
-        return await async_resolve(client)
+    async def factories_resolve(self):
+        """
+        Return a client object from it's factory, will all args resolved.
+        """
+        # create a hidden Argument to use it's factory caller
+        argument = Argument(
+            self,
+            inspect.Parameter('_', kind=inspect.Parameter.POSITIONAL_ONLY),
+            factory=self.client_class.factory,
+        )
+        # this ensures the factory gets any kind of args
+        factory = await argument.factory_value(self)
+        self.client = await async_resolve(factory)
+        await super().factories_resolve()
 
     async def get_model(self):
-        return getattr(await self.get_client(), self.model.__name__)
+        """ Return a client instance bound model """
+        return getattr(self.client, self.model.__name__)
 
     async def get_object(self):
         model = await self.get_model()
         return await model.get(id=self['id'].value)
 
-
-class ModelGroup(Group):
-    def __init__(self, cls):
-        super().__init__(
-            name=cls.__name__.lower(),
-            doc=inspect.getdoc(cls),
-            cmdclass=type(
-                'ModelCommand',
-                (cls.model_command,),
-                dict(model=cls),
-            )
-        )
-        self.load(cls)
+    async def post_call(self):
+        await self.client.post_call(self)
 
 
 class ModelMetaclass(type):
@@ -699,10 +705,14 @@ class ModelMetaclass(type):
             attributes['paginator'] = attributes['Paginator']
 
         cls = super().__new__(cls, name, bases, attributes)
-        cls.Command = type(
+        client_class = getattr(cls, '_client_class', None)
+        cls.cmdclass = type(
             'ModelCommand',
-            (cls.Command,),
-            dict(model=cls),
+            (cls.cmdclass,),
+            dict(
+                model=cls,
+                client_class=client_class,
+            ),
         )
         client = getattr(cls, 'client', None)
         if client:
@@ -710,7 +720,6 @@ class ModelMetaclass(type):
                 cls.paginator = client.paginator
             return cls
 
-        client_class = getattr(cls, '_client_class', None)
         if client_class:
             client_class.models.append(cls)
 
@@ -744,7 +753,7 @@ class ModelMetaclass(type):
             cli_kwargs = dict(
                 name=cls.__name__.lower(),
                 doc=inspect.getdoc(cls),
-                cmdclass=cls.Command,
+                cmdclass=cls.cmdclass,
             )
             cli_kwargs.update(cls.cli_kwargs)
             cls._cli = Group(**cli_kwargs)
@@ -789,23 +798,19 @@ class Model(metaclass=ModelMetaclass):
         Dict of kwargs to use to create the :py:class:`~cli2.cli.Group` for
         this model.
 
-    .. py:attribute:: Command
+    .. py:attribute:: cmdclass
 
-        Define a Command class inside the ModelClass to use a specific
-        :py:class:`~cli2.cli.Command` class for a model.
-        Don't inherit from anything: a new class will be generated for you
-        inheriting from both :py:class:`~cls.cli2.client.ModelCommand` and
-        :py:attr:`~cli2.cli.Client.Command`.
+        :py:class:`ModelCommand` subclass. You generally don't need to
+        define this, instead, you should do what you need in the
+        :py:meth:`Client.factory`, :py:meth:`Client.setargs` and
+        :py:meth:`Client.post_call` methods.
     """
     paginator = None
-    model_command = ModelCommand
+    cmdclass = ModelCommand
     url_list = None
     url_detail = '{self.url_list}/{self.id_value}'
     id_field = 'id'
     cli_kwargs = dict()
-
-    class Command(ModelCommand):
-        pass
 
     def __init__(self, data=None, **values):
         """
@@ -984,10 +989,10 @@ class ClientMetaclass(type):
 
         cls = super().__new__(cls, name, bases, attributes)
 
-        cls.Command = type(
+        cls.cmdclass = type(
             'ClientCommand',
-            (cls.Command, Command),
-            dict(),
+            (cls.cmdclass,),
+            dict(client_class=cls),
         )
 
         # bind ourself as _client_class to any inherited model
@@ -1005,13 +1010,15 @@ class ClientMetaclass(type):
                     cls=dict(factory=lambda: cls),
                     self=dict(factory=lambda: cls())
                 ),
-                cmdclass=cls.Command,
+                cmdclass=cls.cmdclass,
             )
             cli_kwargs.update(cls.cli_kwargs)
             cli = Group(**cli_kwargs)
+            cli.client_class = cls
             cli.load(cls)
             for model in cls.models:
                 group = model.cli
+                group.client_class = cls
                 if len(group) > 1:
                     cli[model.__name__.lower()] = group
             cls._cli = cli
@@ -1248,6 +1255,34 @@ class FieldExternalizeError(FieldValueError):
     pass
 
 
+class ClientCommand(Command):
+    """
+    Client CLI command
+
+    .. py:attribute:: client
+
+        The client object that was constructed from :py:meth:`Client.factory`
+    """
+
+    def setargs(self):
+        """
+        Set a `self` factory of :py:meth:`Client.factory` method, and call
+        :py:meth:`Client.setargs`.
+        """
+        super().setargs()
+        self['self'].factory = self.client_class.factory
+        self.client_class.setargs(self)
+
+    async def factories_resolve(self):
+        """ Set :py:attr:`client` after resolving factories. """
+        await super().factories_resolve()
+        self.client = self['self'].value
+
+    async def post_call(self):
+        """ Call :py:meth:`Client.post_call`. """
+        await self.client.post_call(self)
+
+
 class Client(metaclass=ClientMetaclass):
     """
     HTTPx Client Wrapper
@@ -1286,12 +1321,12 @@ class Client(metaclass=ClientMetaclass):
             class YourClient(cli2.Client):
                 cli_kwargs = dict(cmdclass=YourCommandClass)
 
-    .. py:attribute:: Command
+    .. py:attribute:: cmdclass
 
-        Define a Command class inside the Client class to use a specific
-        :py:class:`~cli2.cli.Command` class for a model.
-        Don't inherit from anything: a new class will be generated for you
-        inheriting from :py:attr:`~cli2.cli.Client.Command` for you.
+        :py:class:`ClientCommand` class or subclass. You usually won't have to
+        define this, instead, you should do what you need in the
+        :py:meth:`factory`, :py:meth:`setargs` and :py:meth:`post_call`
+        methods.
 
     .. py:attribute:: debug
 
@@ -1307,9 +1342,7 @@ class Client(metaclass=ClientMetaclass):
     semaphore = None
     mask = []
     debug = False
-
-    class Command:
-        pass
+    cmdclass = ClientCommand
 
     def __init__(self, *args, handler=None, semaphore=None, mask=None,
                  debug=False, **kwargs):
@@ -1340,6 +1373,30 @@ class Client(metaclass=ClientMetaclass):
             if model.url_list:
                 model.url_list = model.url_list.format(client=self)
             setattr(self, model.__name__, model)
+
+    @classmethod
+    async def factory(cls):
+        """
+        Override this method to customize your client construction.
+
+        You can add custom args, if you declare them in :py:meth:`setargs()`.
+        """
+        return cls()
+
+    @classmethod
+    def setargs(cls, cmd):
+        """
+        Override this method to declare CLI args globally for this client.
+
+        :param cmd: :py:class:`ClientCommand` object
+        """
+
+    async def post_call(self, cmd):
+        """
+        Override this method which will run after a CLI exits.
+
+        :param cmd: :py:class:`ClientCommand` object
+        """
 
     @property
     def client(self):

@@ -658,6 +658,13 @@ class Command(EntryPoint, dict):
             self.exit_code = 1
             return self.help(missing=missing)
 
+        await self.factories_resolve()
+
+        result = self.call(*self.bound.args, **self.bound.kwargs)
+        return await async_resolve(result, output=True)
+
+    async def factories_resolve(self):
+        """ Resolve all factories values. """
         factories = self.values(factories=True)
         if factories:
             results = await asyncio.gather(*[
@@ -666,9 +673,6 @@ class Command(EntryPoint, dict):
             ])
             for _, arg in enumerate(factories):
                 arg.value = results[_]
-
-        result = self.call(*self.bound.args, **self.bound.kwargs)
-        return await async_resolve(result, output=True)
 
     def ordered(self, factories=False):
         """
@@ -1153,7 +1157,7 @@ class Argument:
             self.value = self.cast(value)
             return True
 
-    def factory_value(self):
+    def factory_value(self, cmd=None):
         """
         Run the factory function and return the value.
 
@@ -1164,11 +1168,15 @@ class Argument:
 
         It will forward any argument to the factory function if detected in
         it's signature, except for ``*args`` and ``**kwargs``.
+
+        :param cmd: Override for :py:attr:`cmd`, useful for getting the factory
+                    value of an argument from another class (advanced).
         """
         kwargs = dict()
+        cmd = cmd or self.cmd
         sig = inspect.signature(self.factory)
         if 'cmd' in sig.parameters:
-            kwargs['cmd'] = self.cmd
+            kwargs['cmd'] = cmd
         if 'arg' in sig.parameters:
             kwargs['arg'] = self
 
@@ -1176,7 +1184,7 @@ class Argument:
             inspect.Parameter.VAR_KEYWORD,
             inspect.Parameter.VAR_POSITIONAL,
         )
-        for key, arg in self.cmd.items():
+        for key, arg in cmd.items():
             if arg.param.kind in excluded:
                 continue
             if key in sig.parameters:

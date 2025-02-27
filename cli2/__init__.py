@@ -24,6 +24,7 @@ try:
         FieldValueError,
         FieldExternalizeError,
         Client,
+        ClientCommand,
         DateTimeField,
         Field,
         Handler,

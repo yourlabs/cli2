@@ -439,6 +439,8 @@ You may also override at the group level, basically instanciate your
     cli = cli2.cli(cmdclass=YourThingCommand)
     cli.add(your_function)
 
+.. _cli-only-arguments:
+
 CLI only arguments
 ------------------
 

@@ -60,7 +60,10 @@ async def test_client_cli(client_class, httpx_mock):
     assert 'testmodel' in client_class.cli
     assert client_class.cli['testmodel']['get'].overrides['cls']['factory']
     assert not inspect.ismethod(client_class.cli['testmodel']['get'].target)
-    result = await client_class.cli['testmodel']['get']['cls'].factory_value()
+    command = client_class.cli['testmodel']['get']
+    command.parse()
+    await command.factories_resolve()
+    result = client_class.cli['testmodel']['get']['cls'].value
     assert issubclass(result, TestModel)
     assert isinstance(result.client, client_class)
 
@@ -148,7 +151,7 @@ async def test_client_cli_side_effect(client_class, httpx_mock):
 
     # Test that Client's __init_subclass__ did setup a factory for self
     assert isinstance(
-        example_client.APIClient.cli['get']['self'].factory_value(),
+        await example_client.APIClient.cli['get']['self'].factory_value(),
         example_client.APIClient,
     )
 
@@ -1151,17 +1154,38 @@ async def test_client_token_apply(client_class, httpx_mock):
     assert client.client.token == 2
 
 
-def test_client_command(client_class):
+def test_client_command(client_class, httpx_mock):
     class Client(client_class):
-        class Command(cli2.Command):
-            pass
+        post_call_called = False
+
+        def __init__(self, base_url, *args, **kwargs):
+            kwargs['base_url'] = base_url
+            super().__init__(*args, **kwargs)
+
+        @classmethod
+        async def factory(self, base_url):
+            return Client(base_url)
+
+        @classmethod
+        def setargs(self, cmd):
+            cmd.arg('base_url', position=0, kind='POSITIONAL_ONLY')
+
+        async def post_call(self, cmd):
+            await self.client.post('/logoff')
 
     class Model(Client.Model):
         url_list = '/foo'
-        class Command(Client.Command, cli2.Model.Command):
-            pass
 
-    assert issubclass(Client.cli.cmdclass, Client.Command)
-    assert issubclass(Client.cli['model'].cmdclass, Client.Command)
-    assert issubclass(Client.cli['model'].cmdclass, cli2.Model.Command)
     assert 'get' in Client.cli['model']
+
+    cmd = Client.cli['get']
+    assert isinstance(cmd, Client.cmdclass)
+    httpx_mock.add_response(url='http://x/foo', json=[])
+    httpx_mock.add_response(url='http://x/logoff')
+    result = cmd('http://x', '/foo')
+    assert result.status_code == 200
+
+    httpx_mock.add_response(url='http://x/foo', json=[])
+    httpx_mock.add_response(url='http://x/logoff')
+    cmd = Client.cli['model']['find']
+    cmd('http://x')
