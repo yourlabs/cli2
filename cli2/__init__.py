@@ -29,6 +29,7 @@ try:
         Handler,
         JSONStringField,
         Model,
+        ModelCommand,
         Paginator,
         Related,
     )
