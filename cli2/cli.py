@@ -1129,7 +1129,7 @@ class Argument:
         # priority to varkwargs for word= and **{}
         last = self.cmd[[*self.cmd.keys()][-1]]
         if last is not self and last.param.kind == self.param.VAR_KEYWORD:
-            if re.match('^-?-?[^=]+=', arg):
+            if re.match('^-?-?[\\w]+=', arg):
                 return
             elif arg.startswith('**{') and arg.endswith('}'):
                 return

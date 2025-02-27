@@ -108,12 +108,12 @@ def test_positional_only_looksahead():
         return (one, two)
     cmd = cli2.Command(foo)
 
-    cmd.parse('y.-7=e', 'three=z', 'x', 'y')
+    cmd.parse('z=w', 'three=z', 'x', 'y')
     assert cmd['one'].value == 'x'
     assert cmd['two'].value == ['y']
     assert cmd['three'].value == 'z'
     # make sure it takes weird keywords too
-    assert cmd['kwargs'].value['y.-7'] == 'e'
+    assert cmd['kwargs'].value['z'] == 'w'
 
 
 def test_keyword_only():

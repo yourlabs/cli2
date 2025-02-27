@@ -9,6 +9,8 @@ def test_call():
     result = main('cli2.examples.test.example_function', 'x', 'y=z')
     assert "args=('x',)" in result
     assert "kwargs={'y': 'z'}" in result
+    result = main('cli2.examples.test.example_function', 'http://?x=bar')
+    assert "args=('http://?x=bar',)" in result
 
 
 def test_doc_by_default(mocker):
