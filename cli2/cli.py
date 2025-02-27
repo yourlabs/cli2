@@ -1163,7 +1163,7 @@ class Argument:
         If the factory function takes an `arg` argument, it will pass self.
 
         It will forward any argument to the factory function if detected in
-        it's signature.
+        it's signature, except for ``*args`` and ``**kwargs``.
         """
         kwargs = dict()
         sig = inspect.signature(self.factory)
@@ -1171,7 +1171,14 @@ class Argument:
             kwargs['cmd'] = self.cmd
         if 'arg' in sig.parameters:
             kwargs['arg'] = self
+
+        excluded = (
+            inspect.Parameter.VAR_KEYWORD,
+            inspect.Parameter.VAR_POSITIONAL,
+        )
         for key, arg in self.cmd.items():
+            if arg.param.kind in excluded:
+                continue
             if key in sig.parameters:
                 kwargs[key] = arg.value
         return self.factory(**kwargs)
