@@ -923,12 +923,16 @@ class Model(metaclass=ModelMetaclass):
         await obj.hydrate()
         return obj
 
-    async def hydrate(self):
+    async def hydrate(self, data=None):
         """
         Refresh data with GET requset on :py:attr:`url_detail`
+
+        :param data: Data dict, otherwise will get it
         """
-        response = await self.client.get(self.url)
-        self.data.update(response.json())
+        if data is None:
+            response = await self.client.get(self.url)
+            data = response.json()
+        self.data.update(data)
         self.changed_fields = dict()
 
     async def save(self):
@@ -940,18 +944,9 @@ class Model(metaclass=ModelMetaclass):
         You might want to override this.
         """
         if self.id_value:
-            response = await self.update()
+            return await self.update()
         else:
-            response = await self.instanciate()
-
-        try:
-            data = response.json()
-        except json.JSONDecodeError:
-            pass
-        else:
-            self.data.update(data)
-
-        return response
+            return await self.instanciate()
 
     async def instanciate(self):
         """
@@ -962,7 +957,16 @@ class Model(metaclass=ModelMetaclass):
         """
         if not self.url_list:
             raise Exception(f'{type(self).__name__}.url_list not set')
-        return await self.client.post(self.url_list, json=self.data)
+        response = await self.client.post(self.url_list, json=self.data)
+
+        try:
+            data = response.json()
+        except json.JSONDecodeError:
+            pass
+        else:
+            await self.hydrate(data)
+
+        return response
 
     async def update(self):
         """
@@ -971,7 +975,16 @@ class Model(metaclass=ModelMetaclass):
 
         You might want to override this.
         """
-        return await self.client.post(self.url, json=self.data)
+        response = await self.client.post(self.url, json=self.data)
+
+        try:
+            data = response.json()
+        except json.JSONDecodeError:
+            pass
+        else:
+            await self.hydrate(data)
+
+        return response
 
     @property
     def id_value(self):
