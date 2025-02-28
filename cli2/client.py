@@ -1770,6 +1770,10 @@ class Client(metaclass=ClientMetaclass):
                 kwargs[key] = yaml.safe_load(fh.read())
         return await self.request(method, url, *args, **kwargs)
 
+    async def patch(self, url, *args, **kwargs):
+        """ PATCH Request """
+        return await self.request('PATCH', url, *args, **kwargs)
+
     async def post(self, url, *args, **kwargs):
         """ POST Request """
         return await self.request('POST', url, *args, **kwargs)
