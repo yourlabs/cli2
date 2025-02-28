@@ -1635,6 +1635,9 @@ class Client(metaclass=ClientMetaclass):
             kwargs = dict()
             if value:
                 kwargs[key] = value
+            if os.getenv('HTTP_DEBUG'):
+                kwargs['content'] = request.content
+                kwargs['headers'] = request.headers
             _log.debug('request', **kwargs)
 
         response = await self.send(
