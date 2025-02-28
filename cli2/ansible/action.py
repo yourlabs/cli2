@@ -165,6 +165,9 @@ class ActionBase(ActionBase):
         except Exception as exc:
             self.result['failed'] = True
 
+            if self.verbosity:
+                traceback.print_exc()
+
             if isinstance(exc, AnsibleError):
                 self.result['error'] = exc.message
             elif isinstance(exc, cli2.ResponseError):
@@ -179,8 +182,6 @@ class ActionBase(ActionBase):
                 key, value = self.client.request_log_data(exc.request)
                 if key:
                     self.result[f'request_{key}'] = value
-            elif self.verbosity:
-                traceback.print_exc()
 
             # for pytest to raise
             self.exc = exc
