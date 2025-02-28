@@ -949,7 +949,7 @@ class Model(metaclass=ModelMetaclass):
         except json.JSONDecodeError:
             pass
         else:
-            self.data = data
+            self.data.update(data)
 
         return response
 
