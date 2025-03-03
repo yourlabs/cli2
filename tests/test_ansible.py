@@ -8,6 +8,25 @@ import yaml
 from cli2 import ansible
 
 
+class ActionModule(ansible.ActionBase):
+    mask = ['a']
+
+    async def run_async(self):
+        self.result['x'] = dict(a='a', b='b')
+
+
+@pytest.mark.asyncio
+async def test_mask(monkeypatch):
+    printer = mock.Mock()
+    from cli2.ansible import action
+    monkeypatch.setattr(action.cli2, 'print', printer)
+    module = await ActionModule.run_test_async()
+    assert module.result == dict(x=dict(a='a', b='b'))
+    printer.assert_called_once_with(
+        dict(x=dict(a='***MASKED***', b='b'))
+    )
+
+
 @pytest.mark.asyncio
 async def test_response_error(httpx_mock):
     class Client(cli2.Client):

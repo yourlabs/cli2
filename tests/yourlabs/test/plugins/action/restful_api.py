@@ -10,6 +10,7 @@ class ActionModule(ansible.ActionBase):
     capacity = ansible.Option('capacity', default='1To')
     price = ansible.Option('price')
     state = ansible.Option('state', default='present')
+    mask = ['Price']
 
     async def run_async(self):
         self.log = cli2.log.bind(id=self.id, name=self.name)

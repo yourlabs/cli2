@@ -192,6 +192,21 @@ If you really want the diff to display only with ``--diff``, then wrap your
 before_set/after_set in ``if self.task_vars['ansible_diff_mode']`` instead of
 ``if self.verbosity``.
 
+Secret masking
+--------------
+
+Until we get `Data Tagging<https://github.com/ansible/ansible/issues/80747>`_,
+the action plugin supports a :py:attr:`~cli2.ansible.action.Action.mask` class
+attribute, which is a list of keys to mask from the result.
+
+This allows to use ``no_log: true`` and still have an output of the result.
+Example:
+
+.. code-block:: python
+
+    class ActionModule(ansible.ActionBase):
+        mask = ['password']
+
 Testing
 -------
 
