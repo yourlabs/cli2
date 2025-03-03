@@ -12,19 +12,21 @@ class ActionModule(ansible.ActionBase):
     mask = ['a']
 
     async def run_async(self):
-        self.result['x'] = dict(a='a', b='b')
+        self.result['x'] = dict(a='a', b='b', c='c', d='foo a rrr')
 
 
 @pytest.mark.asyncio
 async def test_mask(monkeypatch):
     printer = mock.Mock()
-    from cli2.ansible import action
-    monkeypatch.setattr(action.cli2, 'print', printer)
-    module = await ActionModule.run_test_async()
-    assert module.result == dict(x=dict(a='a', b='b'))
-    printer.assert_called_once_with(
-        dict(x=dict(a='***MASKED***', b='b'))
-    )
+    monkeypatch.setattr(ActionModule, 'print', printer)
+    module = await ActionModule.run_test_async(facts=dict(mask=['b']))
+    # result is untouched
+    assert module.result == {'x':
+        {'a': 'a', 'b': 'b', 'c': 'c', 'd': 'foo a rrr'}
+    }
+    # output has proper masking
+    expected = "\x1b[94mx\x1b[39;49;00m:\x1b[37m\x1b[39;49;00m\n\x1b[37m    \x1b[39;49;00m\x1b[94ma\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m***MASKED***\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[37m    \x1b[39;49;00m\x1b[94mb\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m***MASKED***\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[37m    \x1b[39;49;00m\x1b[94mc\x1b[39;49;00m:\x1b[37m \x1b[39;49;00mc\x1b[37m\x1b[39;49;00m\n\x1b[37m    \x1b[39;49;00m\x1b[94md\x1b[39;49;00m:\x1b[37m \x1b[39;49;00mfoo ***MASKED*** rrr\x1b[37m\x1b[39;49;00m\n"  # noqa
+    printer.assert_called_once_with(expected)
 
 
 @pytest.mark.asyncio

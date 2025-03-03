@@ -1,16 +1,18 @@
 """
-Experimental: my base class for Ansible actions.
+Base class for Ansible Actions.
 """
 
 import asyncio
 import cli2
 import copy
+import difflib
 import os
 import re
 import traceback
 
-from ansible.parsing.yaml.objects import AnsibleUnicode
 from ansible.plugins.action import ActionBase
+from ansible.plugins.action import display
+from ansible.plugins.filter.core import to_nice_yaml
 
 # colors:
 # black
@@ -133,8 +135,32 @@ class ActionBase(ActionBase):
         List of result keys to mask, if set, this module will print the result
         with masked values, so you can set no_log: True for the task and still
         see most of the result.
+
+    .. py:attribute:: masked_keys
+
+        Property which returns the list of keys in :py:attr:`mask` + those in
+        the `mask` fact + those in the client if any.
+
+    .. py:attribute:: masked_values
+
+        First, the plugin will iterate over args and facts to learn all values
+        which are in :py:attr:`masked_keys`.
+
+        This is then both used and provisioned by :py:meth:`mask_data()`.
     """
     mask = None
+    masked = Option(fact='mask', default=[])
+    masked_values = None
+
+    @property
+    def masked_keys(self):
+        result = []
+        if self.mask:
+            result += self.mask
+        result += self.masked
+        if self.client and self.client.mask:
+            result += self.client.mask
+        return result
 
     def get(self, arg_name=None, fact_name=None, default=UNSET_DEFAULT):
         if arg_name and arg_name in self._task.args:
@@ -155,6 +181,15 @@ class ActionBase(ActionBase):
         asyncio.run(self.run_wrapped_async())
         return self.result
 
+    def collect_masked_values(self):
+        # collect all values that have to be masked
+        self.masked_values = []
+        for key in self.masked_keys:
+            if self.task_vars.get(key, None):
+                self.masked_values.append(self.task_vars[key])
+            if self._task.args.get(key, None):
+                self.masked_values.append(self._task.args[key])
+
     async def run_wrapped_async(self):
         self.verbosity = self.task_vars.get('ansible_verbosity', 0)
 
@@ -170,6 +205,7 @@ class ActionBase(ActionBase):
                 self.client = await self.client_factory()
             except NotImplementedError:
                 self.client = None
+            self.collect_masked_values()
             await self.run_async()
         except Exception as exc:
             self.result['failed'] = True
@@ -196,56 +232,72 @@ class ActionBase(ActionBase):
             self.exc = exc
         finally:
             if self.mask and self.verbosity:
-                print('\nResult:')
-                cli2.print(self.masked_result())
+                self.print_yaml(self.result)
 
             if (
                 self._before_data != UNSET_DEFAULT
                 and self._after_data != UNSET_DEFAULT
             ):
-                diff = cli2.diff_data(
-                    self._before_data,
-                    self._after_data,
+                diff = difflib.unified_diff(
+                    to_nice_yaml(
+                        self.mask_data(self._before_data)
+                    ).splitlines(),
+                    to_nice_yaml(
+                        self.mask_data(self._after_data)
+                    ).splitlines(),
                     self._before_label,
                     self._after_label,
                 )
-                if self.client and self.client.mask:
-                    output = '\n'.join([
-                        line.rstrip() for line in diff if line.strip()
-                    ])
-                    output = re.sub(
-                        f'({"|".join(self.client.mask)}): (.*)',
-                        '\\1: ***MASKED***',
-                        ''.join(output),
-                    )
-                    print(cli2.highlight(output, 'Diff'))
-                else:
-                    cli2.diff(diff)
+                cli2.diff(diff)
 
-    def native(self, data):
-        def _native(data):
+    def print_yaml(self, data):
+        """
+        Render data as masked yaml.
+        """
+        data = self.mask_data(data)
+        yaml = to_nice_yaml(data)
+        rendered = cli2.yaml_highlight(yaml)
+        self.print(rendered)
+
+    def print(self, data):
+        # this serves for mocking
+        print(data)
+
+    def mask_data(self, data):
+        """"
+        Do our best to mask sensitive values in the data param recursively.
+
+        - when data is a dict: it is recursively iterated on, any value that in
+          is :py:attr:`masked_keys` will have it's value replaced with
+          ``***MASKED***``, also, the value is added to
+          :py:attr:`masked_values`.
+        - when data is a string, each :py:attr:`masked_values` will be replaced
+          with ``***MASKED***``, so we're actually able to mask sensitive
+          information from stdout outputs and the likes.
+        - when data is a list, each item is passed to :py:meth:`mask_data()`.
+
+        Note that the :envvar:`DEBUG` environment variable will prevent any
+        masking at all.
+        """
+        if os.getenv('DEBUG'):
+            return data
+
+        return self._mask(copy.deepcopy(data))
+
+    def _mask(self, data):
+        if isinstance(data, dict):
             for key, value in data.items():
-                if isinstance(value, AnsibleUnicode):
-                    data[key] = str(value)
-                elif isinstance(value, dict):
-                    data[key] = _native(value)
-                elif isinstance(value, list):
-                    data[key] = [_native(item) for item in value]
-            return data
-        return _native(copy.deepcopy(data))
-
-    def masked_result(self):
-        def _mask(data):
-            if isinstance(data, dict):
-                for key, value in data.items():
-                    if key in self.mask:
-                        data[key] = '***MASKED***'
-                    else:
-                        data[key] = _mask(value)
-            elif isinstance(data, list):
-                return [_mask(item) for item in data]
-            return data
-        return _mask(self.native(self.result))
+                if key in self.masked_keys:
+                    self.masked_values.append(value)
+                    data[key] = '***MASKED***'
+                else:
+                    data[key] = self.mask_data(value)
+        elif isinstance(data, list):
+            return [self.mask_data(item) for item in data]
+        elif isinstance(data, str):
+            for value in self.masked_values:
+                data = data.replace(str(value), '***MASKED***')
+        return data
 
     async def run_async(self):
         """
@@ -285,6 +337,7 @@ class ActionBase(ActionBase):
         obj.task_vars = facts or {}
         obj.task_vars.setdefault('ansible_verbosity', 2)
         obj.exc = False
+        obj.masked_values = []
         if client:
             async def _factory():
                 return client
@@ -315,7 +368,7 @@ class ActionBase(ActionBase):
         :param data: Dictionnary of data
         :param label: Label to show in diff
         """
-        self._before_data = self.native(data)
+        self._before_data = data
         self._before_label = label
 
     def after_set(self, data, label='after'):
@@ -325,5 +378,40 @@ class ActionBase(ActionBase):
         :param data: Dictionnary of data
         :param label: Label to show in diff
         """
-        self._after_data = self.native(data)
+        self._after_data = data
         self._after_label = label
+
+    def subprocess_remote(self, cmd, **kwargs):
+        """
+        Execute a shell command on the remote in a masked context
+
+        :param cmd: Command to run
+        :param kwargs: Other shell args, such as creates etc
+        """
+        new_task = self._task.copy()
+        new_task.args = dict(_raw_params=cmd, **kwargs)
+        if self.verbosity:
+            display.display(
+                f'<{self.task_vars["inventory_hostname"]}> + '
+                + self.mask_data(cmd),
+                color='blue',
+            )
+        shell_action = self._shared_loader_obj.action_loader.get(
+            'ansible.builtin.shell',
+            task=new_task,
+            connection=self._connection,
+            play_context=self._play_context,
+            loader=self._loader,
+            templar=self._templar,
+            shared_loader_obj=self._shared_loader_obj,
+        )
+        result = shell_action.run(task_vars=self.task_vars.copy())
+
+        if self.verbosity:
+            if 'stderr_lines' in result:
+                print(self.mask_data(result['stderr']))
+            if 'stdout_lines' in result:
+                print(self.mask_data(result['stdout']))
+
+        result.pop('invocation')
+        return result
