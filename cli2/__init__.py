@@ -38,7 +38,7 @@ except ImportError:
     raise
     # httpx not installed
     pass
-from .display import diff, diff_data, render, print, highlight
+from .display import diff, diff_data, render, print, highlight, yaml_highlight
 from .lock import Lock
 from .log import configure, log
 from .table import Table

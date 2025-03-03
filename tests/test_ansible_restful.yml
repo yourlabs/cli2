@@ -2,7 +2,6 @@
   tasks:
   - name: Create object
     register: object_create
-    no_log: true
     yourlabs.test.restful_api:
       name: test-cli2-ansible
       capacity: 10To

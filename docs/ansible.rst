@@ -195,23 +195,85 @@ before_set/after_set in ``if self.task_vars['ansible_diff_mode']`` instead of
 Secret masking
 --------------
 
-Until we get `Data Tagging<https://github.com/ansible/ansible/issues/80747>`_,
-the action plugin supports a :py:attr:`~cli2.ansible.action.Action.mask` class
-attribute, which is a list of keys to mask from the result.
+.. image:: ansible_masking.png
 
+Until we get `Data Tagging <https://github.com/ansible/ansible/issues/80747>`_,
+this class provides several secret masking mechanisms, which are not only able
+to mask values corresponding on keys to mask, but also to learn values to mask
+in longer strings:
+
+- Class :py:attr:`~cli2.ansible.action.ActionBase.mask` attribute: list of keys
+  to mask, hardcoded by yourself in your ActionModule.
+- Keys can also be set from the playbook in the ``mask`` ansible fact.
+- Keys from the :py:attr:`~cli2.ansible.action.ActionBase.client`'s
+  :py:attr:`~cli2.client.Client.mask`, if any
+- All of these are combined together in the
+  :py:attr:`~cli2.ansible.action.ActionBase.masked_keys` read-only property.
+
+The first thing the plugin does, is collecting values to mask from task args
+and ansible facts to provision
+the internal :py:attr:`~cli2.ansible.action.ActionBase.masked_values` list.
+
+Masking is done in the :py:meth:`~cli2.ansible.action.ActionBase.mask_data()`
+method which you can use to apply masking in any kind of data:
+
+- when it finds a dict key that is in
+  :py:attr:`~cli2.ansible.action.ActionBase.masked_keys`: replace that with
+  ``***MASKED***```, also, append the value to
+  :py:attr:`~cli2.ansible.action.ActionBase.masked_values`
+- when it finds a string, it will replace all
+  :py:attr:`~cli2.ansible.action.ActionBase.masked_values` with
+  ``***MASKED***``.
+
+As such, :py:meth:`~cli2.ansible.action.ActionBase.mask_data()` does both
+masking **and** learning values to mask.
+
+When this feature is used then you can use ``no_log: true`` and still
 This allows to use ``no_log: true`` and still have an output of the result.
-Example:
+
+Setting a module level mask:
 
 .. code-block:: python
 
     class ActionModule(ansible.ActionBase):
         mask = ['password']
 
+Marking a variable value as masked:
+
+.. code-block:: yaml
+
+    - set_fact:
+        mask:
+        - your_password
+
+Will cause any occurence of the values of any ``password`` or ``your_password``
+to be replaced with ``***MASKED***`` by
+:py:meth:`~cli2.ansible.action.ActionBase.mask_data()`.
+
+Note that :py:meth:`~cli2.ansible.action.ActionBase.mask_data()` is also called
+by :py:meth:`~cli2.ansible.action.ActionBase.print_yaml()` so that you can dump
+any dict safely in there.
+
+We're not shipping a collection, so it's complicated to ship modules from a pip
+package, but you can make a shell module that will use masking:
+
+.. code-block:: python
+
+    class ActionModule(ansible.ActionBase):
+        cmd = ansible.Option('cmd')
+
+        async def run_async(self):
+            self.result.update(self.subprocess_remote(self.cmd))
+
+Where :py:meth:`~cli2.ansible.action.ActionBase.subprocess_remote()` is a basic
+helper function we provide to run commands over the target host, with fully
+supported masking.
+
 Testing
 -------
 
 You can run the module in mocked mode in tests with the
-:py:meth:`~cli2.ansible.action.ActionModule.run_test_async` method:
+:py:meth:`~cli2.ansible.action.ActionBase.run_test_async` method:
 
 .. code-block:: python
 
