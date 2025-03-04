@@ -26,6 +26,7 @@ from .asyncio import async_resolve
 from .cli import Argument, Command, Group, cmd, hide
 from .colors import colors
 from .log import log
+from .mask import Mask
 
 
 class Paginator:
@@ -850,7 +851,7 @@ class Model(metaclass=ModelMetaclass):
 
     @property
     def data_masked(self):
-        return self.client.mask_data(self.data)
+        return self.client.mask(self.data)
 
     @classmethod
     @hide('expressions')
@@ -1098,7 +1099,7 @@ class Handler:
         self.tries = self.tries_default if tries is None else tries
         self.backoff = self.backoff_default if backoff is None else backoff
 
-    async def __call__(self, client, response, tries, mask, log):
+    async def __call__(self, client, response, tries, log):
         seconds = tries * self.backoff
 
         if isinstance(response, Exception):
@@ -1126,24 +1127,24 @@ class Handler:
             return response
 
         if response.status_code in self.refuses:
-            raise RefusedResponseError(client, response, tries, mask)
+            raise RefusedResponseError(client, response, tries)
 
         if tries >= self.tries:
-            raise RetriesExceededError(client, response, tries, mask)
+            raise RetriesExceededError(client, response, tries)
 
         kwargs = dict(
             status_code=response.status_code,
             tries=tries,
             sleep=seconds,
         )
-        key, value = client.response_log_data(response, mask)
+        key, value = client.response_log_data(response)
         if value:
             kwargs[key] = value
 
         if response.status_code in self.retokens:
             if tries:
                 # our authentication is just not working, no need to retry
-                raise TokenGetError(client, response, tries, mask)
+                raise TokenGetError(client, response, tries)
             log.warn('retoken', **kwargs)
             await client.token_reset()
 
@@ -1179,11 +1180,10 @@ class ResponseError(ClientError):
 
         Request method
     """
-    def __init__(self, client, response, tries, mask, msg=None):
+    def __init__(self, client, response, tries, msg=None):
         self.client = client
         self.response = response
         self.tries = tries
-        self.mask = mask
         self.msg = msg or getattr(self, 'msg', '').format(self=self)
         super().__init__(self.enhance(self.msg))
 
@@ -1212,10 +1212,7 @@ class ResponseError(ClientError):
         :param exc: httpx.HTTPStatusError
         """
         output = [msg]
-        key, value = self.client.request_log_data(
-            self.response.request,
-            self.mask,
-        )
+        key, value = self.client.request_log_data(self.response.request)
         request_msg = ' '.join([
             str(self.response.request.method),
             str(self.response.request.url),
@@ -1227,7 +1224,7 @@ class ResponseError(ClientError):
         if value:
             output.append(display.render(value))
 
-        key, value = self.client.response_log_data(self.response, self.mask)
+        key, value = self.client.response_log_data(self.response)
         output.append(
             ''.join([
                 colors.bold,
@@ -1318,9 +1315,14 @@ class Client(metaclass=ClientMetaclass):
         retry the request, or raise an exception, or return the request.
         Default is a :py:class:`Handler`
 
-    .. py:attribute:: mask
+    .. py:attribute:: mask_keys
 
-        List of keys to mask in logging, ie.: ``['password', 'secret']``
+        Use this class attribute to declare keys to mask:
+
+        .. code-block:: python
+
+            class YourClient(cli2.Client):
+                mask_keys = ['password', 'secret']
 
     .. py:attribute:: cli
 
@@ -1350,6 +1352,10 @@ class Client(metaclass=ClientMetaclass):
         Enforce full logging: quiet requests are logged, masking does not
         apply. This is also enabled with environment variable ``DEBUG``.
 
+    .. py:attribute:: mask
+
+        :py:class:`~cli2.mask.Mask` object
+
     .. py:attribute:: models
 
         Declared models for this Client.
@@ -1357,9 +1363,9 @@ class Client(metaclass=ClientMetaclass):
     paginator = Paginator
     models = []
     semaphore = None
-    mask = []
     debug = False
     cmdclass = ClientCommand
+    mask_keys = None
 
     def __init__(self, *args, handler=None, semaphore=None, mask=None,
                  debug=False, **kwargs):
@@ -1373,8 +1379,12 @@ class Client(metaclass=ClientMetaclass):
 
         self.handler = handler or Handler()
         self.semaphore = semaphore if semaphore else self.semaphore
-        self.mask = mask if mask else self.mask
+        self.mask = mask or Mask()
+        if self.mask_keys:
+            for key in self.mask_keys:
+                self.mask.keys.add(key)
         self.debug = debug or os.getenv('DEBUG', self.debug)
+        self.mask.debug = self.debug
 
         if truststore:
             self._client_kwargs.setdefault(
@@ -1444,7 +1454,7 @@ class Client(metaclass=ClientMetaclass):
     def client(self):
         self._client = None
 
-    async def send(self, request, handler, mask, retries=True, semaphore=None,
+    async def send(self, request, handler, retries=True, semaphore=None,
                    log=None, auth=None, follow_redirects=None):
         """
         Internal request method
@@ -1469,9 +1479,9 @@ class Client(metaclass=ClientMetaclass):
             try:
                 response = await _request()
             except Exception as exc:
-                await handler(self, exc, tries, mask, log)
+                await handler(self, exc, tries, log)
             else:
-                if response := await handler(self, response, tries, mask, log):
+                if response := await handler(self, response, tries, log):
                     return response
 
             tries += 1
@@ -1605,7 +1615,6 @@ class Client(metaclass=ClientMetaclass):
         :param tries: Override for :py:attr:`Handler.tries`
         :param backoff: Override for :py:attr:`Handler.backoff`
         :param semaphore: Override for :py:attr:`Client.semaphore`
-        :param mask: Override for :py:attr:`Client.mask`
         """
         if not self.token and not self.token_getting:
             await self.token_refresh()
@@ -1644,7 +1653,7 @@ class Client(metaclass=ClientMetaclass):
 
         _log = log.bind(method=method, url=str(request.url))
         if not quiet or self.debug:
-            key, value = self.request_log_data(request, mask, quiet)
+            key, value = self.request_log_data(request, quiet)
             kwargs = dict()
             if value:
                 kwargs[key] = value
@@ -1658,7 +1667,6 @@ class Client(metaclass=ClientMetaclass):
             handler=handler,
             retries=retries,
             semaphore=semaphore,
-            mask=mask,
             log=log,
             auth=auth,
             follow_redirects=follow_redirects,
@@ -1666,7 +1674,7 @@ class Client(metaclass=ClientMetaclass):
 
         kwargs = dict(status_code=response.status_code)
         if not quiet or self.debug:
-            key, value = self.response_log_data(response, mask)
+            key, value = self.response_log_data(response)
             if value:
                 kwargs[key] = value
 
@@ -1674,20 +1682,18 @@ class Client(metaclass=ClientMetaclass):
 
         return response
 
-    def response_log_data(self, response, mask=None):
-        mask = mask if mask is not None else self.mask
+    def response_log_data(self, response):
         try:
             data = response.json()
         except json.JSONDecodeError:
             if response.content:
-                return 'content', self.mask_content(response.content, mask)
+                return 'content', self.mask(response.content)
         else:
             if data:
-                return 'json', self.mask_data(data, mask)
+                return 'json', self.mask(data)
         return None, None
 
-    def request_log_data(self, request, mask=None, quiet=False):
-        mask = mask if mask is not None else self.mask
+    def request_log_data(self, request, quiet=False):
         content = request.content.decode()
         if not content:
             return None, None
@@ -1697,7 +1703,7 @@ class Client(metaclass=ClientMetaclass):
         except json.JSONDecodeError:
             pass
         else:
-            return 'json', self.mask_data(data, mask)
+            return 'json', self.mask(data)
 
         parsed = parse_qs(content)
         if parsed:
@@ -1705,37 +1711,9 @@ class Client(metaclass=ClientMetaclass):
                 key: value[0] if len(value) == 1 else value
                 for key, value in parsed.items()
             }
-            return 'data', self.mask_data(data, mask)
+            return 'data', self.mask(data)
 
-        return 'content', self.mask_content(content, mask)
-
-    def mask_content(self, content, mask=None):
-        """
-        Implement content masking for non JSON content here.
-        """
-        return content
-
-    def mask_data(self, data, mask=None):
-        """
-        Apply mask for all :py:attr:`mask` in data.
-        """
-        if self.debug:
-            return data
-
-        mask = mask if mask is not None else self.mask
-
-        if isinstance(data, list):
-            return [self.mask_data(item, mask) for item in data]
-
-        if isinstance(data, dict):
-            for key, value in data.items():
-                if key in mask:
-                    data[key] = '***MASKED***'
-                if isinstance(value, dict):
-                    data[key] = self.mask_data(value, mask)
-                if isinstance(value, list):
-                    data[key] = [self.mask_data(item, mask) for item in value]
-            return data
+        return 'content', self.mask(content)
 
         return data
 

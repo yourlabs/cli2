@@ -198,35 +198,19 @@ Secret masking
 .. image:: ansible_masking.png
 
 Until we get `Data Tagging <https://github.com/ansible/ansible/issues/80747>`_,
-this class provides several secret masking mechanisms, which are not only able
-to mask values corresponding on keys to mask, but also to learn values to mask
-in longer strings:
+we use the :py:class:`~cli2.mask.Mask` class, which can learn values to mask on
+the fly.
 
-- Class :py:attr:`~cli2.ansible.action.ActionBase.mask` attribute: list of keys
-  to mask, hardcoded by yourself in your ActionModule.
-- Keys can also be set from the playbook in the ``mask`` ansible fact.
-- Keys from the :py:attr:`~cli2.ansible.action.ActionBase.client`'s
-  :py:attr:`~cli2.client.Client.mask`, if any
-- All of these are combined together in the
-  :py:attr:`~cli2.ansible.action.ActionBase.masked_keys` read-only property.
+The first thing the plugin does in
+:py:meth:`~cli2.ansible.action.ActionBase.mask_init()`, is collecting values
+and keys to mask from various sources:
 
-The first thing the plugin does, is collecting values to mask from task args
-and ansible facts to provision
-the internal :py:attr:`~cli2.ansible.action.ActionBase.masked_values` list.
-
-Masking is done in the :py:meth:`~cli2.ansible.action.ActionBase.mask_data()`
-method which you can use to apply masking in any kind of data:
-
-- when it finds a dict key that is in
-  :py:attr:`~cli2.ansible.action.ActionBase.masked_keys`: replace that with
-  ``***MASKED***```, also, append the value to
-  :py:attr:`~cli2.ansible.action.ActionBase.masked_values`
-- when it finds a string, it will replace all
-  :py:attr:`~cli2.ansible.action.ActionBase.masked_values` with
-  ``***MASKED***``.
-
-As such, :py:meth:`~cli2.ansible.action.ActionBase.mask_data()` does both
-masking **and** learning values to mask.
+- Class :py:attr:`~cli2.ansible.action.ActionBase.mask_keys` attribute: list of
+  keys to mask, hardcoded by yourself in your ActionModule.
+- Keys can also be set from the playbook in the ``mask_keys`` ansible fact.
+- Values can also be set from the playbook in the ``mask_values`` ansible fact.
+- If you have set :py:attr:`~cli2.ansible.action.ActionBase.client`'s
+  then it's :py:attr:`~cli2.client.Client.mask` object will be used.
 
 When this feature is used then you can use ``no_log: true`` and still
 This allows to use ``no_log: true`` and still have an output of the result.
@@ -236,23 +220,24 @@ Setting a module level mask:
 .. code-block:: python
 
     class ActionModule(ansible.ActionBase):
-        mask = ['password']
+        mask_keys = ['password']
 
 Marking a variable value as masked:
 
 .. code-block:: yaml
 
     - set_fact:
-        mask:
+        mask_keys:
         - your_password
+        mask_values:
+        - '{{ some.password }}'
 
-Will cause any occurence of the values of any ``password`` or ``your_password``
-to be replaced with ``***MASKED***`` by
-:py:meth:`~cli2.ansible.action.ActionBase.mask_data()`.
+Will cause any occurence of the values of any ``password`` or whatever
+``some.password`` contains to be replaced with ``***MASKED***``.
+by
 
-Note that :py:meth:`~cli2.ansible.action.ActionBase.mask_data()` is also called
-by :py:meth:`~cli2.ansible.action.ActionBase.print_yaml()` so that you can dump
-any dict safely in there.
+:py:meth:`~cli2.ansible.action.ActionBase.print_yaml()` also masks by default
+so that you can dump any dict safely in there.
 
 We're not shipping a collection, so it's complicated to ship modules from a pip
 package, but you can make a shell module that will use masking:

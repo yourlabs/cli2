@@ -13,7 +13,7 @@ class APIClient(cli2.Client):
         ./manage.py migrate
         ./manage.py runserver
     """
-    mask = ["Capacity"]
+    mask_keys = ['Capacity']
 
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('base_url', 'http://localhost:8000')

@@ -41,6 +41,7 @@ except ImportError:
 from .display import diff, diff_data, render, print, highlight, yaml_highlight
 from .lock import Lock
 from .log import configure, log
+from .mask import Mask
 from .table import Table
 
 

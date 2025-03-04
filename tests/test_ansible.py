@@ -9,7 +9,7 @@ from cli2 import ansible
 
 
 class ActionModule(ansible.ActionBase):
-    mask = ['a']
+    mask_keys = ['a']
 
     async def run_async(self):
         self.result['x'] = dict(a='a', b='b', c='c', d='foo a rrr')
@@ -19,7 +19,7 @@ class ActionModule(ansible.ActionBase):
 async def test_mask(monkeypatch):
     printer = mock.Mock()
     monkeypatch.setattr(ActionModule, 'print', printer)
-    module = await ActionModule.run_test_async(facts=dict(mask=['b']))
+    module = await ActionModule.run_test_async(facts=dict(mask_keys=['b']))
     # result is untouched
     assert module.result == {'x':
         {'a': 'a', 'b': 'b', 'c': 'c', 'd': 'foo a rrr'}
@@ -32,7 +32,7 @@ async def test_mask(monkeypatch):
 @pytest.mark.asyncio
 async def test_response_error(httpx_mock):
     class Client(cli2.Client):
-        mask = ['secret']
+        mask_keys = ['secret']
 
     class Action(ansible.ActionBase):
         async def client_factory(self):
