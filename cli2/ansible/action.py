@@ -186,9 +186,13 @@ class ActionBase(ActionBase):
         self.masked_values = []
         for key in self.masked_keys:
             if self.task_vars.get(key, None):
-                self.masked_values.append(self.task_vars[key])
+                self.masked_values.append(
+                    self._templar.template(self.task_vars[key])
+                )
             if self._task.args.get(key, None):
-                self.masked_values.append(self._task.args[key])
+                self.masked_values.append(
+                    self._templar.template(self._task.args[key])
+                )
 
     async def run_wrapped_async(self):
         self.verbosity = self.task_vars.get('ansible_verbosity', 0)
@@ -288,7 +292,7 @@ class ActionBase(ActionBase):
         if isinstance(data, dict):
             for key, value in data.items():
                 if key in self.masked_keys:
-                    self.masked_values.append(value)
+                    self.masked_values.append(self._templar.template(value))
                     data[key] = '***MASKED***'
                 else:
                     data[key] = self.mask_data(value)
@@ -329,10 +333,19 @@ class ActionBase(ActionBase):
         :param fail: Allow this test to fail without exception
         """
         from unittest import mock
-        obj = cls(*[mock.Mock()] * 6)
+        from ansible.template import Templar
+        from ansible.parsing.dataloader import DataLoader
+        loader = DataLoader()
+        obj = cls(
+            task=mock.Mock(),
+            connection=mock.Mock(),
+            play_context=mock.Mock(),
+            loader=loader,
+            templar=Templar(loader, variables=facts),
+            shared_loader_obj=mock.Mock(),
+        )
         obj.tmp = None
         obj.result = dict()
-        obj._task = mock.Mock()
         obj._task.args = args or {}
         obj.task_vars = facts or {}
         obj.task_vars.setdefault('ansible_verbosity', 2)

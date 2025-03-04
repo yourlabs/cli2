@@ -1,9 +1,11 @@
 - hosts: localhost
   tasks:
+  - set_fact:
+      bar: PASSWORD
   - name: Set secret variable
     no_log: true
     set_fact:
-      secret: foo
+      secret: '{{ bar }}'
 
   - name: Enable variable masking
     set_fact:
