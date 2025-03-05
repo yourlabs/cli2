@@ -1295,7 +1295,8 @@ class ClientCommand(Command):
 
     async def post_call(self):
         """ Call :py:meth:`Client.post_call`. """
-        await self.client.post_call(self)
+        if self.client:
+            await self.client.post_call(self)
 
 
 class Client(metaclass=ClientMetaclass):

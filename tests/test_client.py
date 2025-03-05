@@ -1200,3 +1200,7 @@ def test_client_command(client_class, httpx_mock):
     cmd = Client.cli['model']['get']
     cmd()
     assert not Client.post_call_called
+
+    cmd = Client.cli['request']
+    cmd()
+    assert not Client.post_call_called
