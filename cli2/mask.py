@@ -119,3 +119,6 @@ class Mask:
         if self.values:
             result += f', number_of_values={len(self.values)}'
         return result + ')'
+
+    def __bool__(self):
+        return bool(self.keys or self.values)

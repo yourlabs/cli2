@@ -698,7 +698,8 @@ class ModelCommand(Command):
         return await model.get(id=self['id'].value)
 
     async def post_call(self):
-        await self.client.post_call(self)
+        if self.client:
+            await self.client.post_call(self)
 
 
 class ModelMetaclass(type):

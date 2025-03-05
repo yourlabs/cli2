@@ -186,6 +186,7 @@ class ActionBase(ActionBase):
         for value in self.masked_values:
             if value:
                 self.mask.values.add(value)
+        self.mask_initial_values = self.mask.values
 
     async def run_wrapped_async(self):
         self.verbosity = self.task_vars.get('ansible_verbosity', 0)
@@ -232,7 +233,16 @@ class ActionBase(ActionBase):
             self.exc = exc
         finally:
             if self.mask and self.verbosity:
+                # this task has a mask, so it's probably a no_log, we're
+                # running verbose, print masked result
                 self.print_yaml(self.result)
+
+                if self.mask_initial_values != self.mask.values:
+                    # this module has discovered new values to mask, update the
+                    # fact with those values
+                    self.result['ansible_facts'] = dict(
+                        mask_values=self.mask.values,
+                    )
 
             if (
                 self._before_data != UNSET_DEFAULT

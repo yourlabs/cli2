@@ -12,6 +12,7 @@
    configuration
    log
    display
+   mask
    colors
    table
    cli

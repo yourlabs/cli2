@@ -1195,3 +1195,8 @@ def test_client_command(client_class, httpx_mock):
     assert Client.cli['model']['get'].client is None
     cmd = Client.cli['model']['find']
     cmd('http://x')
+
+    Client.post_call_called = False
+    cmd = Client.cli['model']['get']
+    cmd()
+    assert not Client.post_call_called

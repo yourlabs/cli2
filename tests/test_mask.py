@@ -20,3 +20,6 @@ def test_mask():
         'b': ['***MASKED*** foo ***MASKED***']
     }
     assert mask(fixture) == expected
+
+    assert mask
+    assert not cli2.Mask()
