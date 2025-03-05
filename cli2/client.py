@@ -155,6 +155,8 @@ class Paginator:
             return
 
         self.pagination_initialize(data)
+        if not self.per_page:
+            self.per_page = len(self.data_items(data))
         self.initialized = True
 
     def pagination_initialize(self, data):
@@ -248,10 +250,10 @@ class Paginator:
         :param page_number: Page number to get the items from
         """
         params = self.params.copy()
-        try:
-            self.pagination_parameters(params, page_number)
-        except NotImplementedError:
-            if page_number > 1:
+        if page_number > 1:
+            try:
+                self.pagination_parameters(params, page_number)
+            except NotImplementedError:
                 raise
         for expression in self.expressions:
             if expression.parameterable:

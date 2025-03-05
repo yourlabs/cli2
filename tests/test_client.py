@@ -514,12 +514,11 @@ async def test_pagination_patterns(httpx_mock, client_class):
                 self.total_items = data['total']
 
             def pagination_parameters(self, params, page_number):
-                self.per_page = 1
                 params['offset'] = (page_number - 1) * self.per_page
                 params['limit'] = self.per_page
 
     httpx_mock.add_response(
-        url='http://lol/off?offset=0&limit=1',
+        url='http://lol/off',
         json=dict(total=2, items=[dict(a=1)]),
     )
 
