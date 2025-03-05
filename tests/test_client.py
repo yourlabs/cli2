@@ -76,6 +76,14 @@ async def test_client_cli(client_class, httpx_mock):
     assert list(client_class.cli['testmodel3'].keys()) == ['help', 'find']
 
 
+def test_client_cli_func(client_class):
+    # test adding a normal function
+    @client_class.cli.cmd
+    def foo(test):
+        pass
+    client_class.cli['foo']('bar')
+
+
 @pytest.mark.asyncio
 async def test_client_cli_override(client_class, httpx_mock):
     class Client(client_class):

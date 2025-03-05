@@ -1287,13 +1287,15 @@ class ClientCommand(Command):
         :py:meth:`Client.setargs`.
         """
         super().setargs()
-        self['self'].factory = self.client_class.factory
+        if 'self' in self:
+            self['self'].factory = self.client_class.factory
         self.client_class.setargs(self)
 
     async def factories_resolve(self):
         """ Set :py:attr:`client` after resolving factories. """
         await super().factories_resolve()
-        self.client = self['self'].value
+        if 'self' in self:
+            self.client = self['self'].value
 
     async def post_call(self):
         """ Call :py:meth:`Client.post_call`. """
