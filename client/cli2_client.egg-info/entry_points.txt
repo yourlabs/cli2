@@ -1,0 +1,2 @@
+[console_scripts]
+cli2-client-example = cclient.example:cli.entry_point

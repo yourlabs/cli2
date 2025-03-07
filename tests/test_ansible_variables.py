@@ -1,10 +1,10 @@
-from cli2 import ansible
+import cansible
 import pytest
 import os
 
 
 def test_story():
-    variables = ansible.Variables(
+    variables = cansible.Variables(
         root_path=os.path.dirname(__file__),
         pass_path=os.path.dirname(__file__) + '/vault_pass',
     )
@@ -14,7 +14,7 @@ def test_story():
 
 
 def test_exceptions():
-    variables = ansible.Variables()
+    variables = cansible.Variables()
     with pytest.raises(Exception) as exc:
         variables['variables.yml']
     assert exc.value.args == (
@@ -25,12 +25,12 @@ def test_exceptions():
         variables['/variables_vault.yml']
     assert exc.value.args == ('/variables_vault.yml does not exist',)
 
-    variables = ansible.Variables(root_path=os.path.dirname(__file__))
+    variables = cansible.Variables(root_path=os.path.dirname(__file__))
     with pytest.raises(Exception) as exc:
         variables['variables_vault.yml']
     assert exc.value.args == ('Vault password required in pass_path',)
 
-    variables = ansible.Variables(
+    variables = cansible.Variables(
         root_path=os.path.dirname(__file__),
         pass_path='/does/not/exist',
     )

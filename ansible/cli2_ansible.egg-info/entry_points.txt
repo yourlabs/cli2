@@ -1,0 +1,2 @@
+[pytest11]
+cli2-ansible-fixtures = cansible.pytest

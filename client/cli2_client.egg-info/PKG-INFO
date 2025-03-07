@@ -1,0 +1,20 @@
+Metadata-Version: 2.2
+Name: cli2-client
+Version: 5.0.0rc1
+Summary: HTTP Client boilerplate code to conquer the world.
+Home-page: https://yourlabs.io/oss/cli2
+Author: James Pic
+Author-email: jamespic@gmail.com
+License: MIT
+Keywords: cli
+Requires-Python: >=3.6
+Requires-Dist: httpx
+Requires-Dist: truststore
+Dynamic: author
+Dynamic: author-email
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
