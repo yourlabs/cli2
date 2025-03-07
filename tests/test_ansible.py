@@ -1,14 +1,15 @@
 import cli2
+import cclient
 import httpx
 import mock
 import pytest
 import textwrap
 import yaml
 
-from cli2 import ansible
+import cansible
 
 
-class ActionModule(ansible.ActionBase):
+class ActionModule(cansible.ActionBase):
     mask_keys = ['a']
 
     async def run_async(self):
@@ -31,10 +32,10 @@ async def test_mask(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_response_error(httpx_mock):
-    class Client(cli2.Client):
+    class Client(cclient.Client):
         mask_keys = ['secret']
 
-    class Action(ansible.ActionBase):
+    class Action(cansible.ActionBase):
         async def client_factory(self):
             return Client(base_url='http://foo')
 
@@ -59,9 +60,9 @@ async def test_response_error(httpx_mock):
 
 @pytest.mark.asyncio
 async def test_option():
-    class Action(ansible.ActionBase):
-        fact = ansible.Option(fact='fact', default='default fact')
-        arg = ansible.Option(arg='arg', fact='arg_fact')
+    class Action(cansible.ActionBase):
+        fact = cansible.Option(fact='fact', default='default fact')
+        arg = cansible.Option(arg='arg', fact='arg_fact')
 
         async def run_async(self):
             self.result['arg'] = self.arg
@@ -90,8 +91,8 @@ async def test_option():
         error="Missing arg `arg` or fact `arg_fact`",
     )
 
-    class Action(ansible.ActionBase):
-        name = ansible.Option('name')
+    class Action(cansible.ActionBase):
+        name = cansible.Option('name')
 
         async def run_async(self):
             self.result['name'] = self.name
@@ -108,8 +109,8 @@ async def test_diff(monkeypatch):
     _print = mock.Mock()
     monkeypatch.setattr(cli2.display, '_print', _print)
 
-    class Action(ansible.ActionBase):
-        name = ansible.Option('name', 'object_name', 'Test object')
+    class Action(cansible.ActionBase):
+        name = cansible.Option('name', 'object_name', 'Test object')
 
         async def run_async(self):
             self.before_set(dict(foo=1))

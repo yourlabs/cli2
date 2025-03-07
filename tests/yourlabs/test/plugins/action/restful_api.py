@@ -1,15 +1,15 @@
 import cli2
 import copy
-from cli2 import ansible
-from cli2.examples.client import APIClient
+import cansible
+from cclient.example import APIClient
 
 
-class ActionModule(ansible.ActionBase):
-    id = ansible.Option('id', default=None)
-    name = ansible.Option('name')
-    capacity = ansible.Option('capacity', default='1To')
-    price = ansible.Option('price')
-    state = ansible.Option('state', default='present')
+class ActionModule(cansible.ActionBase):
+    id = cansible.Option('id', default=None)
+    name = cansible.Option('name')
+    capacity = cansible.Option('capacity', default='1To')
+    price = cansible.Option('price')
+    state = cansible.Option('state', default='present')
     mask_keys = ['Price']
 
     async def run_async(self):
