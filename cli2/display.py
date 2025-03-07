@@ -7,15 +7,10 @@ Generic pretty display utils.
     force it with :envvar:`FORCE_COLOR`, ie. gitlab-ci etc
 """
 import difflib
+import json
 import os
 import sys
 import yaml
-
-try:
-    import jsonlight as json
-except ImportError:
-    import json
-
 
 _print = print
 

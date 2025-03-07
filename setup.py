@@ -54,10 +54,6 @@ setup(
         'structlog',
     ],
     extras_require=dict(
-        client=[
-            'httpx',
-            'truststore',
-        ],
         test=[
             'freezegun',
             'pytest',

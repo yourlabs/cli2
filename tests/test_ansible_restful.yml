@@ -3,14 +3,14 @@
   - name: Create object
     register: object_create
     yourlabs.test.restful_api:
-      name: test-cli2-ansible
+      name: test-cansible
       capacity: 10To
       price: 1
 
   - name: Update object
     yourlabs.test.restful_api:
       id: '{{ object_create.data.id }}'
-      name: test-cli2-ansible
+      name: test-cansible
       capacity: 1To
       price: 2
 
@@ -18,7 +18,7 @@
     register: idempotence
     yourlabs.test.restful_api:
       id: '{{ object_create.data.id }}'
-      name: test-cli2-ansible
+      name: test-cansible
       capacity: 1To
       price: 2
 
@@ -29,7 +29,7 @@
   - name: Delete object
     yourlabs.test.restful_api:
       id: '{{ object_create.data.id }}'
-      name: test-cli2-ansible
+      name: test-cansible
       capacity: 1To
       price: 2
       state: absent
