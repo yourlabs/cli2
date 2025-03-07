@@ -2,9 +2,14 @@ from setuptools import setup
 
 
 setup(
-    name='pytest-cli2-ansible',
+    name='chttpx',
     versioning='dev',
     setup_requires='setupmeta',
+    packages=['chttpx'],
+    install_requires=[
+        'httpx',
+        'truststore',
+    ],
     author='James Pic',
     author_email='jamespic@gmail.com',
     url='https://yourlabs.io/oss/cli2',
@@ -13,8 +18,8 @@ setup(
     keywords='cli',
     python_requires='>=3.6',
     entry_points={
-        'pytest11': [
-            'cli2-ansible-fixtures = pytest_cli2_ansible',
+        'console_scripts': [
+            'chttpx-example = chttpx.example:cli.entry_point',
         ],
     },
 )

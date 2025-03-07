@@ -52,12 +52,9 @@ setup(
         'pyyaml',
         'pygments',
         'structlog',
+        'jsonlight',
     ],
     extras_require=dict(
-        client=[
-            'httpx',
-            'truststore',
-        ],
         test=[
             'freezegun',
             'pytest',
