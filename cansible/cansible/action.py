@@ -3,6 +3,7 @@ Base class for Ansible Actions.
 """
 
 import asyncio
+import cclient
 import cli2
 import copy
 import difflib
@@ -216,7 +217,7 @@ class ActionBase(ActionBase):
 
             if isinstance(exc, AnsibleError):
                 self.result['error'] = exc.message
-            elif isinstance(exc, cli2.ResponseError):
+            elif isinstance(exc, cclient.ResponseError):
                 self.result.update(dict(
                     method=exc.method,
                     url=exc.url,

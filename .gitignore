@@ -1,3 +1,7 @@
 __pycache__
 *.pyc
 tests/db.sqlite3
+.setupmeta.version
+*.egg-info
+.eggs
+.aider*
