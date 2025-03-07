@@ -7,7 +7,7 @@ import subprocess
 import sys
 import yaml
 
-from cli2.ansible import ansi_escape
+from cansible import ansi_escape
 
 
 def which_ansible_playbook():
