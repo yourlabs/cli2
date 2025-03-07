@@ -2,9 +2,14 @@ from setuptools import setup
 
 
 setup(
-    name='pytest-cli2-ansible',
+    name='cansible',
     versioning='dev',
     setup_requires='setupmeta',
+    packages=['cansible'],
+    install_requires=[
+        'cli2',
+        'ansible',
+    ],
     author='James Pic',
     author_email='jamespic@gmail.com',
     url='https://yourlabs.io/oss/cli2',
@@ -14,7 +19,7 @@ setup(
     python_requires='>=3.6',
     entry_points={
         'pytest11': [
-            'cli2-ansible-fixtures = pytest_cli2_ansible',
+            'cansible-fixtures = cansible.pytest',
         ],
     },
 )

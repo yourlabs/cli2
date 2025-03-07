@@ -1,8 +1,15 @@
-Ansible
-~~~~~~~
+Ansible Framework
+~~~~~~~~~~~~~~~~~
 
-Ansible Action Plugin micro framework
-=====================================
+Installation:
+
+    pip install cansible  # or cli2[ansible]
+
+Then:
+
+.. code-block:: python
+
+   import cansible
 
 Requires ``ansible``, to build `custom action plugins
 <https://docs.ansible.com/ansible/latest/dev_guide/developing_plugins.html#action-plugins>`_
@@ -32,8 +39,8 @@ example<Example Client>`:
 Async
 -----
 
-With :py:class:`~cli2.ansible.action.ActionBase`, we don't define run, we define
-:py:meth:`~cli2.ansible.action.ActionBase.run_async`
+With :py:class:`~cansible.action.ActionBase`, we don't define run, we define
+:py:meth:`~cansible.action.ActionBase.run_async`
 
 .. code-block:: python
 
@@ -71,7 +78,7 @@ With ``-vv``:
 Option
 ------
 
-With :py:class:`~cli2.ansible.action.Option`, we can declare task options
+With :py:class:`~cansible.action.Option`, we can declare task options
 instead of fiddling with task_vars:
 
 .. code-block:: python
@@ -103,7 +110,7 @@ Client
 ------
 
 You need to return a :py:class:`~cli2.client.Client` instance in the
-:py:meth:`~cli2.ansible.action.ActionBase.client_factory` method to have a
+:py:meth:`~cansible.action.ActionBase.client_factory` method to have a
 ``self.client`` attribute:
 
 .. code-block:: python
@@ -150,8 +157,8 @@ We're going to be changing stuff, and Ansible doesn't interpret before/after
 result keys which means it won't dump a diff even with ``--diff``.
 
 Instead of calling :py:func:`~cli2.display.diff_data` manually, you can call
-:py:meth:`~cli2.ansible.action.ActionBase.before_set` and
-:py:meth:`~cli2.ansible.action.ActionBase.after_set`, then a diff will be displayed
+:py:meth:`~cansible.action.ActionBase.before_set` and
+:py:meth:`~cansible.action.ActionBase.after_set`, then a diff will be displayed
 automatically.
 
 .. code-block:: python
@@ -202,14 +209,14 @@ we use the :py:class:`~cli2.mask.Mask` class, which can learn values to mask on
 the fly.
 
 The first thing the plugin does in
-:py:meth:`~cli2.ansible.action.ActionBase.mask_init()`, is collecting values
+:py:meth:`~cansible.action.ActionBase.mask_init()`, is collecting values
 and keys to mask from various sources:
 
-- Class :py:attr:`~cli2.ansible.action.ActionBase.mask_keys` attribute: list of
+- Class :py:attr:`~cansible.action.ActionBase.mask_keys` attribute: list of
   keys to mask, hardcoded by yourself in your ActionModule.
 - Keys can also be set from the playbook in the ``mask_keys`` ansible fact.
 - Values can also be set from the playbook in the ``mask_values`` ansible fact.
-- If you have set :py:attr:`~cli2.ansible.action.ActionBase.client`'s
+- If you have set :py:attr:`~cansible.action.ActionBase.client`'s
   then it's :py:attr:`~cli2.client.Client.mask` object will be used.
 
 When this feature is used then you can use ``no_log: true`` and still
@@ -236,7 +243,7 @@ Will cause any occurence of the values of any ``password`` or whatever
 ``some.password`` contains to be replaced with ``***MASKED***``.
 by
 
-:py:meth:`~cli2.ansible.action.ActionBase.print_yaml()` also masks by default
+:py:meth:`~cansible.action.ActionBase.print_yaml()` also masks by default
 so that you can dump any dict safely in there.
 
 We're not shipping a collection, so it's complicated to ship modules from a pip
@@ -250,7 +257,7 @@ package, but you can make a shell module that will use masking:
         async def run_async(self):
             self.result.update(self.subprocess_remote(self.cmd))
 
-Where :py:meth:`~cli2.ansible.action.ActionBase.subprocess_remote()` is a basic
+Where :py:meth:`~cansible.action.ActionBase.subprocess_remote()` is a basic
 helper function we provide to run commands over the target host, with fully
 supported masking.
 
@@ -258,7 +265,7 @@ Testing
 -------
 
 You can run the module in mocked mode in tests with the
-:py:meth:`~cli2.ansible.action.ActionBase.run_test_async` method:
+:py:meth:`~cansible.action.ActionBase.run_test_async` method:
 
 .. code-block:: python
 
@@ -281,14 +288,11 @@ in the example below:
 Variables reader
 ================
 
-.. automodule:: cli2.ansible.variables
+.. automodule:: cansible.variables
    :members:
 
 Playbook generator
 ==================
-
-.. danger:: Requires ``pip install pytest-cli2-ansible`` to register the pytest
-            plugin.
 
 You can also create playbooks on the fly and run them in a subprocess that
 calls ansible-playbook in localhost, thanks to the
@@ -324,8 +328,8 @@ easily on internet, except probably for mine:
 API
 ===
 
-.. automodule:: cli2.ansible.action
+.. automodule:: cansible.action
    :members:
 
-.. automodule:: cli2.ansible.playbook
+.. automodule:: cansible.playbook
    :members:

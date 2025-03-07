@@ -54,10 +54,8 @@ setup(
         'structlog',
     ],
     extras_require=dict(
-        client=[
-            'httpx',
-            'truststore',
-        ],
+        httpx=['chttpx'],
+        ansible=['cansible'],
         test=[
             'freezegun',
             'pytest',
