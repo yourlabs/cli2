@@ -1,0 +1,13 @@
+[distutils.commands]
+check = setupmeta.commands:CheckCommand
+cleanall = setupmeta.commands:CleanCommand
+entrypoints = setupmeta.commands:EntryPointsCommand
+explain = setupmeta.commands:ExplainCommand
+version = setupmeta.commands:VersionCommand
+
+[distutils.setup_keywords]
+setup_requires = setupmeta.hook:register_keyword
+versioning = setupmeta.hook:register_keyword
+
+[setuptools.finalize_distribution_options]
+setupmeta = setupmeta.hook:finalize_dist

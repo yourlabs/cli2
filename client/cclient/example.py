@@ -1,7 +1,8 @@
 import cli2
+import cclient
 
 
-class APIClient(cli2.Client):
+class APIClient(cclient.Client):
     """
     Client for restful-api.dev
 
@@ -31,16 +32,16 @@ class Object(APIClient.Model):
 
     Example:
 
-    cli2-example-client object create name=cli2 capacity=2TB
+    cclient-example-client object create name=cclient capacity=2TB
     """
     url_list = '/objects/'
     url_detail = '/objects/{self.id}/'
 
-    id = cli2.Field()
-    name = cli2.Field()
-    capacity = cli2.Field('data/Capacity')
-    generation = cli2.Field('data/Generation')
-    price = cli2.Field('data/Price')
+    id = cclient.Field()
+    name = cclient.Field()
+    capacity = cclient.Field('data/Capacity')
+    generation = cclient.Field('data/Generation')
+    price = cclient.Field('data/Price')
 
     @cli2.cmd
     @classmethod

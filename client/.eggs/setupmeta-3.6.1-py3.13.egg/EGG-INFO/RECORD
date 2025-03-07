@@ -1,0 +1,15 @@
+setupmeta/__init__.py,sha256=VvhgE0f3CFcP8ouQFKGPzlp6Syh0ekUrN3lWj2VGMyM,27754
+setupmeta/commands.py,sha256=pqkFUQe69SBM1ERRAFkUfpow8Dqz1ptEDWcj9k484rI,22483
+setupmeta/content.py,sha256=Tgbs_C9q1IEOolnDzgiN5YqjgrF2pz9hYn71ORT6yaI,2928
+setupmeta/hook.py,sha256=kz4FVAc-8J3gYKtJ2d02qvaH4xaVTkfRFPK0ljvgwSk,3623
+setupmeta/license.py,sha256=j5YEtCMYRKA5-iEl_ycAit_ei9rqx4Ckw0LpjrsUJdI,2160
+setupmeta/model.py,sha256=PDeKy4GFo8CK9dRCunxk79afhkieHfNXbmZalyPYkW8,27811
+setupmeta/scm.py,sha256=zvnrcnUzgeLU5H2J_UAYaub2ivjbwEcXp0u8edbRBhQ,12172
+setupmeta/versioning.py,sha256=wYVdlsl6vevhtX_FUtomkdAZd4bGb8ej6836yts2XRM,20048
+setupmeta-3.6.1.dist-info/LICENSE,sha256=cP1jPqoX23CfrgYt1CrGmJkrZnOfp0UkQZNJua_n_6E,1068
+setupmeta-3.6.1.dist-info/METADATA,sha256=rl7IKAX80DFEf-p_u5qdISjFoof6gLjhKaZ7RO35unI,11893
+setupmeta-3.6.1.dist-info/WHEEL,sha256=9Hm2OB-j1QcCUq9Jguht7ayGIIZBRTdOXD1qg9cCgPM,109
+setupmeta-3.6.1.dist-info/entry_points.txt,sha256=Hmn0AKAHXbAewwU7oKSlbSDwqm3GG-5IJsjTPcUW1sc,451
+setupmeta-3.6.1.dist-info/top_level.txt,sha256=zLTZEt1OQhDeKIh0qGq5QlyvPbJK4WNCHtttrYpxR9A,10
+setupmeta-3.6.1.dist-info/zip-safe,sha256=AbpHGcgLb-kRsJGnwFEktk7uzpZOCcBY74-YBdrKVGs,1
+setupmeta-3.6.1.dist-info/RECORD,,

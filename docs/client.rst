@@ -1,11 +1,17 @@
 HTTP client
 ~~~~~~~~~~~
 
-Experimental feature, to enjoy it fully, install cli2 with ``client`` as such::
+Installation:
 
-    pip install cli2[client]
+    pip install cli2-client
 
-The goal of cli2.client module is to provide a generic framework to
+Then:
+
+.. code-block:: python
+
+   import cclient
+
+The goal of cclient module is to provide a generic framework to
 build HTTP client libs and CLIs onto, after carrying this pattern from a
 project to another, I've refactored this stuff here:
 
@@ -67,12 +73,12 @@ Architecture
 
 The client module is built around 3 main moving parts:
 
-- :py:class:`~cli2.client.Client`: A wrapper around the ``httpx.AsyncClient``
+- :py:class:`~cclient.Client`: A wrapper around the ``httpx.AsyncClient``
   class,
-- :py:class:`~cli2.client.Handler`: Used by the client to automate response
+- :py:class:`~cclient.Handler`: Used by the client to automate response
   handling: do we retry, need to re-create a TCP Session, or get a new token...
-- :py:class:`~cli2.client.Model`: A Django-like model metaclass, that comes
-  with it's :py:class:`~cli2.client.Field` classes and their expressions_
+- :py:class:`~cclient.Model`: A Django-like model metaclass, that comes
+  with it's :py:class:`~cclient.Field` classes and their expressions_
 
 Tutorial
 ========
@@ -80,13 +86,13 @@ Tutorial
 Creating a Client
 -----------------
 
-Start by extending a :py:class:`~cli2.client.Client`:
+Start by extending a :py:class:`~cclient.Client`:
 
 .. code-block:: python
 
     import cli2
 
-    class YourClient(cli2.Client):
+    class YourClient(cclient):
         pass
 
     # you get a CLI for free
@@ -94,33 +100,33 @@ Start by extending a :py:class:`~cli2.client.Client`:
 
 There are a few methods that you might want to override:
 
-- :py:meth:`~cli2.client.Client.client_factory`: where you can customize the
+- :py:meth:`~cclient.Client.client_factory`: where you can customize the
   actual httpx AsyncClient instance before it is used by cli2 Client.
-- :py:meth:`~cli2.client.Client.token_get`: if you want your client to do some
+- :py:meth:`~cclient.Client.token_get`: if you want your client to do some
   authentication dance to get a token
-- :py:attr:`~cli2.client.Client.cli_kwargs`: Overrides for the for the
-  :py:attr:`~cli2.client.Client.cli` :py:class:`~cli2.cli.Group`
+- :py:attr:`~cclient.Client.cli_kwargs`: Overrides for the for the
+  :py:attr:`~cclient.Client.cli` :py:class:`~cli2.cli.Group`
 
 Pagination
 ----------
 
-The default :py:class:`~cli2.client.Paginator` doesn't know how to paginate.
+The default :py:class:`~cclient.Paginator` doesn't know how to paginate.
 Let's teach it to make a page GET parameter:
 
 .. code-block:: python
 
-    class YourClient(cli2.Client):
+    class YourClient(cclient):
         class Paginator(cli2.Paginator):
             def pagination_parameters(self, params, page_number):
                 params['page'] = page_number
 
 That will increments a ``page`` GET parameter until it gets an empty results
 list, which works but is still sub-optimal. Let's teach it when to stop by
-setting total_pages in :py:meth:`~cli2.client.Paginator.pagination_initialize`:
+setting total_pages in :py:meth:`~cclient.Paginator.pagination_initialize`:
 
 .. code-block:: python
 
-    class YourClient(cli2.Client):
+    class YourClient(cclient):
         class Paginator(cli2.Paginator):
             def pagination_parameters(self, params, page_number):
                 params['page'] = page_number
@@ -130,8 +136,8 @@ setting total_pages in :py:meth:`~cli2.client.Paginator.pagination_initialize`:
 
 Perhaps you don't get the total pages from the API response, but you do get a
 total number of items, which you can set
-:py:attr:`~cli2.client.Paginator.total_items` and
-:py:attr:`~cli2.client.Paginator.total_pages` will auto-calculate:
+:py:attr:`~cclient.Paginator.total_items` and
+:py:attr:`~cclient.Paginator.total_pages` will auto-calculate:
 
 .. code-block:: python
 
@@ -141,7 +147,7 @@ total number of items, which you can set
 
 Perhaps you're dealing with an offset/limit type of pagination, in which case,
 ``page`` GET parameter won't do, set offlet/limit instead in
-:py:meth:`~cli2.client.Paginator.pagination_parameters`:
+:py:meth:`~cclient.Paginator.pagination_parameters`:
 
 .. code-block:: python
 
@@ -157,7 +163,7 @@ Perhaps you're dealing with an offset/limit type of pagination, in which case,
 Creating a Model
 ----------------
 
-Then, register a :py:class:`~cli2.client.Model` for this client by subclassing
+Then, register a :py:class:`~cclient.Model` for this client by subclassing
 it's ``.Model`` attribute.
 
 .. code-block:: python
@@ -211,7 +217,7 @@ You can already paginate over objects:
         cli2.print(obj)
 
 If you set the :py:attr:`url_list` attribute, then you can also use the
-:py:meth:`cli2.client.Model.find` method directly:
+:py:meth:`cclient.Model.find` method directly:
 
 .. code-block:: python
 
@@ -257,8 +263,8 @@ Custom types
 The most painful stuff I've had to deal with in APIs are datetimes and, "json
 in json".
 
-The cures for that are :py:class:`~cli2.client.JSONStringField` and
-:py:class:`~cli2.client.DateTimeField`.
+The cures for that are :py:class:`~cclient.JSONStringField` and
+:py:class:`~cclient.DateTimeField`.
 
 .. _expressions:
 
@@ -335,7 +341,7 @@ If your endpoint returns data of a related model as such:
     related:
       bar: 2
 
-You can normalize it with :py:class:`~cli2.client.Related`:
+You can normalize it with :py:class:`~cclient.Related`:
 
 .. code-block:: python
 
@@ -346,7 +352,7 @@ You can normalize it with :py:class:`~cli2.client.Related`:
     class Related(YourClient.Model):
         bar = cli2.Field()
 
-Due to a pretty ass-kicking :py:class:`~cli2.client.MutableField` mechanic,
+Due to a pretty ass-kicking :py:class:`~cclient.MutableField` mechanic,
 we're able to deal with it as such:
 
 .. code-block:: python
@@ -377,7 +383,7 @@ Given a list of relations:
     - bar: 1
     - bar: 2
 
-You can normalize it with :py:attr:`cli2.client.MutableField.many`:
+You can normalize it with :py:attr:`cclient.MutableField.many`:
 
 .. code-block:: python
 
@@ -388,7 +394,7 @@ You can normalize it with :py:attr:`cli2.client.MutableField.many`:
     class Related(YourClient.Model):
         bar = cli2.Field()
 
-Due to a pretty ass-kicking :py:class:`~cli2.client.MutableField` mechanic,
+Due to a pretty ass-kicking :py:class:`~cclient.MutableField` mechanic,
 you can work on the list return with the field descriptor:
 
 .. code-block:: python
@@ -426,18 +432,18 @@ Customizing Commands
 --------------------
 
 You can customize the generated commands in the following methods of the
-:py:class:`~cli2.client.Client` class:
+:py:class:`~cclient.Client` class:
 
-- :py:meth:`~cli2.Client.setargs`: to set :ref:`cli-only-arguments`.
-- :py:meth:`~cli2.Client.factory`: to construct your Client with the said cli
+- :py:meth:`~cclient.setargs`: to set :ref:`cli-only-arguments`.
+- :py:meth:`~cclient.factory`: to construct your Client with the said cli
   only arguments
-- :py:meth:`~cli2.Client.post_call`: to logout or do whatever you want
+- :py:meth:`~cclient.post_call`: to logout or do whatever you want
 
 Example:
 
 .. code-block:: python
 
-    class CyberArkClient(cli2.Client):
+    class CyberArkClient(cclient):
         def __init__(self, something, *args, **kwargs):
             self.something = something
             super().__init__(*args, **kwargs)
@@ -492,12 +498,12 @@ API:
 Before yielding items, paginator will call the callback for every item in
 asyncio.gather, causing an extra async request to the status URL of the object
 and set ``self.status``, this will cause a lot of requests, you might want to
-set :py:attr:`~cli2.client.Client.semaphore` to limit concurrent requests.
+set :py:attr:`~cclient.Client.semaphore` to limit concurrent requests.
 
 API
 ===
 
-.. automodule:: cli2.client
+.. automodule:: cclient
    :members:
 
 .. _Example CLI:
@@ -505,4 +511,4 @@ API
 Example CLI
 ===========
 
-.. cli2:auto:: cli2-example-client
+.. cli2:auto:: cli2-client-example
