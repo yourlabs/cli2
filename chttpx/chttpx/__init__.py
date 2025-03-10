@@ -163,7 +163,17 @@ class Paginator:
     def total_pages(self, value):
         self._total_pages = value
 
+    async def call(self, callback):
+        """
+        Call an async callback for each item
+
+        :param callback: Function to call for every item.
+        """
+        async for item in self.__aiter__(callback=callback):
+            pass
+
     async def list(self):
+        """ Return casted list of items """
         self.results = []
         async for item in self:
             self.results.append(item)

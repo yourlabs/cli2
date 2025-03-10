@@ -600,6 +600,19 @@ async def test_pagination_last(httpx_mock, reverse_client):
     assert last_item['a'] == 5
 
 
+@pytest.mark.asyncio
+async def test_paginator_call(httpx_mock):
+    httpx_mock.add_response(
+        url='http://lol/bar',
+        json=dict(items=[dict(a=1), dict(a=2)]),
+    )
+    client = chttpx.Client(base_url='http://lol')
+    paginator = client.paginate('/bar')
+    cb = mock.AsyncMock()
+    await paginator.call(cb)
+    assert cb.call_args_list == [mock.call({'a': 1}), mock.call({'a': 2})]
+
+
 def test_descriptor(client_class):
     class Model(client_class.Model):
         id = chttpx.Field()
