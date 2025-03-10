@@ -1689,6 +1689,9 @@ class Client(metaclass=ClientMetaclass):
 
         _log = log.bind(method=method, url=str(request.url))
         if not quiet or self.debug:
+            # ensure we have content to log
+            await request.aread()
+
             key, value = self.request_log_data(request, quiet)
             kwargs = dict()
             if value:

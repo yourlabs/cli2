@@ -9,7 +9,7 @@ from .cli import (
     Group,
     EntryPoint,
 )
-from .asyncio import async_resolve, async_run
+from .asyncio import async_resolve, async_run, Queue
 from .colors import colors as c
 
 from .configuration import Configuration, cfg
