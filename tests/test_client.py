@@ -552,8 +552,21 @@ async def test_pagination_patterns(httpx_mock, client_class):
     assert params == dict(offset=1, limit=1)
 
 
+@pytest.fixture
+def reverse_client(httpx_mock, client_class):
+    class Paginator(client_class.Paginator):
+        def pagination_initialize(self, data):
+            self.total_pages = data['total_pages']
+
+    # test that we can reverse pagination too
+    class Client(client_class):
+        paginator = Paginator
+
+    return Client(base_url='http://lol')
+
+
 @pytest.mark.asyncio
-async def test_pagination_reverse(httpx_mock, client_class):
+async def test_pagination_reverse(reverse_client, httpx_mock):
     httpx_mock.add_response(
         url='http://lol/bar',
         json=dict(total_pages=3, items=[dict(a=1), dict(a=2)]),
@@ -566,20 +579,25 @@ async def test_pagination_reverse(httpx_mock, client_class):
         url='http://lol/bar?page=3',
         json=dict(total_pages=3, items=[dict(a=5)]),
     )
-
-    class Paginator(client_class.Paginator):
-        def pagination_initialize(self, data):
-            self.total_pages = data['total_pages']
-
-    # test that we can reverse pagination too
-    class Client(client_class):
-        paginator = Paginator
-
-    client = Client(base_url='http://lol')
-    paginator = client.paginate('/bar')
+    paginator = reverse_client.paginate('/bar')
     paginator = paginator.reverse()
     results = await paginator.list()
     assert [x['a'] for x in results] == [5, 4, 3, 2, 1]
+
+
+@pytest.mark.asyncio
+async def test_pagination_last(httpx_mock, reverse_client):
+    httpx_mock.add_response(
+        url='http://lol/bar',
+        json=dict(total_pages=3, items=[dict(a=1), dict(a=2)]),
+    )
+    httpx_mock.add_response(
+        url='http://lol/bar?page=3',
+        json=dict(total_pages=3, items=[dict(a=5)]),
+    )
+    paginator = reverse_client.paginate('/bar')
+    last_item = await paginator.last_item()
+    assert last_item['a'] == 5
 
 
 def test_descriptor(client_class):

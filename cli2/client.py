@@ -113,6 +113,14 @@ class Paginator:
         obj._reverse = True
         return obj
 
+    async def last_item(self):
+        """
+        Return the last item of a paginated request.
+        """
+        self.initialized or await self.initialize()
+        items = await self.page_items(self.total_pages)
+        return items[-1]
+
     @property
     def total_items(self):
         return self._total_items
