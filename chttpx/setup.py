@@ -19,7 +19,7 @@ setup(
     python_requires='>=3.6',
     entry_points={
         'console_scripts': [
-            'cli2-httpx-example = chttpx.example:cli.entry_point',
+            'cli2-chttpx-example = chttpx.example:cli.entry_point',
         ],
     },
 )

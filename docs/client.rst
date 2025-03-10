@@ -511,4 +511,4 @@ API
 Example CLI
 ===========
 
-.. cli2:auto:: cli2-client-example
+.. cli2:auto:: cli2-chttpx-example
