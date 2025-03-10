@@ -15,6 +15,7 @@
    mask
    colors
    table
+   asyncio
    cli
    client
    ansible
