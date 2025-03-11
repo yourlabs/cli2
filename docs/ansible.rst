@@ -28,6 +28,9 @@ Useful on its own, it also integrates very well with the rest of our stuff:
 - :doc:`client`
 - :doc:`lock`
 
+Action plugin
+=============
+
 Example Plugin
 --------------
 

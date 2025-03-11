@@ -39,8 +39,8 @@ class Variables(dict):
 
     .. code-block:: python
 
-        import cli2.ansible
-        variables = cli2.ansible.Variables(
+        import cansible
+        variables = cansible.Variables(
             root_path=Path(__file__).parent,
             pass_path='~/.vault_password',
         )
