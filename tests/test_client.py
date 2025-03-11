@@ -99,6 +99,10 @@ async def test_client_cli_override(client_class, httpx_mock):
         async def find(cls, foo):
             return cls.url_list
 
+    @Client.cli.cmd
+    def test():
+        pass
+
     class TestModel2(Client.Model):
         @classmethod
         @cli2.cmd

@@ -1074,12 +1074,15 @@ class ClientMetaclass(type):
             cli = Group(**cli_kwargs)
             cli.client_class = cls
             cli.load(cls)
-            for model in cls.models:
-                group = model.cli
-                group.client_class = cls
-                if len(group) > 1:
-                    cli[model.__name__.lower()] = group
             cls._cli = cli
+
+        for model in cls.models:
+            group = model.cli
+            if group.name in cls._cli:
+                continue
+            group.client_class = cls
+            if len(group) > 1:
+                cls._cli[model.__name__.lower()] = group
         return cls._cli
 
 
