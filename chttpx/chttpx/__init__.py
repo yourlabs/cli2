@@ -727,7 +727,7 @@ class ModelCommand(Command):
             factory=self.client_class.factory,
         )
         # this ensures the factory gets any kind of args
-        factory = await argument.factory_value(self)
+        factory = argument.factory_value(self)
         self.client = await async_resolve(factory)
         await super().factories_resolve()
 
