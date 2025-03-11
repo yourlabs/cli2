@@ -1,6 +1,6 @@
 from datetime import datetime
 import cli2
-import cli2.client
+import chttpx
 import httpx
 import inspect
 import mock
@@ -11,7 +11,7 @@ async def _response(**kwargs):
     return httpx.Response(**kwargs)
 
 
-class HandlerSentinel(cli2.Handler):
+class HandlerSentinel(chttpx.Handler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.calls = []
@@ -23,9 +23,9 @@ class HandlerSentinel(cli2.Handler):
 
 @pytest.fixture
 def client_class():
-    class TestClient(cli2.Client):
+    class TestClient(chttpx.Client):
         """ doc """
-        class Paginator(cli2.Paginator):
+        class Paginator(chttpx.Paginator):
             def pagination_parameters(self, params, page_number):
                 if page_number > 1:
                     params['page'] = page_number
@@ -76,6 +76,14 @@ async def test_client_cli(client_class, httpx_mock):
     assert list(client_class.cli['testmodel3'].keys()) == ['help', 'find']
 
 
+def test_client_cli_func(client_class):
+    # test adding a normal function
+    @client_class.cli.cmd
+    def foo(test):
+        pass
+    client_class.cli['foo']('bar')
+
+
 @pytest.mark.asyncio
 async def test_client_cli_override(client_class, httpx_mock):
     class Client(client_class):
@@ -90,6 +98,10 @@ async def test_client_cli_override(client_class, httpx_mock):
         @cli2.cmd
         async def find(cls, foo):
             return cls.url_list
+
+    @Client.cli.cmd
+    def test():
+        pass
 
     class TestModel2(Client.Model):
         @classmethod
@@ -110,7 +122,7 @@ async def test_client_cli_override(client_class, httpx_mock):
 
 
 def test_client_model(client_class):
-    assert issubclass(client_class.Model, cli2.Model)
+    assert issubclass(client_class.Model, chttpx.Model)
     assert client_class.Model._client_class == client_class
 
     class TestModel(client_class.Model):
@@ -144,27 +156,27 @@ async def test_async_factory(httpx_mock, client_class):
 
 @pytest.mark.asyncio
 async def test_client_cli_side_effect(client_class, httpx_mock):
-    from cli2.examples import client as example_client
+    from chttpx import example
 
     # test that this didn't spill over client_class
     test_client_cli(client_class, httpx_mock)
 
     # Test that Client's __init_subclass__ did setup a factory for self
     assert isinstance(
-        await example_client.APIClient.cli['get']['self'].factory_value(),
-        example_client.APIClient,
+        await example.APIClient.cli['get']['self'].factory_value(),
+        example.APIClient,
     )
 
     # Test that Model's __init_subclass__ did setup a factory for cls
     httpx_mock.add_response(url='http://localhost:8000/1', json=[1])
-    result = await example_client.cli['get'].async_call('/1')
+    result = await example.cli['get'].async_call('/1')
     assert result.json() == [1]
 
     httpx_mock.add_response(
         url='http://localhost:8000/objects/1/',
         json=dict(id=1, a=2),
     )
-    result = await example_client.cli['object']['get'].async_call('id=1')
+    result = await example.cli['object']['get'].async_call('id=1')
     assert result.id == 1
     assert result.data['a'] == 2
 
@@ -253,7 +265,7 @@ async def test_handler(client_class):
     client = client_class()
     client.client_reset = mock.AsyncMock()
     client.token_reset = mock.AsyncMock()
-    handler = cli2.Handler(accepts=[201], refuses=[218], retokens=[418])
+    handler = chttpx.Handler(accepts=[201], refuses=[218], retokens=[418])
 
     response = httpx.Response(status_code=201)
     result = await handler(client, response, 0, log)
@@ -268,7 +280,7 @@ async def test_handler(client_class):
 
     response = httpx.Response(status_code=200, content='[2]')
     response.request = httpx.Request('POST', '/', json=[1])
-    with pytest.raises(cli2.RetriesExceededError) as exc:
+    with pytest.raises(chttpx.RetriesExceededError) as exc:
         await handler(client, response, handler.tries + 1, log)
     log.info.assert_called_once_with(
         'retry', status_code=200, tries=0, sleep=.0
@@ -279,7 +291,7 @@ async def test_handler(client_class):
 
     response = httpx.Response(status_code=200)
     response.request = httpx.Request('GET', '/')
-    with pytest.raises(cli2.RetriesExceededError) as exc:
+    with pytest.raises(chttpx.RetriesExceededError) as exc:
         await handler(client, response, handler.tries + 1, log)
 
     msg = 'Unacceptable response <Response [200 OK]> after 31 tries\n\x1b[0m\x1b[1mGET /\x1b[0m\n\x1b[1mHTTP 200\x1b[0m'  # noqa
@@ -287,7 +299,7 @@ async def test_handler(client_class):
 
     response = httpx.Response(status_code=218)
     response.request = httpx.Request('POST', '/')
-    with pytest.raises(cli2.RefusedResponseError) as exc:
+    with pytest.raises(chttpx.RefusedResponseError) as exc:
         await handler(client, response, 1, log)
 
     assert exc.value.response
@@ -298,7 +310,7 @@ async def test_handler(client_class):
 
     response = httpx.Response(status_code=418)
     response.request = httpx.Request('POST', '/')
-    with pytest.raises(cli2.TokenGetError):
+    with pytest.raises(chttpx.TokenGetError):
         await handler(client, response, 1, log)
 
     assert not client.client_reset.await_count
@@ -329,7 +341,7 @@ async def test_handler(client_class):
     assert not result
     assert client.token_reset.await_count == 1
 
-    handler = cli2.Handler(accepts=[], refuses=[222])
+    handler = chttpx.Handler(accepts=[], refuses=[222])
 
     response = httpx.Response(status_code=123)
     result = await handler(client, response, 0, log)
@@ -468,7 +480,7 @@ async def test_pagination_model(httpx_mock, client_class):
 
 
 def test_paginator_fields(client_class):
-    paginator = cli2.Paginator(client_class(), '/')
+    paginator = chttpx.Paginator(client_class(), '/')
     paginator.total_items = 95
     paginator.per_page = 10
     assert paginator.total_pages == 10
@@ -509,7 +521,7 @@ async def test_pagination_patterns(httpx_mock, client_class):
     class Offset(client_class.Model):
         url_list = '/off'
 
-        class Paginator(cli2.Paginator):
+        class Paginator(chttpx.Paginator):
             def pagination_initialize(self, data):
                 self.total_items = data['total']
 
@@ -544,8 +556,21 @@ async def test_pagination_patterns(httpx_mock, client_class):
     assert params == dict(offset=1, limit=1)
 
 
+@pytest.fixture
+def reverse_client(httpx_mock, client_class):
+    class Paginator(client_class.Paginator):
+        def pagination_initialize(self, data):
+            self.total_pages = data['total_pages']
+
+    # test that we can reverse pagination too
+    class Client(client_class):
+        paginator = Paginator
+
+    return Client(base_url='http://lol')
+
+
 @pytest.mark.asyncio
-async def test_pagination_reverse(httpx_mock, client_class):
+async def test_pagination_reverse(reverse_client, httpx_mock):
     httpx_mock.add_response(
         url='http://lol/bar',
         json=dict(total_pages=3, items=[dict(a=1), dict(a=2)]),
@@ -558,27 +583,45 @@ async def test_pagination_reverse(httpx_mock, client_class):
         url='http://lol/bar?page=3',
         json=dict(total_pages=3, items=[dict(a=5)]),
     )
-
-    class Paginator(client_class.Paginator):
-        def pagination_initialize(self, data):
-            self.total_pages = data['total_pages']
-
-    # test that we can reverse pagination too
-    class Client(client_class):
-        paginator = Paginator
-
-    client = Client(base_url='http://lol')
-    paginator = client.paginate('/bar')
+    paginator = reverse_client.paginate('/bar')
     paginator = paginator.reverse()
     results = await paginator.list()
     assert [x['a'] for x in results] == [5, 4, 3, 2, 1]
 
 
+@pytest.mark.asyncio
+async def test_pagination_last(httpx_mock, reverse_client):
+    httpx_mock.add_response(
+        url='http://lol/bar',
+        json=dict(total_pages=3, items=[dict(a=1), dict(a=2)]),
+    )
+    httpx_mock.add_response(
+        url='http://lol/bar?page=3',
+        json=dict(total_pages=3, items=[dict(a=5)]),
+    )
+    paginator = reverse_client.paginate('/bar')
+    last_item = await paginator.last_item()
+    assert last_item['a'] == 5
+
+
+@pytest.mark.asyncio
+async def test_paginator_call(httpx_mock):
+    httpx_mock.add_response(
+        url='http://lol/bar',
+        json=dict(items=[dict(a=1), dict(a=2)]),
+    )
+    client = chttpx.Client(base_url='http://lol')
+    paginator = client.paginate('/bar')
+    cb = mock.AsyncMock()
+    await paginator.call(cb)
+    assert cb.call_args_list == [mock.call({'a': 1}), mock.call({'a': 2})]
+
+
 def test_descriptor(client_class):
     class Model(client_class.Model):
-        id = cli2.Field()
-        bar = cli2.Field('nested/bar')
-        foo = cli2.Field('undeclared/foo')
+        id = chttpx.Field()
+        bar = chttpx.Field('nested/bar')
+        foo = chttpx.Field('undeclared/foo')
 
     model = Model(data=dict(id=1, nested=dict(bar=2)))
     assert model.data['id'] == 1
@@ -613,7 +656,7 @@ def test_descriptor(client_class):
 
 def test_jsonstring(client_class):
     class Model(client_class.Model):
-        json = cli2.JSONStringField()
+        json = chttpx.JSONStringField()
 
     client = client_class()
     model = client.Model(data=dict(json='{"foo": 1}'))
@@ -633,7 +676,7 @@ def test_jsonstring(client_class):
 
 def test_datetime(client_class):
     class Model(client_class.Model):
-        dt = cli2.DateTimeField()
+        dt = chttpx.DateTimeField()
 
     model = Model(dict(dt='2020-11-12T01:02:03'))
     assert model.dt == datetime(2020, 11, 12, 1, 2, 3)
@@ -643,10 +686,10 @@ def test_datetime(client_class):
 
 def test_model_inheritance(client_class):
     class Model(client_class.Model):
-        foo = cli2.Field()
+        foo = chttpx.Field()
 
     class Model2(Model):
-        bar = cli2.Field()
+        bar = chttpx.Field()
 
     client = client_class()
     assert [*client.Model._fields.keys()] == ['foo']
@@ -655,10 +698,10 @@ def test_model_inheritance(client_class):
 
 def test_relation_simple(client_class):
     class Child(client_class.Model):
-        foo = cli2.Field()
+        foo = chttpx.Field()
 
     class Father(client_class.Model):
-        child = cli2.Related('Child')
+        child = chttpx.Related('Child')
 
     client = client_class()
     model = client.Father(dict(child=dict(foo=1)))
@@ -677,10 +720,10 @@ def test_relation_simple(client_class):
 
 def test_relation_many(client_class):
     class Child(client_class.Model):
-        foo = cli2.Field()
+        foo = chttpx.Field()
 
     class Father(client_class.Model):
-        children = cli2.Related('Child', many=True)
+        children = chttpx.Related('Child', many=True)
 
     client = client_class()
     model = client.Father(dict(children=[dict(foo=1)]))
@@ -706,8 +749,8 @@ async def test_python_expression(httpx_mock, client_class):
 
     class Model(client_class.Model):
         url_list = '/foo'
-        a = cli2.Field()
-        b = cli2.Field()
+        a = chttpx.Field()
+        b = chttpx.Field()
         paginator = Paginator
 
     def mock():
@@ -758,8 +801,8 @@ async def test_python_expression(httpx_mock, client_class):
 async def test_expression_parameter(httpx_mock, client_class):
     class Model(client_class.Model):
         url_list = '/foo'
-        a = cli2.Field()
-        b = cli2.Field(parameter='b')
+        a = chttpx.Field()
+        b = chttpx.Field(parameter='b')
 
     httpx_mock.add_response(url='http://lol/foo?b=1', json=dict(
         items=[dict(a=1, b=1), dict(a=3, b=1)],
@@ -788,7 +831,7 @@ async def test_model_crud(httpx_mock, client_class):
 @pytest.mark.asyncio
 async def test_client_cli2(httpx_mock, client_class):
     class Foo(client_class.Model):
-        id = cli2.Field()
+        id = chttpx.Field()
         url_list = '/foo'
 
     assert client_class.cli.name == 'test'
@@ -829,14 +872,14 @@ async def test_object_command(httpx_mock, client_class):
 ))
 def test_datetime_fmts(intern, extern, client_class):
     class DtModel(client_class.Model):
-        dt = cli2.DateTimeField()
+        dt = chttpx.DateTimeField()
     model = client_class().DtModel(dict(dt=intern))
     assert model.dt == extern
 
 
 def test_datetime_fmt(client_class):
     class DtModel(client_class.Model):
-        dt = cli2.DateTimeField(fmt='%d/%m/%Y %H:%M:%S')
+        dt = chttpx.DateTimeField(fmt='%d/%m/%Y %H:%M:%S')
     model = client_class().DtModel(dict(dt='13/02/2025 12:34:56'))
     assert model.dt == datetime(2025, 2, 13, 12, 34, 56)
 
@@ -846,15 +889,15 @@ def test_datetime_fmt(client_class):
 
 def test_datetime_error(client_class):
     class DtModel(client_class.Model):
-        dt = cli2.DateTimeField()
+        dt = chttpx.DateTimeField()
     model = client_class().DtModel(dict(dt='13/024:56'))
-    with pytest.raises(cli2.client.FieldExternalizeError):
+    with pytest.raises(chttpx.FieldExternalizeError):
         model.dt
 
 
 def test_datetime_default_fmt(client_class):
     class DtModel(client_class.Model):
-        dt = cli2.DateTimeField()
+        dt = chttpx.DateTimeField()
     model = client_class().DtModel()
     model.dt = datetime(2025, 2, 13, 16, 9, 30)
     assert model.data['dt'] == '2025-02-13T16:09:30.000000'
@@ -866,11 +909,11 @@ def test_datetime_default_fmt(client_class):
 
 @pytest.mark.asyncio
 async def test_mask_recursive(client_class, monkeypatch):
-    client = client_class(mask=cli2.Mask(['scrt', 'password']))
+    client = client_class(mask=chttpx.Mask(['scrt', 'password']))
     client.client.send = mock.AsyncMock()
 
     log = mock.Mock()
-    monkeypatch.setattr(cli2.client, 'log', log)
+    monkeypatch.setattr(chttpx, 'log', log)
     response = httpx.Response(
         status_code=200,
         content='{"pub": 1, "foo": [{"scrt": "pass"}]}',
@@ -900,11 +943,11 @@ async def test_mask_recursive(client_class, monkeypatch):
     'key', ('json', 'data'),
 )
 async def test_mask_logs(client_class, key, monkeypatch):
-    client = client_class(mask=cli2.Mask(['scrt', 'password']))
+    client = client_class(mask=chttpx.Mask(['scrt', 'password']))
     client.client.send = mock.AsyncMock()
 
     log = mock.Mock()
-    monkeypatch.setattr(cli2.client, 'log', log)
+    monkeypatch.setattr(chttpx, 'log', log)
     response = httpx.Response(
         status_code=200,
         content='{"pub": 1, "scrt": "pass"}',
@@ -940,26 +983,26 @@ async def test_mask_exceptions(client_class):
     response.request = httpx.Request('POST', '/', json=dict(a=1, b=2))
     client.mask.keys.add('a')
     client.mask.keys.add('c')
-    error = cli2.ResponseError(client, response, 1)
+    error = chttpx.ResponseError(client, response, 1)
     expected = "\n\x1b[0m\x1b[1mPOST /\x1b[0m\n\x1b[94ma\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m***MASKED***\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[94mb\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m2\x1b[37m\x1b[39;49;00m\n\n\x1b[1mHTTP 218\x1b[0m\n\x1b[94mc\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m***MASKED***\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[94md\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m4\x1b[37m\x1b[39;49;00m\n"  # noqa
     assert str(error) == expected
 
     # this needs to work with form data too
     response = httpx.Response(status_code=218, content='{"c": 3, "d": 4}')
     response.request = httpx.Request('POST', '/', data=dict(a=1, b=2))
-    client.mask = cli2.Mask(['a', 'c'])
-    error = cli2.ResponseError(client, response, 1)
+    client.mask = chttpx.Mask(['a', 'c'])
+    error = chttpx.ResponseError(client, response, 1)
     expected = "\n\x1b[0m\x1b[1mPOST /\x1b[0m\n\x1b[94ma\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m***MASKED***\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[94mb\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m2\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\n\x1b[1mHTTP 218\x1b[0m\n\x1b[94mc\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m***MASKED***\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[94md\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m4\x1b[37m\x1b[39;49;00m\n"  # noqa
     assert str(error) == expected
 
 
 @pytest.mark.asyncio
 async def test_request_mask(client_class, monkeypatch):
-    client = client_class(mask=cli2.Mask(['password']))
+    client = client_class(mask=chttpx.Mask(['password']))
     client.client.send = mock.AsyncMock()
 
     log = mock.Mock()
-    monkeypatch.setattr(cli2.client, 'log', log)
+    monkeypatch.setattr(chttpx, 'log', log)
     response = httpx.Response(
         status_code=200,
         content='{"pub": 1, "scrt": "pass"}',
@@ -990,7 +1033,7 @@ async def test_log_content(client_class, monkeypatch):
     client = client_class()
     client.client.send = mock.AsyncMock()
     log = mock.Mock()
-    monkeypatch.setattr(cli2.client, 'log', log)
+    monkeypatch.setattr(chttpx, 'log', log)
     response = httpx.Response(status_code=200, content='lol:]bar')
     response.request = httpx.Request('POST', '/')
     client.client.send.return_value = response
@@ -1011,7 +1054,7 @@ async def test_log_quiet(client_class, monkeypatch):
     client = client_class()
     client.client.send = mock.AsyncMock()
     log = mock.Mock()
-    monkeypatch.setattr(cli2.client, 'log', log)
+    monkeypatch.setattr(chttpx, 'log', log)
     response = httpx.Response(status_code=200, content='[1]')
     response.request = httpx.Request('GET', '/')
     client.client.send.return_value = response
@@ -1039,8 +1082,8 @@ def test_class_override(client_class):
 @pytest.mark.asyncio
 async def test_save(client_class, httpx_mock):
     class TestModel(client_class.Model):
-        id = cli2.Field()
-        foo = cli2.Field()
+        id = chttpx.Field()
+        foo = chttpx.Field()
 
     client = client_class()
     model = client.TestModel(id=1, foo='bar')
@@ -1073,22 +1116,22 @@ async def test_save(client_class, httpx_mock):
 
 def test_id_value(client_class):
     class TestModel(client_class.Model):
-        id = cli2.Field()
+        id = chttpx.Field()
     assert client_class().TestModel(id=1).id_value == 1
 
     class TestModel2(client_class.Model):
-        bar = cli2.Field()
+        bar = chttpx.Field()
         id_field = 'bar'
     assert client_class().TestModel2(bar=1).id_value == 1
 
 
 @pytest.mark.asyncio
 async def test_debug(client_class, monkeypatch):
-    client = client_class(mask=cli2.Mask(['scrt', 'password']), debug=True)
+    client = client_class(mask=chttpx.Mask(['scrt', 'password']), debug=True)
     client.client.send = mock.AsyncMock()
 
     log = mock.Mock()
-    monkeypatch.setattr(cli2.client, 'log', log)
+    monkeypatch.setattr(chttpx, 'log', log)
 
     response = httpx.Response(
         status_code=200,

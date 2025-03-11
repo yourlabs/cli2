@@ -21,12 +21,34 @@ try:
 except ImportError:
     truststore = None
 
-from . import display
-from .asyncio import async_resolve
-from .cli import Argument, Command, Group, cmd, hide
-from .colors import colors
-from .log import log
-from .mask import Mask
+from cli2 import display
+from cli2.asyncio import async_resolve
+from cli2.cli import Argument, Command, Group, cmd, hide
+from cli2.colors import colors
+from cli2.log import log
+from cli2.mask import Mask
+
+
+__all__ = [
+    'ClientError',
+    'ResponseError',
+    'TokenGetError',
+    'RefusedResponseError',
+    'RetriesExceededError',
+    'FieldError',
+    'FieldValueError',
+    'FieldExternalizeError',
+    'Client',
+    'ClientCommand',
+    'DateTimeField',
+    'Field',
+    'Handler',
+    'JSONStringField',
+    'Model',
+    'ModelCommand',
+    'Paginator',
+    'Related',
+]
 
 
 class Paginator:
@@ -113,6 +135,14 @@ class Paginator:
         obj._reverse = True
         return obj
 
+    async def last_item(self):
+        """
+        Return the last item of a paginated request.
+        """
+        self.initialized or await self.initialize()
+        items = await self.page_items(self.total_pages)
+        return items[-1]
+
     @property
     def total_items(self):
         return self._total_items
@@ -133,7 +163,17 @@ class Paginator:
     def total_pages(self, value):
         self._total_pages = value
 
+    async def call(self, callback):
+        """
+        Call an async callback for each item
+
+        :param callback: Function to call for every item.
+        """
+        async for item in self.__aiter__(callback=callback):
+            pass
+
     async def list(self):
+        """ Return casted list of items """
         self.results = []
         async for item in self:
             self.results.append(item)
@@ -687,7 +727,7 @@ class ModelCommand(Command):
             factory=self.client_class.factory,
         )
         # this ensures the factory gets any kind of args
-        factory = await argument.factory_value(self)
+        factory = argument.factory_value(self)
         self.client = await async_resolve(factory)
         await super().factories_resolve()
 
@@ -1034,12 +1074,15 @@ class ClientMetaclass(type):
             cli = Group(**cli_kwargs)
             cli.client_class = cls
             cli.load(cls)
-            for model in cls.models:
-                group = model.cli
-                group.client_class = cls
-                if len(group) > 1:
-                    cli[model.__name__.lower()] = group
             cls._cli = cli
+
+        for model in cls.models:
+            group = model.cli
+            if group.name in cls._cli:
+                continue
+            group.client_class = cls
+            if len(group) > 1:
+                cls._cli[model.__name__.lower()] = group
         return cls._cli
 
 
@@ -1287,13 +1330,15 @@ class ClientCommand(Command):
         :py:meth:`Client.setargs`.
         """
         super().setargs()
-        self['self'].factory = self.client_class.factory
+        if 'self' in self:
+            self['self'].factory = self.client_class.factory
         self.client_class.setargs(self)
 
     async def factories_resolve(self):
         """ Set :py:attr:`client` after resolving factories. """
         await super().factories_resolve()
-        self.client = self['self'].value
+        if 'self' in self:
+            self.client = self['self'].value
 
     async def post_call(self):
         """ Call :py:meth:`Client.post_call`. """
@@ -1657,6 +1702,9 @@ class Client(metaclass=ClientMetaclass):
 
         _log = log.bind(method=method, url=str(request.url))
         if not quiet or self.debug:
+            # ensure we have content to log
+            await request.aread()
+
             key, value = self.request_log_data(request, quiet)
             kwargs = dict()
             if value:

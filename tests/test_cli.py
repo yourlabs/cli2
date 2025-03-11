@@ -47,7 +47,7 @@ def test_cli(name, command):
 
 
 def test_hide():
-    autotest('tests/test_hide.txt', 'cli2-example-client object find --help')
+    autotest('tests/test_hide.txt', 'chttpx-example object find --help')
 
 
 def test_load_module():

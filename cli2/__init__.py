@@ -9,35 +9,10 @@ from .cli import (
     Group,
     EntryPoint,
 )
-from .asyncio import async_resolve, async_run
+from .asyncio import async_resolve, async_run, Queue
 from .colors import colors as c
 
 from .configuration import Configuration, cfg
-try:
-    from .client import (
-        ClientError,
-        ResponseError,
-        TokenGetError,
-        RefusedResponseError,
-        RetriesExceededError,
-        FieldError,
-        FieldValueError,
-        FieldExternalizeError,
-        Client,
-        ClientCommand,
-        DateTimeField,
-        Field,
-        Handler,
-        JSONStringField,
-        Model,
-        ModelCommand,
-        Paginator,
-        Related,
-    )
-except ImportError:
-    raise
-    # httpx not installed
-    pass
 from .display import diff, diff_data, render, print, highlight, yaml_highlight
 from .lock import Lock
 from .log import configure, log
