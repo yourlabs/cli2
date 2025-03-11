@@ -6,4 +6,11 @@ from .action import (
     AnsibleOptionError,
     ActionBase,
 )
-from .variables import Variables
+from .variables import (
+    AnsibleVariablesError,
+    PathNotFoundError,
+    UnresolvablePathError,
+    VaultPasswordFileRequiredError,
+    VaultPasswordFileNotFoundError,
+    Variables,
+)

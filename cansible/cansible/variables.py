@@ -12,6 +12,26 @@ import yaml
 from pathlib import Path
 
 
+class AnsibleVariablesError(Exception):
+    pass
+
+
+class PathNotFoundError(AnsibleVariablesError):
+    pass
+
+
+class UnresolvablePathError(AnsibleVariablesError):
+    pass
+
+
+class VaultPasswordFileRequiredError(AnsibleVariablesError):
+    pass
+
+
+class VaultPasswordFileNotFoundError(AnsibleVariablesError):
+    pass
+
+
 class Vault(yaml.YAMLObject):
     yaml_tag = '!vault'
 
@@ -86,19 +106,25 @@ class Variables(dict):
         elif self.root_path:
             path = self.root_path / path
         else:
-            raise Exception(f'{path} must be absolute if root_path not set')
+            raise UnresolvablePathError(
+                f'{path} must be absolute if root_path not set'
+            )
 
         if not path.exists():
-            raise Exception(f'{path} does not exist')
+            raise PathNotFoundError(f'{path} does not exist')
 
         with path.open('r') as f:
             content = f.read()
 
         if content.strip().startswith('$ANSIBLE_VAULT'):
             if not self.pass_path:
-                raise Exception('Vault password required in pass_path')
+                raise VaultPasswordFileRequiredError(
+                    'Vault password required in pass_path'
+                )
             if not self.pass_path.exists():
-                raise Exception(f'{self.pass_path} does not exist')
+                raise VaultPasswordFileNotFoundError(
+                    f'{self.pass_path} does not exist'
+                )
             args = [
                 self.ansible_vault,
                 'view',
