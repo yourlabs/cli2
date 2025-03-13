@@ -32,8 +32,8 @@ class Mask:
     Because:
 
     - ``1337p4ssw0rD`` was given as a value to mask
-    - ``xx`` was the value of a key named ``password`` which was given as a key
-      to mask
+    - ``password``'s value because ``password`` was given as a key to match
+    - the Mask object learned the value of the ``password`` key, and masked it in ``text``
 
     .. py:attribute:: keys
 

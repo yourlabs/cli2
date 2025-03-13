@@ -797,9 +797,13 @@ class ModelMetaclass(type):
         if '_cli' not in cls.__dict__:
             cli_kwargs = dict(
                 name=cls.__name__.lower(),
-                doc=inspect.getdoc(cls),
                 cmdclass=cls.cmdclass,
             )
+
+            doc = inspect.getdoc(cls)
+            if doc != inspect.getdoc(Model):
+                cli_kwargs['doc'] = doc
+
             cli_kwargs.update(cls.cli_kwargs)
             cls._cli = Group(**cli_kwargs)
             cls._cli.load(cls)
@@ -1063,13 +1067,17 @@ class ClientMetaclass(type):
         if '_cli' not in cls.__dict__:
             cli_kwargs = dict(
                 name=cls.__name__.lower().replace('client', '') or 'client',
-                doc=inspect.getdoc(cls),
                 overrides=dict(
                     cls=dict(factory=lambda: cls),
                     self=dict(factory=lambda: cls())
                 ),
                 cmdclass=cls.cmdclass,
             )
+
+            doc = inspect.getdoc(cls)
+            if doc != inspect.getdoc(Client):
+                cli_kwargs['doc'] = doc
+
             cli_kwargs.update(cls.cli_kwargs)
             cli = Group(**cli_kwargs)
             cli.client_class = cls
