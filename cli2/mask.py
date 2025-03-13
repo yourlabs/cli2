@@ -109,6 +109,8 @@ class Mask:
                     data[key] = self._mask(value)
         elif isinstance(data, list):
             return [self._mask(item) for item in data]
+        elif isinstance(data, set):
+            return {self._mask(item) for item in data}
         elif isinstance(data, str):
             for value in self.values:
                 data = data.replace(str(value), '***MASKED***')
