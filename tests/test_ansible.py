@@ -25,7 +25,19 @@ async def test_mask(monkeypatch):
     }
     # output has proper masking
     expected = "\x1b[94mx\x1b[39;49;00m:\x1b[37m\x1b[39;49;00m\n\x1b[37m    \x1b[39;49;00m\x1b[94ma\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m***MASKED***\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[37m    \x1b[39;49;00m\x1b[94mb\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m***MASKED***\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[37m    \x1b[39;49;00m\x1b[94mc\x1b[39;49;00m:\x1b[37m \x1b[39;49;00mc\x1b[37m\x1b[39;49;00m\n\x1b[37m    \x1b[39;49;00m\x1b[94md\x1b[39;49;00m:\x1b[37m \x1b[39;49;00mfoo ***MASKED*** rrr\x1b[37m\x1b[39;49;00m\n"  # noqa
-    module.print.assert_called_once_with(expected)
+    module.print.assert_called_once_with(expected, mask=False)
+
+
+def test_subprocess_remote(playbook):
+    playbook.task_add(
+        'yourlabs.test.password_get',
+        no_log=True,
+    )
+    result = playbook()
+    expected = "foo:***MASKED***:bar\n\nansible_facts:\n\n    mask_values:\n\n    - \'***MASKED***\'\n\nsecret: \'***MASKED***\'\n\nstdout: foo:***MASKED***:bar"  # noqa
+    assert expected in result['stdout']
+
+
 
 
 @pytest.mark.asyncio
@@ -138,17 +150,19 @@ async def test_fact_set():
 async def test_fact_set_mutable():
     class Action(cansible.ActionBase):
         async def run_async(self):
+            assert self.mask_values is self.mask.values
             self.mask_values.add('foo')
 
     action = await Action.run_test_async()
     assert 'mask_values' in action.facts_values
-    assert action.result['ansible_facts'] == dict(mask_values={'foo'})
+    assert action.result['ansible_facts'] == dict(mask_values=['foo'])
 
-    action = await Action.run_test_async(facts=dict(mask_values={'foo'}))
+    action = await Action.run_test_async(facts=dict(mask_values=['foo']))
     assert 'ansible_facts' not in action.result
 
-    action = await Action.run_test_async(facts=dict(mask_values={'bar'}))
-    assert action.result['ansible_facts'] == dict(mask_values={'bar', 'foo'})
+    action = await Action.run_test_async(facts=dict(mask_values=['bar']))
+    result = action.result['ansible_facts']['mask_values']
+    assert sorted(result) == ['bar', 'foo']
 
 
 def test_playbook_render(playbook):

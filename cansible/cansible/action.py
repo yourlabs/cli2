@@ -70,10 +70,14 @@ class Option:
     """
     UNSET_DEFAULT = UNSET_DEFAULT
 
-    def __init__(self, arg=None, fact=None, default=UNSET_DEFAULT):
+    def __init__(self, arg=None, fact=None, default=UNSET_DEFAULT,
+                 cast_in=None, cast_out=None):
         self.arg = arg
         self.fact = fact
         self.default = default
+        self.cast_in = cast_in
+        self.cast_out = cast_out
+        self.casted_in = False
 
     @property
     def kwargs(self):
@@ -96,10 +100,40 @@ class Option:
         if obj is None:
             return self
 
-        try:
-            return obj.get(**self.kwargs)
-        except AttributeError:
+        if self.arg and self.arg in obj._task.args:
+            # args have priority
+            value = obj._task.args[self.arg]
+
+        elif self.fact and self.fact in obj.facts_values:
+            # if we're holding a cached fact then use that
+            value = obj.facts_values[self.fact]
+
+        elif self.fact and self.fact in obj.task_vars:
+            # get the fact and cache it
+            value = obj.task_vars[self.fact]
+
+        elif self.default != self.UNSET_DEFAULT:
+            value = copy.deepcopy(self.default)
+            if self.fact:
+                obj.facts_initial[self.fact] = None
+
+        else:
             raise AnsibleOptionError(self)
+
+        if not self.casted_in and self.cast_in:
+            value = self.cast_in(value)
+            self.casted_in = True
+
+        if self.fact:
+            if self.fact not in obj.facts_initial:
+                # save initial value
+                obj.facts_initial[self.fact] = copy.deepcopy(value)
+
+            if self.fact not in obj.facts_values and cli2.mutable(value):
+                # that can't happen in __set__ for mutable values
+                obj.facts_values[self.fact] = value
+
+        return value
 
 
 class AnsibleError(Exception):
@@ -154,33 +188,13 @@ class ActionBase(ActionBase):
         :py:class:`~cli2.mask.Mask` object
     """
     mask_keys = Option(fact='mask_keys', default=set())
-    mask_values = Option(fact='mask_values', default=set())
+    mask_values = Option(
+        fact='mask_values',
+        default=set(),
+        cast_in=set,
+        cast_out=list,
+    )
     masked_keys = []
-
-    def get(self, arg_name=None, fact_name=None, default=UNSET_DEFAULT):
-        if arg_name and arg_name in self._task.args:
-            return self._task.args[arg_name]
-        if fact_name and fact_name in self.facts_values:
-            return self.facts_values[fact_name]
-        if fact_name and fact_name in self.task_vars:
-            value = self.task_vars[fact_name]
-            if fact_name not in self.facts_initial:
-                self.facts_initial[fact_name] = copy.deepcopy(
-                    self.task_vars[fact_name]
-                )
-            if cli2.mutable(value):
-                self.facts_values[fact_name] = value
-            return value
-        if default != UNSET_DEFAULT:
-            if fact_name:
-                self.facts_initial[fact_name] = None
-                if cli2.mutable(default):
-                    self.facts_values[fact_name] = default
-            return default
-        if fact_name:
-            raise AttributeError(f'Undefined {arg_name} or {fact_name}')
-        else:
-            raise AttributeError(f'Undefined arg {arg_name}')
 
     def run(self, tmp=None, task_vars=None):
         self.tmp = tmp
@@ -194,6 +208,10 @@ class ActionBase(ActionBase):
     def mask_init(self):
         # use ansible template value renderer
         self.mask.renderer = lambda value: self._templar.template(value)
+        self.facts_initial['mask_values'] = set([
+            self._templar.template(value)
+            for value in self.task_vars.get('mask_values', [])
+        ])
 
         def _mask_key(key):
             self.mask.keys.add(key)
@@ -212,11 +230,12 @@ class ActionBase(ActionBase):
         for key in self.masked_keys:
             _mask_key(key)
 
-        # discover values to mask
-        for value in self.mask_values:
-            if value:
-                self.mask.values.add(value)
-        self.mask_initial_values = self.mask.values
+        for value in self.facts_initial['mask_values']:
+            self.mask.values.add(value)
+
+        # reference self.mask.values to our own mask_values
+        type(self).mask_values.casted_in = True
+        self.facts_values['mask_values'] = self.mask.values
 
     async def run_wrapped_async(self):
         self.verbosity = self.task_vars.get('ansible_verbosity', 0)
@@ -271,19 +290,21 @@ class ActionBase(ActionBase):
             if changed:
                 if 'ansible_facts' not in self.result:
                     self.result['ansible_facts'] = dict()
+
+                for key, value in changed.items():
+                    for name in dir(type(self)):
+                        option = getattr(type(self), name)
+                        if not isinstance(option, Option):
+                            continue
+                        if option.fact == key and option.cast_out:
+                            changed[key] = option.cast_out(value)
+
                 self.result['ansible_facts'].update(changed)
 
             if self.mask and self.verbosity:
                 # this task has a mask, so it's probably a no_log, we're
                 # running verbose, print masked result
                 self.print_yaml(self.result)
-
-                if self.mask_initial_values != self.mask.values:
-                    # this module has discovered new values to mask, update the
-                    # fact with those values
-                    self.result['ansible_facts'] = dict(
-                        mask_values=self.mask.values,
-                    )
 
             if (
                 self._before_data != UNSET_DEFAULT
@@ -308,13 +329,15 @@ class ActionBase(ActionBase):
         data = self.mask(data)
         yaml = to_nice_yaml(data)
         rendered = cli2.yaml_highlight(yaml)
-        self.print(rendered)
+        self.print(rendered, mask=False)
 
-    def print(self, data):
+    def print(self, data, mask=True):
         """
         Print that masks by default.
         """
-        print(self.mask(data))
+        if mask:
+            data = self.mask(data)
+        display.display(data)
 
     async def run_async(self):
         """
@@ -448,8 +471,8 @@ class ActionBase(ActionBase):
             **kwargs,
         )
 
-        if self.callback:
-            self.callback(result)
+        if callback:
+            callback(result)
 
         if self.verbosity and print:
             if 'stderr_lines' in result:
