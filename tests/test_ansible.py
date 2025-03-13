@@ -120,6 +120,39 @@ async def test_diff(monkeypatch):
     _print.assert_called_once_with(expected)
 
 
+@pytest.mark.asyncio
+async def test_fact_set():
+    class Action(cansible.ActionBase):
+        foo = cansible.Option(fact='foo')
+
+        async def run_async(self):
+            self.foo = 'bar'
+            assert self.foo == 'bar'
+
+    action = await Action.run_test_async(facts=dict(foo='bar'))
+    assert 'ansible_facts' not in action.result
+
+    action = await Action.run_test_async()
+    assert action.result['ansible_facts'] == dict(foo='bar')
+
+
+@pytest.mark.asyncio
+async def test_fact_set_mutable():
+    class Action(cansible.ActionBase):
+        async def run_async(self):
+            self.mask_values.add('foo')
+
+    action = await Action.run_test_async()
+    assert 'mask_values' in action.facts_values
+    assert action.result['ansible_facts'] == dict(mask_values={'foo'})
+
+    action = await Action.run_test_async(facts=dict(mask_values={'foo'}))
+    assert 'ansible_facts' not in action.result
+
+    action = await Action.run_test_async(facts=dict(mask_values={'bar'}))
+    assert action.result['ansible_facts'] == dict(mask_values={'bar', 'foo'})
+
+
 def test_playbook_render(playbook):
     assert playbook.name == 'test_playbook_render'
     playbook.task_add(
