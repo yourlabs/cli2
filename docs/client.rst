@@ -90,9 +90,9 @@ Start by extending a :py:class:`~chttpx.Client`:
 
 .. code-block:: python
 
-    import cli2
+    import chttpx
 
-    class YourClient(chttpx):
+    class YourClient(chttpx.Client):
         pass
 
     # you get a CLI for free
@@ -115,8 +115,8 @@ Let's teach it to make a page GET parameter:
 
 .. code-block:: python
 
-    class YourClient(chttpx):
-        class Paginator(cli2.Paginator):
+    class YourClient(chttpx.Client):
+        class Paginator(chttpx.Paginator):
             def pagination_parameters(self, params, page_number):
                 params['page'] = page_number
 
@@ -127,7 +127,7 @@ setting total_pages in :py:meth:`~chttpx.Paginator.pagination_initialize`:
 .. code-block:: python
 
     class YourClient(chttpx):
-        class Paginator(cli2.Paginator):
+        class Paginator(chttpx.Paginator):
             def pagination_parameters(self, params, page_number):
                 params['page'] = page_number
 
@@ -141,7 +141,7 @@ total number of items, which you can set
 
 .. code-block:: python
 
-    class Paginator(cli2.Paginator):
+    class Paginator(chttpx.Paginator):
         def pagination_initialize(self, data):
             self.total_items = data['total_items']
 
@@ -151,7 +151,7 @@ Perhaps you're dealing with an offset/limit type of pagination, in which case,
 
 .. code-block:: python
 
-    class OffsetPagination(cli2.Paginator):
+    class OffsetPagination(chttpx.Paginator):
         def pagination_parameters(self, params, page_number):
             self.per_page = 1
             params['offset'] = (page_number - 1) * self.per_page
@@ -195,8 +195,8 @@ Model.client
 ------------
 
 As such, the model class you're using has the ``client`` instance set as
-``.client`` class attribute. And magically, you can use ``self.client``
-anywhere in your model:
+``.client`` class attribute. And magically, you can use ``self.client`` or
+``cls.client`` anywhere in your model:
 
 .. code-block:: python
 
@@ -204,7 +204,7 @@ anywhere in your model:
         @classmethod
         @cli2.cmd
         async def some_command(cls):
-            return await self.client.get('/some-page').json()
+            return await cls.client.get('/some-page').json()
 
 Model.paginate
 --------------
@@ -443,7 +443,7 @@ Example:
 
 .. code-block:: python
 
-    class CyberArkClient(chttpx):
+    class CyberArkClient(chttpx.Client):
         def __init__(self, something, *args, **kwargs):
             self.something = something
             super().__init__(*args, **kwargs)
