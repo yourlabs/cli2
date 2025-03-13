@@ -23,3 +23,8 @@ def test_mask():
 
     assert mask
     assert not cli2.Mask()
+
+
+def test_mask_longest():
+    mask = cli2.Mask(values=['val', 'val2'])
+    assert mask('val2 val') == '***MASKED*** ***MASKED***'

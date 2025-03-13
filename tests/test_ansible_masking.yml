@@ -2,17 +2,20 @@
   tasks:
   - set_fact:
       bar: PASSWORD
+      bar2: PASSWOR2
 
   - name: Set secret variable
     no_log: true
     set_fact:
       secret: '{{ bar }}'
+      secret_value: '{{ bar2 }}'
 
   - name: Enable variable masking
     set_fact:
-      mask: [secret]
+      mask_keys: [secret]
+      mask_values: ['{{ bar2 }}']
 
   - name: Masked shell
     no_log: true
     yourlabs.test.shell:
-      cmd: echo hello {{ secret }} bye
+      cmd: echo hello {{ secret }} {{ secret_value }} bye

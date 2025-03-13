@@ -211,3 +211,12 @@ def test_playbook_exec(playbook):
     result = playbook()
     assert result['changed'] == 0
     assert result['ok'] == 2
+
+
+def test_masking_ansible_story(playbook):
+    with open('tests/test_ansible_masking.yml', 'r') as f:
+        data = yaml.safe_load(f.read())
+    playbook.tasks += data[0]['tasks']
+    result = playbook()
+    expected = "hello ***MASKED*** ***MASKED*** bye\n\nansible_facts:\n\n    mask_values:\n\n    - \'***MASKED***\'\n\n    - \'***MASKED***\'\n\ncmd: echo hello ***MASKED*** ***MASKED*** bye\n\nstdout: hello ***MASKED*** ***MASKED*** bye"  # noqa
+    assert expected in result['stdout']

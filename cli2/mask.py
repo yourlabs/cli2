@@ -112,7 +112,7 @@ class Mask:
         elif isinstance(data, set):
             return {self._mask(item) for item in data}
         elif isinstance(data, str):
-            for value in self.values:
+            for value in sorted(self.values, key=len, reverse=True):
                 data = data.replace(str(value), '***MASKED***')
         return data
 
