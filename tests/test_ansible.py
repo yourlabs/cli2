@@ -9,17 +9,15 @@ import yaml
 import cansible
 
 
-class ActionModule(cansible.ActionBase):
-    mask_keys = ['a']
-
-    async def run_async(self):
-        self.result['x'] = dict(a='a', b='b', c='c', d='foo a rrr')
-
-
 @pytest.mark.asyncio
 async def test_mask(monkeypatch):
-    printer = mock.Mock()
-    monkeypatch.setattr(ActionModule, 'print', printer)
+    class ActionModule(cansible.ActionBase):
+        masked_keys = ['a']
+        print = mock.Mock()
+
+        async def run_async(self):
+            self.result['x'] = dict(a='a', b='b', c='c', d='foo a rrr')
+
     module = await ActionModule.run_test_async(facts=dict(mask_keys=['b']))
     # result is untouched
     assert module.result == {'x':
@@ -27,7 +25,7 @@ async def test_mask(monkeypatch):
     }
     # output has proper masking
     expected = "\x1b[94mx\x1b[39;49;00m:\x1b[37m\x1b[39;49;00m\n\x1b[37m    \x1b[39;49;00m\x1b[94ma\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m***MASKED***\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[37m    \x1b[39;49;00m\x1b[94mb\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m***MASKED***\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[37m    \x1b[39;49;00m\x1b[94mc\x1b[39;49;00m:\x1b[37m \x1b[39;49;00mc\x1b[37m\x1b[39;49;00m\n\x1b[37m    \x1b[39;49;00m\x1b[94md\x1b[39;49;00m:\x1b[37m \x1b[39;49;00mfoo ***MASKED*** rrr\x1b[37m\x1b[39;49;00m\n"  # noqa
-    printer.assert_called_once_with(expected)
+    module.print.assert_called_once_with(expected)
 
 
 @pytest.mark.asyncio
