@@ -50,7 +50,7 @@ With :py:class:`~cansible.action.ActionBase`, we don't define run, we define
     import cli2
     from cli2 import ansible
 
-    class ActionModule(ansible.ActionBase):
+    class ActionModule(cansible.ActionBase):
         async def run_async(self):
             self.tmp        # is the usual tmp arg
             self.task_vars  # is the usual task_vars arg
@@ -86,20 +86,20 @@ instead of fiddling with task_vars:
 
 .. code-block:: python
 
-    class ActionModule(ansible.ActionBase):
+    class ActionModule(cansible.ActionBase):
         # an option with a default
-        name = ansible.Option(arg='name', default='test')
+        name = cansible.Option(arg='name', default='test')
 
         # an option without default: if not specified, the module will fail and
         # request that the user configures a value for this option
-        nodefault = ansible.Option('nodefault')
+        nodefault = cansible.Option('nodefault')
 
         # option that takes value from a fact
-        global_option = ansible.Option(fact='your_fact')
+        global_option = cansible.Option(fact='your_fact')
 
         # an option that takes value from a task arg if available, otherwise
         # from a fact, otherwise default
-        region = ansible.Option(arg='region', fact='region', default='EU')
+        region = cansible.Option(arg='region', fact='region', default='EU')
 
         async def run_async(self):
             self.result['name'] = self.name
@@ -136,9 +136,9 @@ You need to return a :py:class:`~cli2.client.Client` instance in the
 
 .. code-block:: python
 
-    class ActionModule(ansible.ActionBase):
-        name = ansible.Option('name', default='test-name')
-        value = ansible.Option('value', default='test-value')
+    class ActionModule(cansible.ActionBase):
+        name = cansible.Option('name', default='test-name')
+        value = cansible.Option('value', default='test-value')
 
         async def client_factory(self):
             return YourClient()
@@ -184,9 +184,9 @@ automatically.
 
 .. code-block:: python
 
-    class ActionModule(ansible.ActionBase):
-        name = ansible.Option('name', default='test-name')
-        value = ansible.Option('value', default='test-value')
+    class ActionModule(cansible.ActionBase):
+        name = cansible.Option('name', default='test-name')
+        value = cansible.Option('value', default='test-value')
 
         async def client_factory(self):
             return YourClient()
@@ -247,7 +247,7 @@ Setting a module level mask:
 
 .. code-block:: python
 
-    class ActionModule(ansible.ActionBase):
+    class ActionModule(cansible.ActionBase):
         mask_keys = ['password']
 
 Marking a variable value as masked:
@@ -272,8 +272,8 @@ package, but you can make a shell module that will use masking:
 
 .. code-block:: python
 
-    class ActionModule(ansible.ActionBase):
-        cmd = ansible.Option('cmd')
+    class ActionModule(cansible.ActionBase):
+        cmd = cansible.Option('cmd')
 
         async def run_async(self):
             self.result.update(self.subprocess_remote(self.cmd))
