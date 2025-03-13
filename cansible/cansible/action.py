@@ -311,8 +311,10 @@ class ActionBase(ActionBase):
         self.print(rendered)
 
     def print(self, data):
-        # this serves for mocking
-        print(data)
+        """
+        Print that masks by default.
+        """
+        print(self.mask(data))
 
     async def run_async(self):
         """
@@ -406,23 +408,13 @@ class ActionBase(ActionBase):
         self._after_data = data
         self._after_label = label
 
-    def subprocess_remote(self, cmd, **kwargs):
+    def action_run(self, name, **kwargs):
         """
-        Execute a shell command on the remote in a masked context
-
-        :param cmd: Command to run
-        :param kwargs: Other shell args, such as creates etc
         """
         new_task = self._task.copy()
-        new_task.args = dict(_raw_params=cmd, **kwargs)
-        if self.verbosity:
-            display.display(
-                f'<{self.task_vars["inventory_hostname"]}> + '
-                + self.mask(cmd),
-                color='blue',
-            )
+        new_task.args = kwargs
         shell_action = self._shared_loader_obj.action_loader.get(
-            'ansible.builtin.shell',
+            name,
             task=new_task,
             connection=self._connection,
             play_context=self._play_context,
@@ -430,13 +422,40 @@ class ActionBase(ActionBase):
             templar=self._templar,
             shared_loader_obj=self._shared_loader_obj,
         )
-        result = shell_action.run(task_vars=self.task_vars.copy())
+        return shell_action.run(task_vars=self.task_vars.copy())
 
+    def subprocess_remote(self, cmd, callback=None, print=True, **kwargs):
+        """
+        Execute a shell command on the remote in a masked context
+
+        :param cmd: Command to run
+        :param kwargs: Other shell args, such as creates etc
+        :param print: Wether to print stdout/stderr, defaults to True
+        :param callback: Callback function called before output is printed and
+                         returned, use that to collect secrets and provision
+                         self.mask_values.
+        """
         if self.verbosity:
+            display.display(
+                f'<{self.task_vars["inventory_hostname"]}> + '
+                + self.mask(cmd),
+                color='blue',
+            )
+
+        result = self.action_run(
+            'ansible.builtin.shell',
+            _raw_params=cmd,
+            **kwargs,
+        )
+
+        if self.callback:
+            self.callback(result)
+
+        if self.verbosity and print:
             if 'stderr_lines' in result:
-                self.print(self.mask(result['stderr']))
+                self.print(result['stderr'])
             if 'stdout_lines' in result:
-                self.print(self.mask(result['stdout']))
+                self.print(result['stdout'])
 
         result.pop('invocation')
         return result
