@@ -109,6 +109,24 @@ instead of fiddling with task_vars:
 An option can specify an argument name, and/or a global fact name, and a
 default.
 
+Fact update
+-----------
+
+Facts can be updated at runtime:
+
+.. code-block:: python
+
+    class ActionModule(cansible.ActionBase):
+        stuff = cansible.Option(fact='stuff', default=None)
+
+        async def run_async(self):
+            self.stuff = 'foo'
+            # the above will cause result to contain an ansible_facts dict of
+            # stuff=foo, therefore causing ansible to update the stuff fact
+
+This only works with options which have a ``fact``, and works with mutable
+values.
+
 Client
 ------
 

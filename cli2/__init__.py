@@ -30,3 +30,16 @@ def which(cmd):
     path = Path(os.getenv('HOME')) / '.local/bin' / cmd
     if path.exists():
         return str(path)
+
+
+def mutable(obj):
+    types = (
+        int,
+        float,
+        str,
+        tuple,
+        frozenset,
+        bool,
+        bytes,
+    )
+    return not isinstance(obj, types)
