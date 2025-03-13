@@ -38,7 +38,7 @@ debug stuff: discover the API and implement features incrementally.
 Source code
 -----------
 
-.. literalinclude:: ../cli2/example_client.py
+.. literalinclude:: ../chttpx/chttpx/example.com
 
 Mind you, the Object can be used in a Django-ish ORM style and all these CLIs
 were created with free Sphinx documentation as seen in :ref:`Example CLI`.
