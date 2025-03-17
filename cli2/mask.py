@@ -19,8 +19,8 @@ class Mask:
 
     .. code-block:: python
 
-        mask = cli2.Mask(keys=['password'], values=['1337p4ssw0rD'])
-        result = mask(dict(password='xx', text='some 1337p4ssw0rD noise xx'))
+        mask = cli2.Mask(keys=['password'], values=['secretval'])
+        result = mask(dict(password='xx', text='some secretval noise xx'))
 
     Will cause result to be:
 
@@ -31,7 +31,7 @@ class Mask:
 
     Because:
 
-    - ``1337p4ssw0rD`` was given as a value to mask
+    - ``secretval`` was given as a value to mask
     - ``password``'s value because ``password`` was given as a key to match
     - the Mask object learned the value of the ``password`` key, and masked it
       in ``text``
