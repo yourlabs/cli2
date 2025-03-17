@@ -80,7 +80,7 @@ class Lock:
     .. py:attribute:: blocking
 
         If True, the locker automatically blocks. Otherwise, you need to check
-        :py:attr:`acquired` and call :py:method:`block` yourself.
+        :py:attr:`acquired` and call :py:meth:`block` yourself.
 
     .. py:attribute:: prefix
 
