@@ -14,7 +14,12 @@ from .colors import colors as c
 
 from .configuration import Configuration, cfg
 from .display import diff, diff_data, render, print, highlight, yaml_highlight
-from .lock import Lock
+try:
+    import fcntl
+except ImportError:
+    """ windows """
+else:
+    from .lock import Lock
 from .log import configure, log
 from .mask import Mask
 from .table import Table
