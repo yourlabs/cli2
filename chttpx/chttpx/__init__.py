@@ -387,10 +387,17 @@ class Field:
         Name of the GET parameter on the model's :py:attr:`Model.url_list`, if
         any. So that the filter will be converted to a GET parameter.
         Otherwise, filtering will happen in Python.
+
+    .. py:attribute:: callback
+
+        Callback function to define a default value. Any field with a callback
+        will provision the :py:attr:`Model.data` dict automatically.
     """
-    def __init__(self, data_accessor=None, parameter=None):
+    def __init__(self, data_accessor=None, parameter=None, callback=None):
         self.data_accessor = data_accessor
         self.parameter = parameter
+        self.callback = callback
+        self.callback_dependencies = []
 
     def __get__(self, obj, objtype=None):
         """
@@ -437,14 +444,25 @@ class Field:
         if not isinstance(data, dict):
             return self.__get__(data, type(data))
 
-        for key in self.data_accessor.split('/'):
-            if not data:
-                return ''
-            try:
-                data = data[key]
-            except KeyError:
-                return
+        try:
+            data = self.get(obj.data)
+        except KeyError:
+            return None
+
         return data
+
+    def get(self, data):
+        for key in self.data_accessor.split('/'):
+            data = data[key]
+        return data
+
+    def is_set(self, data):
+        try:
+            self.get(data)
+        except KeyError:
+            return False
+        else:
+            return True
 
     def internal_set(self, obj, value):
         """
@@ -510,6 +528,16 @@ class Field:
 
     def startswith(self, value):
         return StartsWith(self, value)
+
+    def factory(self, *args):
+        def _(callback):
+            self.callback = callback
+            return callback
+        if isinstance(args[0], Field):
+            self.callback_dependencies = args
+            return _
+        else:
+            return _(args[0])
 
 
 class MutableField(Field):
@@ -639,7 +667,7 @@ class DateTimeField(Field):
         for fmt in self.default_fmts:
             try:
                 value = datetime.strptime(value, fmt)
-            except ValueError:
+            except (ValueError, TypeError):
                 continue
             else:
                 self.fmt = fmt
@@ -884,13 +912,39 @@ class Model(metaclass=ModelMetaclass):
         """
         Just ensure we update dirty data prior to returning the data dict.
         """
-        if self._dirty_fields and not self._data_updating:
+        if not self._data_updating:
             self._data_updating = True
-            for field in self._dirty_fields:
-                field.clean(self)
-            self._dirty_fields = []
+
+            if self._dirty_fields:
+                for field in self._dirty_fields:
+                    field.clean(self)
+                self._dirty_fields = []
+
+            self._data_callbacks()
+
             self._data_updating = False
+
         return self._data
+
+    def _data_callbacks(self):
+        missing = []
+        done = []
+        for name, field in self._fields.items():
+            if not field.callback or field.is_set(self._data):
+                continue
+
+            ready = True
+            for dependency in field.callback_dependencies:
+                if not dependency.is_set(self._data):
+                    missing.append(dependency)
+                    ready = False
+            if ready:
+                setattr(self, name, field.callback(self))
+                done.append(field)
+
+        for _ in missing:
+            if _ in done:
+                self._data_callbacks()
 
     @data.setter
     def data(self, value):

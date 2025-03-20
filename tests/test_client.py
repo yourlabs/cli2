@@ -645,10 +645,11 @@ def test_descriptor(client_class):
     assert model.data['undeclared']['foo'] == 3
 
     model = Model()
-    assert model.foo == ''
+    assert model.foo is None
+    assert 'foo' not in model._data
     assert not model.changed_fields
     model.foo = 'bar'
-    assert model.changed_fields == dict(foo='')
+    assert model.changed_fields == dict(foo=None)
     model = Model(foo='bar')
     model.foo = 'foo'
     assert model.changed_fields == dict(foo='bar')
@@ -1246,3 +1247,54 @@ def test_client_command(client_class, httpx_mock):
     cmd = Client.cli['request']
     cmd()
     assert not Client.post_call_called
+
+
+def test_field_callback(client_class):
+    class TestModel(client_class.Model):
+        foo = chttpx.Field()
+        bar = chttpx.Field()
+        other = chttpx.Field()
+
+        @other.factory
+        def other_factory(self):
+            return 'nice'
+
+        @bar.factory(foo)
+        def bar_factory(self):
+            return f'bar{self.foo}'
+
+    model = client_class().TestModel(foo='test')
+    assert model.bar == 'bartest'
+    assert model.other == 'nice'
+
+    model = client_class().TestModel(foo='test')
+    assert model.data['bar'] == 'bartest'
+    assert model.data['other'] == 'nice'
+
+    model = client_class().TestModel()
+    assert model.data == dict(other='nice')
+
+    model = client_class().TestModel(bar='lol')
+    assert model.bar == 'lol'
+    assert model.data['bar'] == 'lol'
+
+
+def test_field_callback_recursion(client_class):
+    class TestModel(client_class.Model):
+        final = chttpx.Field()
+        req2 = chttpx.Field()
+        req1 = chttpx.Field()
+
+        @final.factory(req2)
+        def final_factory(self):
+            return f'{self.req2}val3'
+
+        @req2.factory(req1)
+        def req2_factory(self):
+            return f'{self.req1}val2'
+
+    model = client_class().TestModel(req1='lol')
+    assert model.data['final'] == 'lolval2val3'
+
+    model = client_class().TestModel(req1='lol')
+    assert model.final == 'lolval2val3'

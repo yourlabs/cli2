@@ -257,6 +257,38 @@ You can also "pythonize" any property with a simple accessor without any slash:
     class YourModel(YourClient.Model):
         company_name = chttpx.Field('companyName')
 
+Default factory
+```````````````
+
+Default field values can be computed at runtime with the
+:py:meth:`~chttpx.Field.factory` decorator:
+
+.. code-block:: python
+
+    class YourModel(YourClient.Model):
+        hasdefault = chttpx.Field()
+
+        @hasdefault.factory
+        def default_value(self):
+            return 'something'
+
+This will cause :py:attr:`~chttpx.Model.data` to have
+``hasdefault='something'``.
+
+If your default value factory depends on other fields, you need to declare
+them, pass them as argument to factory:
+
+.. code-block:: python
+
+    class YourModel(YourClient.Model):
+        required1 = chttpx.Field()
+        required2 = chttpx.Field()
+        hasdefault = chttpx.Field()
+
+        @hasdefault.factory(required1, required2)
+        def default_value(self):
+            return f'something{self.required1}-{self.required2}'
+
 Custom types
 ````````````
 
