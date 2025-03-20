@@ -37,6 +37,16 @@ variables.
 
     Setting this to ``INFO``, ``DEBUG``, or any other log level is safe.
 
+.. envvar:: LOG_FILE
+
+    Path to log file to use, with a couple of special values:
+
+    - if ``LOG_FILE=auto``, then a path will be calculated in
+      ``~/.local/cli2/log``,
+    - if ``LOG_FILE=none``, then there will be no file logging.
+
+    Default: ``auto``
+
 .. envvar:: DEBUG
 
     Setting this will set :envvar:`LOG_LEVEL` to `DEBUG`, but also activate
@@ -72,6 +82,7 @@ class YAMLFormatter:
 
 def configure():
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'WARNING').upper()
+    LOG_FILE = os.getenv('LOG_FILE', 'auto').upper()
 
     if os.getenv('DEBUG'):
         LOG_LEVEL = 'DEBUG'
@@ -92,11 +103,21 @@ def configure():
         for arg in sys.argv
     ])[:155]
 
-    log_dir = Path(os.getenv("HOME")) / '.local/cli2/log'
-    log_dir.mkdir(parents=True, exist_ok=True)
-    ts = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-    file_name = f'{sys.argv[0].split("/")[-1]}-{ts}-{cmd}.log'
-    file_path = log_dir / file_name
+    if LOG_FILE == 'auto':
+        log_dir = Path(os.getenv("HOME")) / '.local/cli2/log'
+        log_dir.mkdir(parents=True, exist_ok=True)
+        ts = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+        file_name = f'{sys.argv[0].split("/")[-1]}-{ts}-{cmd}.log'
+        LOG_FILE = log_dir / file_name
+    elif LOG_FILE == 'none' or not LOG_FILE:
+        LOG_FILE = None
+    else:
+        LOG_FILE = Path(LOG_FILE)
+
+    handlers = ['default']
+    if LOG_FILE:
+        handlers.append('file')
+
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': True,
@@ -156,16 +177,10 @@ def configure():
                 'class': 'logging.StreamHandler',
                 'formatter': 'colored',
             },
-            'file': {
-                'level': 'DEBUG',
-                'class': 'logging.handlers.WatchedFileHandler',
-                'formatter': 'plain',
-                'filename': str(file_path),
-            },
         },
         'loggers': {
             'cli2': {
-                'handlers': ['default', 'file'],
+                'handlers': handlers,
                 'level': 'DEBUG',
                 'propagate': True,
             }
@@ -175,11 +190,19 @@ def configure():
     if os.getenv('HTTP_DEBUG'):
         LOGGING['loggers'].update({
             key: {
-                'handlers': ['default', 'file'],
+                'handlers': handlers,
                 'level': 'DEBUG',
                 'propagate': True,
             } for key in ('httpx', 'httpcore')
         })
+
+    if LOG_FILE:
+        LOGGING['handlers']['file'] = {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.WatchedFileHandler',
+            'formatter': 'plain',
+            'filename': str(LOG_FILE),
+        }
 
     logging.config.dictConfig(LOGGING)
 
