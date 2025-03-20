@@ -410,7 +410,7 @@ class Field:
 
     def __set__(self, obj, value):
         """
-        Set the value in the internal :py:attr:`Model.json` dict.
+        Set the value in the internal :py:attr:`Model.data` dict.
 
         A two-step process:
 

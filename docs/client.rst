@@ -234,7 +234,7 @@ You can also define fields for your Model as such:
 .. code-block:: python
 
     class YourModel(YourClient.Model):
-        id = cli2.Field()
+        id = chttpx.Field()
 
 You guessed it: this will may the ``id`` key of the :py:attr:`Model.data` to
 the ``.id`` property. Which allows for more interesting things as we'll see...
@@ -248,14 +248,14 @@ to define a nested data accessor:
 .. code-block:: python
 
     class YourModel(YourClient.Model):
-        company_name = cli2.Field('company/name')
+        company_name = chttpx.Field('company/name')
 
 You can also "pythonize" any property with a simple accessor without any slash:
 
 .. code-block:: python
 
     class YourModel(YourClient.Model):
-        company_name = cli2.Field('companyName')
+        company_name = chttpx.Field('companyName')
 
 Custom types
 ````````````
@@ -309,7 +309,7 @@ delegate a filter to the endpoint, add a :py:attr:`~chttpx.Field.parameter`:
 .. code-block:: python
 
     class YourModel(YourClient.Model):
-        name = cli2.Field(parameter='name')
+        name = chttpx.Field(parameter='name')
 
 This will indicate to the paginator that, given the following expression:
 
@@ -346,11 +346,11 @@ You can normalize it with :py:class:`~chttpx.Related`:
 .. code-block:: python
 
     class YourModel(YourClient.Model):
-        foo = cli2.Field()
+        foo = chttpx.Field()
         related = cli2.Related('Related')
 
     class Related(YourClient.Model):
-        bar = cli2.Field()
+        bar = chttpx.Field()
 
 Due to a pretty ass-kicking :py:class:`~chttpx.MutableField` mechanic,
 we're able to deal with it as such:
