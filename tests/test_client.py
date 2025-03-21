@@ -7,8 +7,10 @@ import mock
 import pytest
 
 
-async def _response(**kwargs):
-    return httpx.Response(**kwargs)
+def _response(**kwargs):
+    response = httpx.Response(**kwargs)
+    response.request = httpx.Request('POST', '/', json=[1])
+    return response
 
 
 class HandlerSentinel(chttpx.Handler):
@@ -17,7 +19,11 @@ class HandlerSentinel(chttpx.Handler):
         self.calls = []
 
     async def __call__(self, client, response, tries, log):
-        self.calls.append((client, response.status_code, tries))
+        self.calls.append((
+            client,
+            getattr(response, 'status_code', response),
+            tries,
+        ))
         return await super().__call__(client, response, tries, log)
 
 
@@ -191,6 +197,7 @@ async def test_error_remote(httpx_mock, client_class):
             return 'token'
 
     client = TokenClient()
+    client.handler.tries = 2
     httpx_mock.add_response(url='http://lol', json=[1])
 
     async def raises(*a, **k):
@@ -230,10 +237,11 @@ async def test_client_handler(httpx_mock, client_class):
     class Client(client_class):
         def client_factory(self):
             client = super().client_factory()
-            client.send = mock.Mock()
+            client.send = mock.AsyncMock()
             return client
 
     client = Client(handler=HandlerSentinel())
+    client.handler.tries = 3
 
     # test response retry
     client.client.send.side_effect = [
@@ -247,16 +255,33 @@ async def test_client_handler(httpx_mock, client_class):
         (client, 200, 1),
     ]
 
-    # test TransportError retry
-    client.client.send.side_effect = [
-        httpx.TransportError("foo"),
-        _response(status_code=200),
-    ]
+
+@pytest.mark.asyncio
+async def test_client_error_retry(httpx_mock, client_class):
+    class Client(client_class):
+        calls = 0
+
+        def client_factory(self):
+            self.calls += 1
+
+            client = super().client_factory()
+            client.send = mock.AsyncMock()
+
+            if self.calls == 1:
+                client.send.side_effect = httpx.TransportError('foo')
+            elif self.calls == 2:
+                client.send.return_value = _response(status_code=200)
+
+            return client
+
+    client = Client(handler=HandlerSentinel())
+    client.handler.tries = 3
+
+    response = await client.request('GET', '/')
     assert response.status_code == 200
-    assert client.handler.calls == [
-        (client, 500, 0),
-        (client, 200, 1),
-    ]
+    assert isinstance(client.handler.calls[0][1], httpx.TransportError)
+    assert client.handler.calls[1][1] == 200
+    assert len(client.handler.calls) == 2
 
 
 @pytest.mark.asyncio
@@ -265,13 +290,19 @@ async def test_handler(client_class):
     client = client_class()
     client.client_reset = mock.AsyncMock()
     client.token_reset = mock.AsyncMock()
-    handler = chttpx.Handler(accepts=[201], refuses=[218], retokens=[418])
+    handler = chttpx.Handler(
+        accepts=[201],
+        refuses=[218],
+        retokens=[418],
+        tries=3,
+    )
 
     response = httpx.Response(status_code=201)
     result = await handler(client, response, 0, log)
     assert result == response
 
     response = httpx.Response(status_code=200)
+    response.request = httpx.Request('POST', '/', json=[1])
     result = await handler(client, response, 0, log)
     log.info.assert_called_once_with(
         'retry', status_code=200, tries=0, sleep=.0
@@ -286,7 +317,7 @@ async def test_handler(client_class):
         'retry', status_code=200, tries=0, sleep=.0
     )
 
-    msg = 'Unacceptable response <Response [200 OK]> after 31 tries\n\x1b[0m\x1b[1mPOST /\x1b[0m\n-\x1b[37m \x1b[39;49;00m1\x1b[37m\x1b[39;49;00m\n\n\x1b[1mHTTP 200\x1b[0m\n-\x1b[37m \x1b[39;49;00m2\x1b[37m\x1b[39;49;00m\n'  # noqa
+    msg = 'Unacceptable response <Response [200 OK]> after 4 tries\n\x1b[0m\x1b[1mPOST /\x1b[0m\n-\x1b[37m \x1b[39;49;00m1\x1b[37m\x1b[39;49;00m\n\n\x1b[1mHTTP 200\x1b[0m\n-\x1b[37m \x1b[39;49;00m2\x1b[37m\x1b[39;49;00m\n'  # noqa
     assert str(exc.value) == msg
 
     response = httpx.Response(status_code=200)
@@ -294,7 +325,7 @@ async def test_handler(client_class):
     with pytest.raises(chttpx.RetriesExceededError) as exc:
         await handler(client, response, handler.tries + 1, log)
 
-    msg = 'Unacceptable response <Response [200 OK]> after 31 tries\n\x1b[0m\x1b[1mGET /\x1b[0m\n\x1b[1mHTTP 200\x1b[0m'  # noqa
+    msg = 'Unacceptable response <Response [200 OK]> after 4 tries\n\x1b[0m\x1b[1mGET /\x1b[0m\n\x1b[1mHTTP 200\x1b[0m'  # noqa
     assert str(exc.value) == msg
 
     response = httpx.Response(status_code=218)
@@ -335,9 +366,7 @@ async def test_handler(client_class):
     assert not client.token_reset.await_count
     log.warn.reset_mock()
     result = await handler(client, response, 0, log)
-    log.warn.assert_called_once_with(
-        'retoken', status_code=418, tries=0, sleep=.0
-    )
+    log.warn.assert_called_once_with('retoken')
     assert not result
     assert client.token_reset.await_count == 1
 
@@ -358,10 +387,11 @@ async def test_retry(httpx_mock, client_class):
 
         def client_factory(self):
             client = super().client_factory()
-            client.send = mock.Mock()
+            client.send = mock.AsyncMock()
             return client
 
     client = Client()
+    client.handler.tries = 3
 
     current_client = client.client
     client.client.send.side_effect = [

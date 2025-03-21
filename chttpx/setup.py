@@ -22,5 +22,8 @@ setup(
         'console_scripts': [
             'chttpx-example = chttpx.example:cli.entry_point',
         ],
+        'pytest11': [
+            'chttpx = chttpx.pytest',
+        ],
     },
 )

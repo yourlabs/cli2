@@ -64,6 +64,7 @@ import os
 import re
 import sys
 import structlog
+import yaml
 from pathlib import Path
 
 import cli2.display
@@ -80,9 +81,15 @@ class YAMLFormatter:
         return '\n' + value
 
 
-def configure():
+def configure(log_file=None):
+    """
+    Configure logging.
+
+    :param log_file: override for :envvar:`LOG_FILE`.
+    """
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'WARNING').upper()
-    LOG_FILE = os.getenv('LOG_FILE', 'auto').upper()
+    if log_file is None:
+        log_file = os.getenv('LOG_FILE', 'auto')
 
     if os.getenv('DEBUG'):
         LOG_LEVEL = 'DEBUG'
@@ -103,19 +110,19 @@ def configure():
         for arg in sys.argv
     ])[:155]
 
-    if LOG_FILE == 'auto':
+    if log_file == 'auto':
         log_dir = Path(os.getenv("HOME")) / '.local/cli2/log'
         log_dir.mkdir(parents=True, exist_ok=True)
         ts = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
         file_name = f'{sys.argv[0].split("/")[-1]}-{ts}-{cmd}.log'
-        LOG_FILE = log_dir / file_name
-    elif LOG_FILE == 'none' or not LOG_FILE:
-        LOG_FILE = None
+        log_file = log_dir / file_name
+    elif log_file == 'none' or not log_file:
+        log_file = None
     else:
-        LOG_FILE = Path(LOG_FILE)
+        log_file = Path(log_file)
 
     handlers = ['default']
-    if LOG_FILE:
+    if log_file:
         handlers.append('file')
 
     LOGGING = {
@@ -196,12 +203,12 @@ def configure():
             } for key in ('httpx', 'httpcore')
         })
 
-    if LOG_FILE:
+    if log_file:
         LOGGING['handlers']['file'] = {
             'level': 'DEBUG',
             'class': 'logging.handlers.WatchedFileHandler',
             'formatter': 'plain',
-            'filename': str(LOG_FILE),
+            'filename': str(log_file),
         }
 
     logging.config.dictConfig(LOGGING)
@@ -219,6 +226,40 @@ def configure():
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
         ],
     )
+
+
+def parse(data):
+    """
+    Parse log file data into a list of entries.
+
+    :param data: Contents of a log file.
+    """
+    yaml_lines = []
+    entries = []
+    for line in data.split('\n'):
+        if 'event=' in line:
+            data = {}
+            for token in line.strip().split():
+                if match := re.match('^(\\w+)=(.*)', token):
+                    key = match.group(1)
+                    data[key] = match.group(2)
+                else:
+                    data[key] += ' ' + token
+
+            if yaml_lines:
+                data['json'] = yaml.safe_load('\n'.join(yaml_lines))
+
+            if data['event'] == 'request':
+                entries.append(dict(request=data))
+            elif data['event'] == 'response':
+                entries[-1]['response'] = data
+            else:
+                entries.append(data)
+
+            yaml_lines = []
+        else:
+            yaml_lines.append(line)
+    return entries
 
 
 configure()

@@ -20,7 +20,7 @@ except ImportError:
     """ windows """
 else:
     from .lock import Lock
-from .log import configure, log
+from .log import configure, log, parse
 from .mask import Mask
 from .table import Table
 

@@ -1240,23 +1240,19 @@ class Handler:
         if tries >= self.tries:
             raise RetriesExceededError(client, response, tries)
 
-        kwargs = dict(
-            status_code=response.status_code,
-            tries=tries,
-            sleep=seconds,
-        )
-        key, value = client.response_log_data(response)
-        if value:
-            kwargs[key] = value
-
         if response.status_code in self.retokens:
             if tries:
                 # our authentication is just not working, no need to retry
                 raise TokenGetError(client, response, tries)
-            log.warn('retoken', **kwargs)
+            log.warn('retoken')
             await client.token_reset()
 
-        log.info('retry', **kwargs)
+        log.info(
+            'retry',
+            status_code=response.status_code,
+            tries=tries,
+            sleep=seconds,
+        )
         await asyncio.sleep(seconds)
 
 
@@ -1566,7 +1562,7 @@ class Client(metaclass=ClientMetaclass):
         self._client = None
 
     async def send(self, request, handler, retries=True, semaphore=None,
-                   log=None, auth=None, follow_redirects=None):
+                   log=None, quiet=None, auth=None, follow_redirects=None):
         """
         Internal request method
         """
@@ -1586,12 +1582,34 @@ class Client(metaclass=ClientMetaclass):
                     return await _send()
             return await _send()
 
+        _log = log.bind(method=request.method, url=str(request.url))
+        if not quiet or self.debug:
+            # ensure we have content to log
+            await request.aread()
+
+            key, value = self.request_log_data(request, quiet)
+            kwargs = dict()
+            if value:
+                kwargs[key] = value
+            if os.getenv('HTTP_DEBUG'):
+                kwargs['content'] = request.content
+                kwargs['headers'] = request.headers
+            _log.debug('request', **kwargs)
+
         while retries or tries > 1:
             try:
                 response = await _request()
             except Exception as exc:
                 await handler(self, exc, tries, log)
             else:
+                kwargs = dict(status_code=response.status_code)
+                if not quiet or self.debug:
+                    key, value = self.response_log_data(response)
+                    if value:
+                        kwargs[key] = value
+
+                _log.info('response', **kwargs)
+
                 if response := await handler(self, response, tries, log):
                     return response
 
@@ -1762,37 +1780,16 @@ class Client(metaclass=ClientMetaclass):
             extensions=extensions,
         )
 
-        _log = log.bind(method=method, url=str(request.url))
-        if not quiet or self.debug:
-            # ensure we have content to log
-            await request.aread()
-
-            key, value = self.request_log_data(request, quiet)
-            kwargs = dict()
-            if value:
-                kwargs[key] = value
-            if os.getenv('HTTP_DEBUG'):
-                kwargs['content'] = request.content
-                kwargs['headers'] = request.headers
-            _log.debug('request', **kwargs)
-
         response = await self.send(
             request,
             handler=handler,
             retries=retries,
             semaphore=semaphore,
             log=log,
+            quiet=quiet,
             auth=auth,
             follow_redirects=follow_redirects,
         )
-
-        kwargs = dict(status_code=response.status_code)
-        if not quiet or self.debug:
-            key, value = self.response_log_data(response)
-            if value:
-                kwargs[key] = value
-
-        _log.info('response', **kwargs)
 
         return response
 

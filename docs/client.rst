@@ -454,6 +454,104 @@ you can work on the list return with the field descriptor:
 
 It's just magic I love it!
 
+Testing
+=======
+
+chttpx also registers as a pytest plugin, because as you know, I'm pretty lazy
+when it comes to repetitive test writting which is why I developed
+django-dbdiff and django-responsediff and also cli2.test.autotest. Let's have
+the same thing with chttpx!
+
+Let's write a test that calls the object create and delete command, say, in the
+**tests/test_client_test.py** file:
+
+.. code-block:: python
+
+    @pytest.mark.chttpx_mock
+    def test_object_story():
+        test_name = 'test3331'
+
+        obj = APIClient.cli['object']['create'](f'name={test_name}')
+        assert obj.name == test_name
+
+        with pytest.raises(chttpx.RefusedResponseError):
+            # test_name already exists!
+            APIClient.cli['object']['create'](f'name={test_name}')
+
+        APIClient.cli['object']['delete'](f'{obj.id}')
+
+The first time you run this test, our example APIClient will connect to
+localhost:8000 as it's configured by default, and actual queries will be
+exeuted::
+
+    [21/Mar/2025 10:35:11] "POST /objects/ HTTP/1.1" 201 38
+    Bad Request: /objects/
+    [21/Mar/2025 10:35:11] "POST /objects/ HTTP/1.1" 400 50
+    [21/Mar/2025 10:35:11] "GET /objects/121/ HTTP/1.1" 200 38
+    [21/Mar/2025 10:35:11] "DELETE /objects/121/ HTTP/1.1" 204 0
+
+And the ``chttpx_mock`` pytest marker will cause new contents to be written for
+you in **tests/fixtures/tests_test_client_test.py\:\:test_object_story.yaml**:
+
+.. code-block:: yaml
+
+	- request:
+		event: request
+		json:
+		  name: test33312
+		level: debug
+		method: POST
+		timestamp: '2025-03-21 10:38:29'
+		url: http://localhost:8000/objects/
+	  response:
+		event: response
+		json:
+		  data: {}
+		  id: 122
+		  name: test33312
+		level: info
+		method: POST
+		status_code: '201'
+		timestamp: '2025-03-21 10:38:29'
+		url: http://localhost:8000/objects/
+	- request:
+		event: request
+		json:
+		  name: test33312
+		level: debug
+		method: POST
+		timestamp: '2025-03-21 10:38:29'
+		url: http://localhost:8000/objects/
+	  response:
+		event: response
+		json:
+		  name:
+		  - object with this name already exists.
+		level: info
+		method: POST
+		status_code: '400'
+		timestamp: '2025-03-21 10:38:29'
+		url: http://localhost:8000/objects/
+	# and so on ...
+
+You are supposed to add this file in git, because next time you run the test:
+the ``chttpx_mock`` marker will provision pytest-httpx's ``httpx_mock`` will
+all the request/responses that have been recorded in the fixture file.
+
+As such, two new pytest options are added by the chttpx plugin:
+
+- ``--chttpx-live``: don't use fixtures at all, run against the real network
+- ``--chttpx-rewrite``: force rewriting all fixtures
+
+When specifications change, you can remove a given test fixture and run the
+test again which will rewrite it, or, run with ``--chttpx-rewrite`` to rewrite
+all fixtures.
+
+.. danger:: Because your fixtures are in git, this will cause a diff in the
+            fixtures file that you will need to review. It's **your**
+            responsibility to review these changes properly, we just write the
+            test fixtures for you, but **you** have to proof-read them!
+
 Patterns
 ========
 
