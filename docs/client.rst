@@ -468,8 +468,11 @@ Let's write a test that calls the object create and delete command, say, in the
 .. code-block:: python
 
     @pytest.mark.chttpx_mock
-    def test_object_story():
-        test_name = 'test3331'
+    def test_object_story(chttpx_vars, ts):
+        # ts is a fixture provided by this plugin which contains the timestamp
+        # chttpx_vars is variables that will be attached to the test fixture
+        chttpx_vars.setdefault('test_name', f'test{ts}')
+        test_name = chttpx_vars['test_name']
 
         obj = APIClient.cli['object']['create'](f'name={test_name}')
         assert obj.name == test_name
@@ -495,44 +498,47 @@ you in **tests/fixtures/tests_test_client_test.py\:\:test_object_story.yaml**:
 
 .. code-block:: yaml
 
-	- request:
-		event: request
-		json:
-		  name: test33312
-		level: debug
-		method: POST
-		timestamp: '2025-03-21 10:38:29'
-		url: http://localhost:8000/objects/
-	  response:
-		event: response
-		json:
-		  data: {}
-		  id: 122
-		  name: test33312
-		level: info
-		method: POST
-		status_code: '201'
-		timestamp: '2025-03-21 10:38:29'
-		url: http://localhost:8000/objects/
-	- request:
-		event: request
-		json:
-		  name: test33312
-		level: debug
-		method: POST
-		timestamp: '2025-03-21 10:38:29'
-		url: http://localhost:8000/objects/
-	  response:
-		event: response
-		json:
-		  name:
-		  - object with this name already exists.
-		level: info
-		method: POST
-		status_code: '400'
-		timestamp: '2025-03-21 10:38:29'
-		url: http://localhost:8000/objects/
-	# and so on ...
+    # first entry is the chttpx_vars that go with the fixture
+    - test_name: test123123123
+    # remaining entries are request/responses
+    - request:
+        event: request
+        json:
+          name: test33312
+        level: debug
+        method: POST
+        timestamp: '2025-03-21 10:38:29'
+        url: http://localhost:8000/objects/
+      response:
+        event: response
+        json:
+          data: {}
+          id: 122
+          name: test33312
+        level: info
+        method: POST
+        status_code: '201'
+        timestamp: '2025-03-21 10:38:29'
+        url: http://localhost:8000/objects/
+    - request:
+        event: request
+        json:
+          name: test33312
+        level: debug
+        method: POST
+        timestamp: '2025-03-21 10:38:29'
+        url: http://localhost:8000/objects/
+      response:
+        event: response
+        json:
+          name:
+          - object with this name already exists.
+        level: info
+        method: POST
+        status_code: '400'
+        timestamp: '2025-03-21 10:38:29'
+        url: http://localhost:8000/objects/
+    # and so on ...
 
 You are supposed to add this file in git, because next time you run the test:
 the ``chttpx_mock`` marker will provision pytest-httpx's ``httpx_mock`` will
