@@ -1,5 +1,6 @@
 import cli2
 import chttpx
+import datetime
 import pytest
 import yaml
 from pathlib import Path
@@ -40,17 +41,27 @@ def zero_retries():
 
 
 @pytest.fixture
-def chttpx_mock(request, tmp_path):
+def chttpx_vars():
+    return dict()
+
+
+@pytest.fixture
+def chttpx_mock(chttpx_vars, request, tmp_path):
     if (
         'httpx_mock' in request.fixturenames
         or request.config.getoption('--chttpx-live')
     ):
         yield
     else:
-        yield from _fixture_handle(request, tmp_path)
+        yield from _fixture_handle(chttpx_vars, request, tmp_path)
 
 
-def _fixture_handle(request, tmp_path):
+@pytest.fixture
+def ts():
+    return int(datetime.datetime.now().timestamp())
+
+
+def _fixture_handle(chttpx_vars, request, tmp_path):
     test_name = request.node.nodeid.replace('/', '_')
 
     path = Path(request.fspath)
@@ -66,8 +77,10 @@ def _fixture_handle(request, tmp_path):
         with fixture_path.open('r') as f:
             entries = yaml.safe_load(f.read())
 
+        chttpx_vars.update(entries[0])
+
         httpx_mock = request.getfixturevalue('httpx_mock')
-        for entry in entries:
+        for entry in entries[1:]:
             if 'request' in entry and 'response' in entry:
                 kwargs = dict(
                     url=entry['request']['url'],
@@ -90,8 +103,9 @@ def _fixture_handle(request, tmp_path):
         or not fixture_path.exists()
     ):
         # create a fixture
+        data = [chttpx_vars]
         with log_path.open('r') as f:
-            data = cli2.parse(f.read())
+            data += cli2.parse(f.read())
 
         if data:
             with fixture_path.open('w+') as f:
