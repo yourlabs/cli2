@@ -467,13 +467,16 @@ Let's write a test that calls the object create and delete command, say, in the
 
 .. code-block:: python
 
-    @pytest.mark.chttpx_mock
-    def test_object_story(chttpx_vars, ts):
+    @pytest.fixture
+    def test_name(ts, chttpx_vars):
         # ts is a fixture provided by this plugin which contains the timestamp
         # chttpx_vars is variables that will be attached to the test fixture
-        chttpx_vars.setdefault('test_name', f'test{ts}')
-        test_name = chttpx_vars['test_name']
+        # doing this ensures you get either the fixture saved test_name either
+        # a new one, unique thanks to the timestamp
+        return chttpx_vars.setdefault('test_name', f'test{ts}')
 
+    @pytest.mark.chttpx_mock
+    def test_object_story(test_name):
         obj = APIClient.cli['object']['create'](f'name={test_name}')
         assert obj.name == test_name
 

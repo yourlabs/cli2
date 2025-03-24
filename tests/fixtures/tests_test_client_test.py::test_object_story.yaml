@@ -5,29 +5,29 @@
       name: test1742808666
     level: debug
     method: POST
-    timestamp: '2025-03-24 09:31:06'
+    timestamp: '2025-03-24 10:21:32'
     url: http://localhost:8000/objects/
   response:
     event: response
     json:
       data: {}
-      id: 127
+      id: 133
       name: test1742808666
     level: info
     method: POST
     status_code: '201'
-    timestamp: '2025-03-24 09:31:06'
+    timestamp: '2025-03-24 10:21:32'
     url: http://localhost:8000/objects/
 - event: bogus
   level: info
-  timestamp: '2025-03-24 09:31:06'
+  timestamp: '2025-03-24 10:21:32'
 - request:
     event: request
     json:
       name: test1742808666
     level: debug
     method: POST
-    timestamp: '2025-03-24 09:31:06'
+    timestamp: '2025-03-24 10:21:32'
     url: http://localhost:8000/objects/
   response:
     event: response
@@ -37,35 +37,35 @@
     level: info
     method: POST
     status_code: '400'
-    timestamp: '2025-03-24 09:31:06'
+    timestamp: '2025-03-24 10:21:32'
     url: http://localhost:8000/objects/
 - request:
     event: request
     level: debug
     method: GET
-    timestamp: '2025-03-24 09:31:06'
-    url: http://localhost:8000/objects/127/
+    timestamp: '2025-03-24 10:21:32'
+    url: http://localhost:8000/objects/133/
   response:
     event: response
     json:
       data: {}
-      id: 127
+      id: 133
       name: test1742808666
     level: info
     method: GET
     status_code: '200'
-    timestamp: '2025-03-24 09:31:06'
-    url: http://localhost:8000/objects/127/
+    timestamp: '2025-03-24 10:21:32'
+    url: http://localhost:8000/objects/133/
 - request:
     event: request
     level: debug
     method: DELETE
-    timestamp: '2025-03-24 09:31:06'
-    url: http://localhost:8000/objects/127/
+    timestamp: '2025-03-24 10:21:32'
+    url: http://localhost:8000/objects/133/
   response:
     event: response
     level: info
     method: DELETE
     status_code: '204'
-    timestamp: '2025-03-24 09:31:06'
-    url: http://localhost:8000/objects/127/
+    timestamp: '2025-03-24 10:21:32'
+    url: http://localhost:8000/objects/133/

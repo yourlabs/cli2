@@ -41,46 +41,33 @@ def zero_retries():
 
 
 @pytest.fixture
-def chttpx_vars():
-    return dict()
-
-
-@pytest.fixture
-def chttpx_mock(chttpx_vars, request, tmp_path):
-    if (
-        'httpx_mock' in request.fixturenames
-        or request.config.getoption('--chttpx-live')
-    ):
-        yield
-    else:
-        yield from _fixture_handle(chttpx_vars, request, tmp_path)
-
-
-@pytest.fixture
 def ts():
     return int(datetime.datetime.now().timestamp())
 
 
-def _fixture_handle(chttpx_vars, request, tmp_path):
+@pytest.fixture
+def chttpx_fixture_path(request):
     test_name = request.node.nodeid.replace('/', '_')
-
     path = Path(request.fspath)
     fixtures_path = path.parent / 'fixtures'
     fixtures_path.mkdir(exist_ok=True, parents=True)
-    fixture_path = fixtures_path / f'{test_name}.yaml'
+    return fixtures_path / f'{test_name}.yaml'
 
-    if (
-        fixture_path.exists()
-        and not request.config.getoption('--chttpx-rewrite')
-    ):
-        # load fixture into httpx_mock
-        with fixture_path.open('r') as f:
-            entries = yaml.safe_load(f.read())
 
-        chttpx_vars.update(entries[0])
+class Fixture:
+    def __init__(self, path):
+        self.path = path
+        self.vars = dict()
+        self.requests = []
 
-        httpx_mock = request.getfixturevalue('httpx_mock')
-        for entry in entries[1:]:
+    def read(self):
+        with self.path.open('r') as f:
+            data = yaml.safe_load(f.read())
+        self.vars = data[0]
+        self.requests = data[1:]
+
+    def mock(self, httpx_mock):
+        for entry in self.requests:
             if 'request' in entry and 'response' in entry:
                 kwargs = dict(
                     url=entry['request']['url'],
@@ -93,20 +80,57 @@ def _fixture_handle(chttpx_vars, request, tmp_path):
                     kwargs['json'] = entry['response']['json']
                 httpx_mock.add_response(**kwargs)
 
-    log_path = tmp_path / test_name
-    cli2.configure(str(log_path))
-
-    yield  # Test runs here
-
-    if (
-        request.config.getoption('--chttpx-rewrite')
-        or not fixture_path.exists()
-    ):
-        # create a fixture
-        data = [chttpx_vars]
-        with log_path.open('r') as f:
-            data += cli2.parse(f.read())
-
-        if data:
-            with fixture_path.open('w+') as f:
+    def write(self):
+        if self.vars and self.requests:
+            data = [self.vars] + self.requests
+            with self.path.open('w+') as f:
                 f.write(yaml.dump(data))
+
+
+@pytest.fixture
+def chttpx_fixture(chttpx_fixture_path):
+    fixture = Fixture(chttpx_fixture_path)
+    if fixture.path.exists():
+        fixture.read()
+    return fixture
+
+
+@pytest.fixture
+def chttpx_vars(request, chttpx_fixture):
+    return chttpx_fixture.vars
+
+
+@pytest.fixture
+def chttpx_requests(request, chttpx_fixture):
+    return chttpx_fixture.requests
+
+
+@pytest.fixture
+def chttpx_mock(chttpx_fixture, request, tmp_path):
+    if (
+        'httpx_mock' in request.fixturenames
+        or request.config.getoption('--chttpx-live')
+    ):
+        yield
+    else:
+        if (
+            not request.config.getoption('--chttpx-rewrite')
+            and chttpx_fixture.path.exists()
+        ):
+            httpx_mock = request.getfixturevalue('httpx_mock')
+            chttpx_fixture.mock(httpx_mock)
+
+        test_name = request.node.nodeid.replace('/', '_')
+        log_path = tmp_path / test_name
+        cli2.configure(str(log_path))
+
+        yield  # Test runs here
+
+        if (
+            request.config.getoption('--chttpx-rewrite')
+            or not chttpx_fixture.path.exists()
+        ):
+            with log_path.open('r') as f:
+                chttpx_fixture.requests = cli2.parse(f.read())
+
+            chttpx_fixture.write()
