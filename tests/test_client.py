@@ -1335,7 +1335,7 @@ def test_virtual(client_class):
         virt = chttpx.VirtualField()
         real = chttpx.Field()
 
-        @real.factory
+        @real.factory(virt)
         def real_factory(self):
             return f'remote-{self.virt}'
 

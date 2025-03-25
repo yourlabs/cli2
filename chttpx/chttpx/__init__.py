@@ -457,9 +457,9 @@ class Field:
             data = data[key]
         return data
 
-    def is_set(self, data):
+    def is_set(self, obj):
         try:
-            self.get(data)
+            self.get(obj._data)
         except KeyError:
             return False
         else:
@@ -544,13 +544,7 @@ class Field:
 class VirtualField(Field):
     def __get__(self, obj, objtype=None):
         """
-        Get the value of a field for an object.
-
-        A simple process:
-
-        - Get the internal value from :py:meth:`internal_get`
-        - Pass it through the :py:meth:`externalize` method prior to returning
-          it.
+        Get the value of a virtual field for an object.
         """
         if obj is None:
             return self
@@ -559,14 +553,7 @@ class VirtualField(Field):
 
     def __set__(self, obj, value):
         """
-        Set the value in the internal :py:attr:`Model.data` dict.
-
-        A two-step process:
-
-        - Use :py:meth:`internalize` to convert the Python external value into
-          a Python representation of the JSON value
-        - Use :py:meth:`internal_set` to actually set the internal
-          :py:attr:`Model.data`
+        Set a value that must not end up in :py:attr:`Model.data` dict.
         """
         if self.name in obj._data_virtual:
             old_value = self.__get__(obj)
@@ -574,6 +561,9 @@ class VirtualField(Field):
                 obj.changed_fields[self.name] = old_value
 
         obj._data_virtual[self.name] = value
+
+    def is_set(self, obj):
+        return self.name in obj._data_virtual
 
 
 class MutableField(Field):
@@ -967,12 +957,12 @@ class Model(metaclass=ModelMetaclass):
         missing = []
         done = []
         for name, field in self._fields.items():
-            if not field.callback or field.is_set(self._data):
+            if not field.callback or field.is_set(self):
                 continue
 
             ready = True
             for dependency in field.callback_dependencies:
-                if not dependency.is_set(self._data):
+                if not dependency.is_set(self):
                     missing.append(dependency)
                     ready = False
             if ready:
