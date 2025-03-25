@@ -454,6 +454,23 @@ you can work on the list return with the field descriptor:
 
 It's just magic I love it!
 
+Virtual fields
+``````````````
+
+Virtual fields are just like fields except that they don't live in the payload
+:py:attr:`~chttpx.Model.data`. It allows to old attributes which belong to us
+while generating defaults for data fields which belong to the remote API:
+
+.. code-block:: python
+
+    class YourModel(YourClient.Model):
+        our_name = VirtualField()
+        remote_name = Field()
+
+        @remote_name.factory(our_name)
+        def default_value(self):
+            return f'something{self.our_name}'
+
 Testing
 =======
 

@@ -38,6 +38,7 @@ __all__ = [
     'FieldError',
     'FieldValueError',
     'FieldExternalizeError',
+    'VirtualField',
     'Client',
     'ClientCommand',
     'DateTimeField',
@@ -540,6 +541,41 @@ class Field:
             return _(args[0])
 
 
+class VirtualField(Field):
+    def __get__(self, obj, objtype=None):
+        """
+        Get the value of a field for an object.
+
+        A simple process:
+
+        - Get the internal value from :py:meth:`internal_get`
+        - Pass it through the :py:meth:`externalize` method prior to returning
+          it.
+        """
+        if obj is None:
+            return self
+
+        return obj._data_virtual.get(self.name)
+
+    def __set__(self, obj, value):
+        """
+        Set the value in the internal :py:attr:`Model.data` dict.
+
+        A two-step process:
+
+        - Use :py:meth:`internalize` to convert the Python external value into
+          a Python representation of the JSON value
+        - Use :py:meth:`internal_set` to actually set the internal
+          :py:attr:`Model.data`
+        """
+        if self.name in obj._data_virtual:
+            old_value = self.__get__(obj)
+            if old_value != value:
+                obj.changed_fields[self.name] = old_value
+
+        obj._data_virtual[self.name] = value
+
+
 class MutableField(Field):
     """
     Base class for mutable value fields like :py:class:`JSONStringField`
@@ -896,6 +932,7 @@ class Model(metaclass=ModelMetaclass):
         :param data: JSON Data
         """
         self._data = data or dict()
+        self._data_virtual = data or dict()
         self._data_updating = False
         self._dirty_fields = []
         self._field_cache = dict()

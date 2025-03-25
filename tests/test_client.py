@@ -1328,3 +1328,30 @@ def test_field_callback_recursion(client_class):
 
     model = client_class().TestModel(req1='lol')
     assert model.final == 'lolval2val3'
+
+
+def test_virtual(client_class):
+    class TestModel(client_class.Model):
+        virt = chttpx.VirtualField()
+        real = chttpx.Field()
+
+        @real.factory
+        def real_factory(self):
+            return f'remote-{self.virt}'
+
+
+    model = client_class().TestModel(virt='foo')
+    assert model.virt == 'foo'
+    assert model._data_virtual == dict(virt='foo')
+    assert 'virt' not in model.data
+
+    # using the virtual field to generate a remote value
+    assert model.real == 'remote-foo'
+
+    # setting an actual new value
+    model.real = 'new-real'
+    assert model.real == 'new-real'
+
+    # setting the virtual field does not affect present values
+    model.virt = 'bar'
+    assert model.real == 'new-real'
