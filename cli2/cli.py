@@ -442,6 +442,11 @@ class Command(EntryPoint, dict):
     def sig(self):
         return inspect.signature(self.target)
 
+    def __delitem__(self, key):
+        if key in self.positions:
+            del self.positions[key]
+        return super().__delitem__(key)
+
     def __getitem__(self, key):
         self._setargs()
         return super().__getitem__(key)

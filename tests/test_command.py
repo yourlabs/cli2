@@ -519,6 +519,8 @@ def test_arg():
     assert list(cmd.keys()) == ['bar', 'foo']
     assert cmd('bar', 'foo') == 'foo'
     assert cmd['bar'].value == 'bar'
+    del cmd['bar']
+    cmd.help()
 
 
 def test_helphack():
