@@ -1823,7 +1823,7 @@ class Client(metaclass=ClientMetaclass):
     def response_log_data(self, response):
         try:
             data = response.json()
-        except json.JSONDecodeError:
+        except:  # noqa
             if response.content:
                 return 'content', self.mask(response.content)
         else:
@@ -1838,7 +1838,7 @@ class Client(metaclass=ClientMetaclass):
 
         try:
             data = json.loads(content)
-        except json.JSONDecodeError:
+        except:  # noqa
             pass
         else:
             return 'json', self.mask(data)
