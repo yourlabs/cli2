@@ -14,19 +14,25 @@ class Hunk:
                 f"lines={self.lines})")
 
 class UnifiedDiff:
-    def __init__(self, old_filename, new_filename, hunks):
+    def __init__(self, old_filename, new_filename, hunks, strip_count=0):
         self.old_filename = old_filename
         self.new_filename = new_filename
         self.hunks = hunks
+        # strip_count indicates how many leading path components should be stripped when patching.
+        self.strip_count = strip_count
 
     def __repr__(self):
         return (f"UnifiedDiff(old_filename={self.old_filename}, "
-                f"new_filename={self.new_filename}, hunks={self.hunks})")
+                f"new_filename={self.new_filename}, strip_count={self.strip_count}, "
+                f"hunks={self.hunks})")
 
 def parse_unified_diff(diff_text):
     """
     Parses a unified diff string, recalculates hunk counts from the actual hunk lines,
     and returns a UnifiedDiff instance. Also converts Windows CRLF to Unix LF.
+    Additionally, it discards hunks that do not effect any change.
+    For non-new-file diffs, the original header counts are preserved.
+    It also analyzes the file header paths to suggest a -p flag for patch.
     """
     # Convert Windows CRLF to Unix LF.
     diff_text = diff_text.replace("\r\n", "\n")
@@ -36,6 +42,7 @@ def parse_unified_diff(diff_text):
     new_filename = None
     hunks = []
     i = 0
+
     while i < len(lines):
         line = lines[i]
         if line.startswith('--- '):
@@ -47,38 +54,57 @@ def parse_unified_diff(diff_text):
             else:
                 raise ValueError("Diff missing +++ filename after --- filename")
         elif line.startswith('@@'):
-            # Parse the hunk header.
+            # Parse hunk header and capture original counts.
             m = re.match(r'@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@', line)
             if not m:
                 raise ValueError("Invalid hunk header: " + line)
             old_start = int(m.group(1))
-            old_count = int(m.group(2)) if m.group(2) else 1
+            original_old_count = int(m.group(2)) if m.group(2) else 1
             new_start = int(m.group(3))
-            new_count = int(m.group(4)) if m.group(4) else 1
+            original_new_count = int(m.group(4)) if m.group(4) else 1
             i += 1
             hunk_lines = []
-            # Collect hunk body lines until we reach the next header.
-            while i < len(lines) and not lines[i].startswith('@@') \
-                  and not lines[i].startswith('--- ') and not lines[i].startswith('+++ '):
+            while i < len(lines) and not (lines[i].startswith('@@') or lines[i].startswith('--- ') or lines[i].startswith('+++ ')):
                 hunk_lines.append(lines[i])
                 i += 1
-            # Recalculate counts from the actual hunk lines.
-            # For the old file, count lines starting with ' ' or '-'
+
+            # Recalculate counts from hunk lines.
             calculated_old_count = sum(1 for l in hunk_lines if l and l[0] in (' ', '-'))
-            # For the new file, count lines starting with ' ' or '+'
             calculated_new_count = sum(1 for l in hunk_lines if l and l[0] in (' ', '+'))
-            # Override parsed counts with recalculated ones.
-            old_count = calculated_old_count
-            new_count = calculated_new_count
-            hunks.append(Hunk(old_start, old_count, new_start, new_count, hunk_lines))
+            if old_filename == "/dev/null":
+                calculated_old_count = 0
+
+            # Compute effective content (ignoring the diff markers):
+            def effective_content(lines, allowed_prefixes):
+                return [l[1:] for l in lines if l and l[0] in allowed_prefixes]
+
+            old_effective = effective_content(hunk_lines, (' ', '-'))
+            new_effective = effective_content(hunk_lines, (' ', '+'))
+            # If the effective content is the same, this hunk is a no-op.
+            if old_effective == new_effective:
+                continue
+
+            # For new file diffs, use recalculated counts; otherwise, preserve original counts.
+            if old_filename == "/dev/null":
+                hunk_old_count = calculated_old_count
+                hunk_new_count = calculated_new_count
+            else:
+                hunk_old_count = original_old_count
+                hunk_new_count = original_new_count
+
+            hunks.append(Hunk(old_start, hunk_old_count, new_start, hunk_new_count, hunk_lines))
         else:
-            # Skip any non-header lines (e.g., metadata)
             i += 1
 
     if old_filename is None or new_filename is None:
         raise ValueError("Diff does not contain valid file header information.")
 
-    return UnifiedDiff(old_filename, new_filename, hunks)
+    # Determine if we should suggest a -p flag.
+    strip_count = 0
+    if old_filename.startswith("a/") and new_filename.startswith("b/"):
+        strip_count = 1
+
+    return UnifiedDiff(old_filename, new_filename, hunks, strip_count=strip_count)
 
 def reconstruct_unified_diff(unified_diff):
     """
@@ -91,6 +117,5 @@ def reconstruct_unified_diff(unified_diff):
     for hunk in unified_diff.hunks:
         parts.append(f"@@ -{hunk.old_start},{hunk.old_count} +{hunk.new_start},{hunk.new_count} @@")
         parts.extend(hunk.lines)
-    # Ensure the diff ends with a newline.
     return "\n".join(parts) + "\n"
 
