@@ -17,4 +17,4 @@ class Project:
         conn = sqlite3.connect(DB_FILE)
         cursor = conn.cursor()
         cursor.execute('select path from files')
-        return [row[0][len(os.getcwd()) + 1:] for row in cursor.fetchall()]
+        return [row[0] for row in cursor.fetchall()]
