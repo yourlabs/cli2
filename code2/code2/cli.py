@@ -31,16 +31,18 @@ class Engine:
             with prompt_system_path.open('r') as f:
                 return f.read()
 
-    async def run(self):
-        self.project = Project(os.getcwd())
-        self.project.scan()
 
+    def __init__(self):
+        self.project = Project(os.getcwd())
         self.shell = Shell(self.project)
+
+    async def run(self):
+        self.project.scan()
         await self.shell.run(self.request)
 
     async def request(self, user_input):
         system_prompt = self.system_prompt().format(path=os.getcwd())
-        #system_prompt += f'\n\nAvailable files: {" ".join(self.project.files())}'
+        system_prompt += f'\n\nAvailable files: {" ".join(self.project.files())}'
 
         messages = [
             dict(
@@ -59,7 +61,8 @@ class Engine:
             messages=messages,
             max_tokens=16384,
             stream=True,
-            temperature=.2,
+            temperature=.7,
+            top_p=0.9,
         )
 
         full_content = ""
@@ -67,15 +70,35 @@ class Engine:
             if hasattr(chunk, 'choices') and chunk.choices:
                 delta = chunk.choices[0].delta
                 if hasattr(delta, 'content') and delta.content is not None:
-                    print(delta.content)
                     full_content += delta.content
 
+        await self.handle_response(full_content)
+
+    async def handle_response(self, full_content):
         cli2.log.debug('response', content=full_content)
+        md = Markdown(full_content)
 
-        parsed_ops = Parser().parse(full_content)
-        cli2.log.info('operations', json=parsed_ops)
+        tokens = []
 
-        return parsed_ops
+        def print_tokens():
+            nonlocal tokens
+            _md = Markdown('')
+            _md.parsed = tokens
+            console.print(_md)
+            tokens = []
+
+        for token in md.parsed:
+            tokens.append(token)
+            if token.tag == 'code':
+                if token.info == 'bash':
+                    print_tokens()
+                    await self.shell.run_command(token.content.strip())
+                if token.info == 'diff':
+                    print_tokens()
+                    await self.shell.diff_apply(token.content)
+                else:
+                    continue
+
 
 
 cli = cli2.Command(Engine().run)

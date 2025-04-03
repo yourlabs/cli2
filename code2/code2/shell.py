@@ -13,8 +13,6 @@ from prompt_toolkit.completion import PathCompleter
 from prompt_toolkit.patch_stdout import patch_stdout
 from pygments.lexers.python import PythonLexer
 
-from code2.parser import Parser
-
 
 def count_tokens(text: str) -> int:
     return len(text.split()) + len(text) // 4
@@ -54,6 +52,38 @@ class Shell:
                 finally:
                     os.unlink(tmp_name)
 
+        class CommandCompleter(Completer):
+            def __init__(self):
+                self.path_completer = PathCompleter(expanduser=True)
+                self.commands = {
+                    'add': None,
+                    'exit': None,
+                    'help': None,
+                    'multiline-mode': None,
+                    'paste': None,
+                    'quit': None,
+                    'run': None,
+                    'scan': None,
+                    'test': None,
+                }
+
+            def get_completions(self, document, complete_event):
+                text = document.text_before_cursor.lstrip()
+
+                # Complete commands if text starts with /
+                if text.startswith('/'):
+                    try:
+                        cmd_part = text[1:].split()[0].lower()
+                    except IndexError:
+                        cmd_part = ''
+                    for cmd in self.commands:
+                        if cmd.startswith(cmd_part):
+                            start_pos = -len(cmd_part) if cmd_part else 0
+                            yield Completion(f'/{cmd}', start_position=start_pos)
+                # Otherwise complete paths
+                else:
+                    yield from self.path_completer.get_completions(document, complete_event)
+
         history_file = os.path.expanduser("~/.code2_history")
         self.session = PromptSession(
             lexer=PygmentsLexer(PythonLexer),
@@ -75,6 +105,9 @@ class Shell:
         return answer.strip().lower() in ("y", "yes")
 
     async def run_command(self, command: str):
+        if not await self.confirm_action(f"Execute command {command}?"):
+            return
+
         process = await asyncio.create_subprocess_exec(
             *command.split(),
             stdout=asyncio.subprocess.PIPE,
@@ -239,24 +272,40 @@ Available commands:
         for key, value in self.context.items():
             user_input += f"\n\n{key}:\n{value}"
 
-        operations = await callback(user_input)
-        for op in operations:
-            if op["type"] == "talk":
-                print(op["content"])
-            elif op["type"] == "run":
-                print(f'+ {op["command"]}')
-                if await self.confirm_action(f"Execute command?"):
-                    rc = await self.run_command(op["command"])
-            elif op["type"] == "code":
-                print(f'Change {op["file_path"]}')
-                diff = difflib.unified_diff(
-                    op["before"].splitlines(),
-                    op["after"].splitlines(),
-                    "before",
-                    "after",
-                )
-                if await self.confirm_action(
-                    f"Write changes to '{op['file_path']}'?", diff
-                ):
-                    with open(op["file_path"], "w") as f:
-                        f.write(op["after"])
+        await callback(user_input)
+
+    async def diff_apply(self, diff):
+        cli2.log.debug('diff_apply', diff=diff)
+
+        from code2.diff import parse_unified_diff, reconstruct_unified_diff
+        parsed = parse_unified_diff(diff)
+        fixed_diff = reconstruct_unified_diff(parsed)
+        if fixed_diff != diff:
+            cli2.log.info('diff_fixed', diff=fixed_diff)
+
+        if not await self.confirm_action(f"Apply changes to {parsed.new_filename}?"):
+            return
+
+        process = await asyncio.create_subprocess_exec(
+            'patch',
+            '-u',
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            stdin=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await process.communicate(
+            input=fixed_diff.encode('utf8'),
+        )
+
+        stdout_str = stdout.decode('utf-8')
+        stderr_str = stderr.decode('utf-8')
+        if process.returncode != 0:
+            cli2.log.error('patch', stdout=stdout_str, stderr=stderr_str, diff=diff)
+            raise subprocess.CalledProcessError(
+                process.returncode,
+                'patch',
+                output=stdout_str,
+                stderr=stderr_str,
+            )
+
+        return stdout_str, stderr_str

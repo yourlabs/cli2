@@ -1,0 +1,115 @@
+### Creating `hello_world_{dt}.py`
+
+I'll create a `hello_world_{dt}.py` file that uses an f-string to print "Hello, World!", followed by a newline, and then a string passed as an argument. If no argument is provided, it will default to the first command-line argument using `sys.argv`.
+
+Here is the proposed content for `hello_world_{dt}.py`:
+
+```python
+import sys
+
+def hello_world(message=None):
+    if message is None:
+        if len(sys.argv) > 1:
+            message = sys.argv[1]
+        else:
+            message = "Default Message"
+    print(f"Hello, World!\n{message}")
+
+if __name__ == "__main__":
+    hello_world()
+```
+
+### Creating `test_hello_{dt}.py`
+
+Next, I'll create a `test_hello_{dt}.py` file with tests to ensure that `hello_world_{dt}.py` functions as expected. Here's the proposed content for `test_hello_{dt}.py`:
+
+```python
+import unittest
+from io import StringIO
+import sys
+from hello_world import hello_world
+
+class TestHelloWorld(unittest.TestCase):
+
+    def test_hello_world_default(self):
+        captured_output = StringIO()
+        sys.stdout = captured_output
+        hello_world()
+        sys.stdout = sys.__stdout__
+        self.assertEqual(captured_output.getvalue().strip(), "Hello, World!\nDefault Message")
+
+    def test_hello_world_with_argument(self):
+        captured_output = StringIO()
+        sys.stdout = captured_output
+        hello_world("Custom Message")
+        sys.stdout = sys.__stdout__
+        self.assertEqual(captured_output.getvalue().strip(), "Hello, World!\nCustom Message")
+
+if __name__ == '__main__':
+    unittest.main()
+```
+
+### Unified Diff for `hello_world_{dt}.py`
+
+Since we are creating a new file, there's no previous content to diff against. Here's what the diff would look like if we were modifying an existing file:
+
+```diff
+--- /dev/null
++++ hello_world_{dt}.py
+@@ -0,0 +1,11 @@
++import sys
++
++def hello_world(message=None):
++    if message is None:
++        if len(sys.argv) > 1:
++            message = sys.argv[1]
++        else:
++            message = "Default Message"
++    print(f"Hello, World!\n{message}")
++
++if __name__ == "__main__":
++    hello_world()
+```
+
+### Unified Diff for `test_hello_{dt}.py`
+
+Similarly, for the new test file:
+
+```diff
+--- /dev/null
++++ test_hello_{dt}.py
+@@ -0,0 +1,23 @@
++import unittest
++from io import StringIO
++import sys
++from hello_world_{dt} import hello_world
++
++class TestHelloWorld(unittest.TestCase):
++
++    def test_hello_world_default(self):
++        captured_output = StringIO()
++        sys.stdout = captured_output
++        hello_world()
++        sys.stdout = sys.__stdout__
++        self.assertEqual(captured_output.getvalue().strip(), "Hello, World!\nDefault Message")
++
++    def test_hello_world_with_argument(self):
++        captured_output = StringIO()
++        sys.stdout = captured_output
++        hello_world("Custom Message")
++        sys.stdout = sys.__stdout__
++        self.assertEqual(captured_output.getvalue().strip(), "Hello, World!\nCustom Message")
++
++if __name__ == '__main__':
++    unittest.main()
+```
+
+### Running Tests
+
+After creating these files, you should run the tests to ensure everything works as expected. Here's how you can do it:
+
+```bash
+python -m unittest test_hello_{dt}.py
+```
+
+This command will execute the tests in verbose mode, allowing you to see detailed output from the test runner.
