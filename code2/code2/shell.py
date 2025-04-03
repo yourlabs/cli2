@@ -31,6 +31,7 @@ class Shell:
         def _(event):
             print("Goodbye!")
             event.app.exit()
+            self.keep_running = False
 
         @self.bindings.add("c-l")
         def _(event):
@@ -101,8 +102,11 @@ class Shell:
         if diff:
             print("Proposed changes:")
             cli2.diff(diff)
-        answer = await self.session.prompt_async(f"{message} (y/n): ")
-        return answer.strip().lower() in ("y", "yes")
+        while answer := await self.session.prompt_async(f"{message} (y/n): "):
+            if answer.strip().lower() in ("y", "yes"):
+                return True
+            elif answer.strip().lower() in ('n', 'no'):
+                return False
 
     async def run_command(self, command: str):
         if not await self.confirm_action(f"Execute command {command}?"):
@@ -162,11 +166,12 @@ Available commands:
 
     async def file_add(self, file_path):
         if os.path.exists(file_path):
-            with open(file_path, "r") as f:
-                content = f.read()
-                tokens = count_tokens(content)
-                self.context[f"File: {file_path}"] = content
-                print(f"Added {file_path} ({tokens} tokens)")
+            if await self.confirm_action(f"Add {file_path} to context?"):
+                with open(file_path, "r") as f:
+                    content = f.read()
+                    tokens = count_tokens(content)
+                    self.context[f"File: {file_path}"] = content
+                    print(f"Added {file_path} ({tokens} tokens)")
         else:
             print(f"File not found: {file_path}")
 
@@ -239,11 +244,12 @@ Available commands:
 
             if cmd in commands:
                 await commands[cmd](cmd_parts)
-                return cmd in ("exit", "quit")
+                return True
         return False
 
     async def run(self, callback):
-        while True:
+        self.keep_running = True
+        while self.keep_running:
             try:
                 await self.run_once(callback)
             except KeyboardInterrupt:
@@ -258,16 +264,15 @@ Available commands:
         if not user_input or not user_input.strip():
             return
 
+        if await self.handle_command(user_input):
+            return
+
         for token in user_input.split():
             if token in (".", ".."):
                 continue
 
             if os.path.exists(token):
-                if await self.confirm_action(f"Add {token} to context?"):
-                    await self.file_add(token)
-
-        if await self.handle_command(user_input):
-            return
+                await self.file_add(token)
 
         for key, value in self.context.items():
             user_input += f"\n\n{key}:\n{value}"
