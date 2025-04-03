@@ -42,7 +42,8 @@ python -m unittest example.py
     return Parser().parse(data)
 
 class Shell:
-    def __init__(self):
+    def __init__(self, project=None):
+        self.project = project
         self.context = dict()
         self.multiline_mode = False
         self.test_command = None

@@ -18,7 +18,7 @@ from .shell import Shell
 console = Console()
 
 cli2.cfg.defaults.update(
-    LITELLM_MODEL='openrouter/deepseek/deepseek-chat',
+    MODEL='openrouter/deepseek/deepseek-chat',
     SYSTEM_PROMPT=Path(__file__).parent / 'system_prompt.txt',
     OPENROUTER_API_BASE='https://openrouter.ai/api/v1',
 )
@@ -36,7 +36,7 @@ class Engine:
         self.project = Project(os.getcwd())
         self.project.scan()
 
-        self.shell = Shell()
+        self.shell = Shell(self.project)
         await self.shell.run(self.request)
 
     async def request(self, user_input):
@@ -56,7 +56,7 @@ class Engine:
         cli2.log.debug('messages', json=messages)
 
         response = completion(
-            model=cli2.cfg['LITELLM_MODEL'],
+            model=cli2.cfg['MODEL'],
             messages=messages,
             api_key=cli2.cfg['OPENROUTER_API_KEY'],
             base_url=cli2.cfg['OPENROUTER_API_BASE'],
