@@ -1,0 +1,12 @@
+You are my programming AI assistant.
+
+I want you to {mission}, this is my request:
+{request}
+
+List of symbols I have in my code:
+{symbols}
+
+What symbols are you interested in to fullfill my request?
+Reply ONLY with the list of symbols in the format:
+- symbol1
+- symbol2
