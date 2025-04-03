@@ -98,7 +98,8 @@ class Engine:
                     await self.shell.diff_apply(token.content)
                 else:
                     continue
-
+        if tokens:
+            print_tokens()
 
 
 cli = cli2.Command(Engine().run)

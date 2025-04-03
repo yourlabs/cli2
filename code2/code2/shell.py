@@ -107,8 +107,10 @@ class Shell:
             cli2.diff(diff)
         while answer := await self.session.prompt_async(f"{message} (y/n): "):
             if answer.strip().lower() in ("y", "yes"):
+                self.reset_prompt()
                 return True
             elif answer.strip().lower() in ('n', 'no'):
+                self.reset_prompt()
                 return False
 
     async def run_command(self, command: str):
@@ -145,6 +147,9 @@ class Shell:
     async def cmd_exit(self, cmd_parts):
         print("Goodbye!")
         return True
+
+    def reset_prompt(self):
+        self.session.message = 'code2> '
 
     async def cmd_help(self, cmd_parts):
         help_text = """
@@ -247,7 +252,9 @@ Available commands:
 
             if cmd in commands:
                 await commands[cmd](cmd_parts)
+                self.reset_prompt()
                 return True
+        self.reset_prompt()
         return False
 
     async def run(self, callback):
