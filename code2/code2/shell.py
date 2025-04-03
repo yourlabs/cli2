@@ -14,6 +14,10 @@ from prompt_toolkit.patch_stdout import patch_stdout
 from pygments.lexers.python import PythonLexer
 
 
+class Abort(Exception):
+    pass
+
+
 def count_tokens(text: str) -> int:
     return len(text.split()) + len(text) // 4
 
@@ -276,7 +280,10 @@ Available commands:
         for key, value in self.context.items():
             user_input += f"\n\n{key}:\n{value}"
 
-        await callback(user_input)
+        try:
+            await callback(user_input)
+        except Abort:
+            pass
 
     async def diff_apply(self, diff):
         cli2.log.debug('diff_apply', diff=diff)
@@ -290,9 +297,15 @@ Available commands:
         if not await self.confirm_action(f"Apply changes to {parsed.new_filename}?"):
             return
 
+        command = ['patch', '-u']
+        if (
+            parsed.old_filename.startswith('a/')
+            and parsed.new_filename.startswith('b/')
+        ):
+            command.append('-p1')
+
         process = await asyncio.create_subprocess_exec(
-            'patch',
-            '-u',
+            *command,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             stdin=asyncio.subprocess.PIPE,
@@ -304,7 +317,28 @@ Available commands:
         stdout_str = stdout.decode('utf-8')
         stderr_str = stderr.decode('utf-8')
         if process.returncode != 0:
-            cli2.log.error('patch', stdout=stdout_str, stderr=stderr_str, diff=diff)
+            hunk_problem = False
+            for line in stdout_str.splitlines():
+                if 'hunk FAILED -- saving rejects' in line:
+                    hunk_problem = True
+                    print(line)
+                    with open(line.split()[-1], 'r') as f:
+                        print(f.read())
+                    if not await self.confirm_action('Apply hunk manually if you want, should we continue?'):
+                        raise Abort()
+            if hunk_problem:
+                return
+
+            with open('/tmp/patch', 'w') as f:
+                f.write(fixed_diff)
+
+            cli2.log.error(
+                'patch',
+                command=f'{" ".join(command)} < /tmp/patch',
+                stdout=stdout_str,
+                stderr=stderr_str,
+                diff=diff,
+            )
             raise subprocess.CalledProcessError(
                 process.returncode,
                 'patch',
