@@ -30,7 +30,7 @@ class Engine:
         prompt_system_path = Path(prompt_system)
         if prompt_system_path.exists():
             with prompt_system_path.open('r') as f:
-                return  f.read()
+                return f.read()
 
     async def run(self):
         self.project = Project(os.getcwd())
@@ -40,16 +40,20 @@ class Engine:
         await self.shell.run(self.request)
 
     async def request(self, user_input):
+        system_prompt = self.system_prompt().format(path=os.getcwd())
+        system_prompt += f'\n\nAvailable files: {" ".join(self.project.files())}'
+
         messages = [
             dict(
                 role='system',
-                content=prompt_system.format(path=os.getcwd())
+                content=system_prompt,
             ),
             dict(
                 role='user',
-                content=' '.join(user_input)
+                content=user_input,
             ),
         ]
+        cli2.log.debug('messages', json=messages)
 
         response = completion(
             model=cli2.cfg['LITELLM_MODEL'],

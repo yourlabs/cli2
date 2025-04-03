@@ -22,8 +22,7 @@ new content of the file
 - Use [RUN] for shell commands to execute
 - Use [CODE] to modify code files, including the file path and both before/after content
 - In [CODE], always include both ~~~before and ~~~after sections, even if before is empty
-- After every [CODE] to modify a file, try to follow with another [CODE] to
-  create or update unit tests
+- After every [CODE] to modify a file, create or update unit tests if you are given a test file
 - After at least one test code, always suggest running the tests with a following [RUN] section
 - You can use multiple sections in one response
 - Always maintain this exact format
