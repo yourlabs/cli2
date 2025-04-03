@@ -40,7 +40,7 @@ class Engine:
 
     async def request(self, user_input):
         system_prompt = self.system_prompt().format(path=os.getcwd())
-        system_prompt += f'\n\nAvailable files: {" ".join(self.project.files())}'
+        #system_prompt += f'\n\nAvailable files: {" ".join(self.project.files())}'
 
         messages = [
             dict(
@@ -54,15 +54,25 @@ class Engine:
         ]
         cli2.log.debug('messages', json=messages)
 
-        response = completion(
+        stream = completion(
             model=cli2.cfg['MODEL'],
             messages=messages,
+            max_tokens=16384,
+            stream=True,
+            temperature=.2,
         )
 
-        content = response.choices[0].message.content
-        cli2.log.debug('response', content=content)
+        full_content = ""
+        for chunk in stream:
+            if hasattr(chunk, 'choices') and chunk.choices:
+                delta = chunk.choices[0].delta
+                if hasattr(delta, 'content') and delta.content is not None:
+                    print(delta.content)
+                    full_content += delta.content
 
-        parsed_ops = Parser().parse(content)
+        cli2.log.debug('response', content=full_content)
+
+        parsed_ops = Parser().parse(full_content)
         cli2.log.info('operations', json=parsed_ops)
 
         return parsed_ops
