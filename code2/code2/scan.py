@@ -122,7 +122,8 @@ def db_writer(queue: multiprocessing.Queue, total_files: int):
             item = queue.get(timeout=1)
             if item is None:
                 break
-            file_path, symbols, mtime = item
+            absolute_path, symbols, mtime = item
+            file_path = os.path.relpath(absolute_path, os.getcwd())
             cursor.execute('''
                 INSERT INTO files (path, mtime) VALUES (?, ?)
                 ON CONFLICT(path) DO UPDATE SET mtime = excluded.mtime
@@ -173,16 +174,20 @@ def scan_repo(repo_path: str = os.getcwd()) -> Dict[str, List[dict]]:
         return {}
 
     # Fetch all file metadata in one query
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute('''
-        SELECT f.path, f.mtime, COUNT(s.id) > 0 as has_symbols
-        FROM files f
-        LEFT JOIN symbols s ON f.id = s.file_id
-        GROUP BY f.id, f.path
-    ''')
-    file_cache = {row[0]: (row[1], row[2]) for row in cursor.fetchall()}  # {path: (mtime, has_symbols)}
-    conn.close()
+    if os.path.exists(DB_FILE):
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT f.path, f.mtime, COUNT(s.id) > 0 as has_symbols
+            FROM files f
+            LEFT JOIN symbols s ON f.id = s.file_id
+            GROUP BY f.id, f.path
+        ''')
+        file_cache = {row[0]: (row[1], row[2]) for row in cursor.fetchall()}  # {path: (mtime, has_symbols)}
+        conn.close()
+    else:
+        init_db()
+        file_cache = dict()
 
     cpu_count = os.cpu_count() or 1
     print(f"Scanning {total_files} files using {cpu_count} processes in {repo_path}...")
@@ -244,8 +249,6 @@ def optimize_repo_map(token_budget: int = 10000, fileglob: str = '*') -> str:
 
 def main():
     repo_path = os.getcwd()
-
-    init_db()
 
     print("Scanning repository...")
     symbol_data = scan_repo(repo_path)
