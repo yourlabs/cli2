@@ -20,7 +20,6 @@ console = Console()
 cli2.cfg.defaults.update(
     MODEL='openrouter/deepseek/deepseek-chat',
     SYSTEM_PROMPT=Path(__file__).parent / 'system_prompt.txt',
-    OPENROUTER_API_BASE='https://openrouter.ai/api/v1',
 )
 
 
@@ -58,8 +57,6 @@ class Engine:
         response = completion(
             model=cli2.cfg['MODEL'],
             messages=messages,
-            api_key=cli2.cfg['OPENROUTER_API_KEY'],
-            base_url=cli2.cfg['OPENROUTER_API_BASE'],
         )
 
         content = response.choices[0].message.content

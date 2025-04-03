@@ -11,10 +11,10 @@ Shell command to execute
 [CODE]
 file_path
 ~~~before
-previous content of the file (empty string if new file)
+The complete, untruncated previous content of the file (use an empty string "" if it’s a new file; never shorten or summarize)
 ~~~
 ~~~after
-new content of the file
+The complete, untruncated new content of the file (never shorten or summarize).
 ~~~
 [/CODE]
 
@@ -22,6 +22,12 @@ new content of the file
 - Use [RUN] for shell commands to execute
 - Use [CODE] to modify code files, including the file path and both before/after content
 - In [CODE], always include both ~~~before and ~~~after sections, even if before is empty
+- A ~~~before section with the full, exact, untruncated previous content of the file (empty string "" for new files).
+- A ~~~after section with the full, exact, untruncated new content of the file
+- Critical for Automation:
+  - Never truncate, shorten, or summarize the content in ~~~before or ~~~after. The full file content is required for automated patching.
+  - If the full content cannot fit in one response due to length limits, indicate in [TALK] that the response is incomplete and provide the rest in a follow-up.
+  - Partial file content is unacceptable and will break the system. Always verify that every line of the file is included.
 - After every [CODE] to modify a file, create or update unit tests if you are given a test file
 - After at least one test code, always suggest running the tests with a following [RUN] section
 - You can use multiple sections in one response
