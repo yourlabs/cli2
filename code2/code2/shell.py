@@ -28,6 +28,7 @@ class Shell:
         self.context = dict()
         self.multiline_mode = False
         self.test_command = None
+        self.mode = 'editor'
 
         self.bindings = KeyBindings()
 
@@ -70,6 +71,8 @@ class Shell:
                     'run': None,
                     'scan': None,
                     'test': None,
+                    'architect': None,
+                    'editor': None,
                 }
 
             def get_completions(self, document, complete_event):
@@ -84,7 +87,7 @@ class Shell:
                     for cmd in self.commands:
                         if cmd.startswith(cmd_part):
                             start_pos = -len(cmd_part) if cmd_part else 0
-                            yield Completion(f'/{cmd}', start_position=start_pos)
+                            yield Completion(f'{cmd}', start_position=start_pos)
                 # Otherwise complete paths
                 else:
                     yield from self.path_completer.get_completions(document, complete_event)
@@ -93,7 +96,7 @@ class Shell:
         self.session = PromptSession(
             lexer=PygmentsLexer(PythonLexer),
             history=FileHistory(history_file),
-            message="code2> ",
+            message=f"{self.mode}> ",
             key_bindings=self.bindings,
             completer=CommandCompleter(),
             multiline=False,
@@ -149,7 +152,13 @@ class Shell:
         return True
 
     def reset_prompt(self):
-        self.session.message = 'code2> '
+        self.session.message = f'{self.mode}> '
+
+    async def cmd_architect(self, cmd_parts):
+        self.mode = 'architect'
+
+    async def cmd_editor(self, cmd_parts):
+        self.mode = 'editor'
 
     async def cmd_help(self, cmd_parts):
         help_text = """
@@ -162,6 +171,8 @@ Available commands:
 /paste - Paste from clipboard
 /scan - Print scanning message
 /test [command] - Set/run test command
+/architect - Switch to architect (analysis) mode
+/editor - Switch to editor (code modification) mode
         """
         print(help_text)
 
@@ -248,6 +259,8 @@ Available commands:
                 "paste": self.cmd_paste,
                 "scan": self.cmd_scan,
                 "test": self.cmd_test,
+                "architect": self.cmd_architect,
+                "editor": self.cmd_editor,
             }
 
             if cmd in commands:
