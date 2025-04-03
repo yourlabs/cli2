@@ -88,6 +88,13 @@ class Project:
         cursor.execute(sql, *args)
         return cursor.fetchall()
 
+    def symbols_unique(self):
+        DB_FILE = 'repo_symbols.db'
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute('select distinct name from symbols')
+        return [row[0] for row in cursor.fetchall()]
+
     def symbols_dump(self):
         result = ['List of file, line number, symbol type, symbol name:\n']
         for row in self.symbols():

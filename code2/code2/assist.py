@@ -1,5 +1,7 @@
 import cli2
+import functools
 import hashlib
+import re
 import textwrap
 
 from litellm import completion
@@ -23,12 +25,13 @@ class AssistPlugin:
         self.project = project
         self.context = context
 
-    def llm(self, messages):
-        tokens = sum([len(msg['content']) for msg in messages])
-        cli2.log.debug('messages', tokens=tokens, json=messages)
+    @functools.cached_property
+    def model_name(self):
+        return cli2.cfg['MODEL'].split()[0]
 
+    @functools.cached_property
+    def model_kwargs(self):
         parts = cli2.cfg['MODEL'].split()
-        model_name = parts[0]
         kwargs = dict()
         for token in parts[1:]:
             key, value = token.split('=')
@@ -40,15 +43,18 @@ class AssistPlugin:
                 except ValueError:
                     pass
             kwargs[key] = value
+        return kwargs
+
+    def llm(self, messages):
+        tokens = sum([len(msg['content']) for msg in messages])
+        cli2.log.debug('messages', tokens=tokens, json=messages)
+
 
         stream = completion(
             messages=messages,
             stream=True,
-            model=model_name,
-            **kwargs,
-            #temperature=.7,
-            #max_tokens=16384,
-            #top_p=0.9,
+            model=self.model_name,
+            **self.model_kwargs,
         )
 
         full_content = ""
@@ -67,7 +73,7 @@ class AssistPlugin:
         return _.hexdigest()
 
     def process(self, key, message, **kwargs):
-        msghash = self.hash(message)
+        msghash = self.hash(f'{cli2.cfg["MODEL"]} message')
         hashkey = f'{msghash}_{key}'
         response = self.context.load(hashkey)
         if not response:
@@ -110,6 +116,41 @@ class Analyze(AssistPlugin):
             )
             print_markdown(analysis)
 
+    def direction_prompt(self, message):
+        PROMPT = textwrap.dedent('''
+        You are my programming AI assistant.
+
+        I want you to run an analysis on my code, this is my request:
+        {message}
+
+        List of symbols I have in my code:
+        {symbols}
+
+        What symbols are you interested in to fullfill my request?
+        Reply ONLY with the list of symbols in the format:
+        - symbol1
+        - symbol2
+        ''').format(
+            message=message,
+            symbols='\n'.join(self.project.symbols_unique()),
+        )
+        return self.llm(
+            [
+                dict(
+                    role='user',
+                    content=PROMPT,
+                ),
+            ],
+        )
+
+    def direction_parse(self, response):
+        symbols = []
+        for line in response.splitlines():
+            match = re.match('^- (\\w+)$', line)
+            if match:
+                symbols.append(match.group(1).strip())
+        return dict(symbols=symbols)
+
     def analyze_prompt(self, message, symbols):
         # ok that's going to be a bit python specific
         symbols = [s for s in symbols if not s.startswith('__')]
@@ -150,83 +191,6 @@ class Analyze(AssistPlugin):
                 ),
             ],
         )
-
-    def direction_prompt(self, message):
-        PROMPT = textwrap.dedent('''
-        You are my programming AI assistant.
-
-        I want you to run an analysis on my code, this is my request:
-        {message}
-
-        Also list the relevant symbols from the following dump of symbols in
-        the code directory:
-        {symbols}
-
-
-        Reply in the format:
-        Reason: <brief explanation>
-        Symbols:
-        - symbol1
-        - symbol2
-        ''').format(
-            message=message,
-            symbols='\n'.join([row[3] for row in self.project.symbols()]),
-        )
-        return self.llm(
-            [
-                dict(
-                    role='user',
-                    content=PROMPT,
-                ),
-            ],
-        )
-
-    def direction_parse(self, response):
-        lines = response.strip().splitlines()
-
-        result = {
-            "intent": None,
-            "symbols": [],
-            "reason": None
-        }
-
-        current_section = None
-        reason_lines = []
-
-        for line in lines:
-            line = line.rstrip()  # Remove trailing whitespace
-
-            # Intent line
-            if line.startswith("Intent:"):
-                result["intent"] = line[len("Intent:"):].strip()
-                current_section = None
-
-            # symbols section start
-            elif line.strip() == "Symbols:":
-                current_section = "symbols"
-
-            # Reason section start
-            elif line.startswith("Reason:"):
-                current_section = "reason"
-                reason_lines.append(line[len("Reason:"):].strip())
-
-            # Handle indented or list items in symbols section
-            elif current_section == "symbols" and line.strip().startswith("-"):
-                file_path = line.strip()[1:].strip()  # Remove "- " and extra spaces
-                if file_path:
-                    result["symbols"].append(file_path)
-
-            # Accumulate Reason text
-            elif current_section == "reason" and line.strip():
-                reason_lines.append(line.strip())
-
-        # Join reason lines into a single string
-        if reason_lines:
-            result["reason"] = " ".join(reason_lines)
-
-        return result
-
-
 
 
 class Old:
