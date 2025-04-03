@@ -267,12 +267,11 @@ Available commands:
         if await self.handle_command(user_input):
             return
 
+        files = self.project.files()
         for token in user_input.split():
-            if token in (".", ".."):
-                continue
-
-            if os.path.exists(token):
-                await self.file_add(token)
+            for file in files:
+                if file in token:
+                    await self.file_add(file)
 
         for key, value in self.context.items():
             user_input += f"\n\n{key}:\n{value}"
