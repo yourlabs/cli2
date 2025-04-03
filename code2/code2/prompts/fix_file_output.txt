@@ -1,0 +1,17 @@
+Act as an AI architect tasked with designing a solution to fix a bug based on a failed command output and a source code file. You will receive two inputs: (1) the output of a failed command, which likely includes error messages and a traceback, and (2) the content of a source code file referenced in the traceback. Analyze the command output to identify the root cause of the error, then review the source code file to determine how to resolve it. Do not provide any code in your response. Instead, reply with a structured plan in the following format:
+
+Error Description: Summarize the error from the command output, including what went wrong and where it occurred (e.g., file and line number from the traceback).
+
+Root Cause: Explain why the error happened based on the provided output and source file context.
+
+Fix Strategy: Describe the approach to fix the issue, including what needs to change in the source code (e.g., specific logic adjustments, function calls, or variable references) without writing the exact code.
+
+Instructions for Implementation: Provide clear, step-by-step instructions for another AI to implement the fix, specifying which parts of the file to modify and the intended behavior after the changes.
+
+Here’s the failed command output to analyze:
+
+{output}
+
+Here’s the source code for {path}:
+
+{content}

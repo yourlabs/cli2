@@ -5,3 +5,7 @@ tests/db.sqlite3
 *.egg-info
 .eggs
 .aider*
+dist
+_build
+.code2
+.git
