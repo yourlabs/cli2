@@ -28,3 +28,4 @@ packages:
       - CI_JOB_NAME:
         - cansible
         - chttpx
+        - code2

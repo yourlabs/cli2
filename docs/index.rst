@@ -20,6 +20,7 @@
    cli
    client
    ansible
+   code2
    lock
    notlevenshtein
    cli2
