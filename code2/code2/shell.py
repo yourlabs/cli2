@@ -303,6 +303,8 @@ Available commands:
             and parsed.new_filename.startswith('b/')
         ):
             command.append('-p1')
+        else:
+            command.append('-p0')
 
         process = await asyncio.create_subprocess_exec(
             *command,
