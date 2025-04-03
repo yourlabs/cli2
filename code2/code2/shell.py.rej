@@ -1,0 +1,23 @@
+--- code2/code2/shell.py
++++ code2/code2/shell.py
+@@ -263,6 +263,11 @@
+         return False
+ 
+     async def reset_prompt(self):
++        # Reset the prompt to its initial state
++        self.session.message = "code2> "
++        self.session.multiline = False
++        self.multiline_mode = False
++
+     async def handle_command(self, user_input: str) -> bool:
+         if user_input.startswith("/"):
+             cmd_parts = user_input[1:].split()
+@@ -287,6 +292,8 @@
+                 await commands[cmd](cmd_parts)
+                 await self.reset_prompt()  # Call reset_prompt before returning
+                 return True
++        await self.reset_prompt()  # Call reset_prompt if no command was handled
++        return False
+ 
+     async def run(self, callback):
+         self.keep_running = True

@@ -2,9 +2,126 @@
 AI code assistant
 """
 
+import cli2
+import importlib
+import os
+
+from .context import Context
+from .project import Project
+from .engine import Engine
+
+
+class ContextCommands:
+    """
+    Manage LLM contexts
+
+    You are in the default context by default and don't need to worry about
+    contexts until you want to work on several topics at the same time.
+    """
+    @cli2.cmd(color='green')
+    def list(self):
+        """ List project contexts """
+
+    @cli2.cmd
+    def add(self, name, *description):
+        """
+        Create a new context to work in.
+
+        While you don't need to create a context to work with code2, it'll be
+        very helpful to work on different topics in your repository, pickup
+        back where you left.
+
+        While a context represents a context for the LLM session, think of it
+        as a topic: your project has many topics which include features.
+
+        A context is going to include:
+
+        - chat and session history
+        - relevant symbols in code
+        - files to add automatically to the chat
+
+        Example to add a context with a description:
+
+            # add a context named python412 to upgrade your project to Python 4.12
+            code2 context add python412
+
+            # add a context named djupgrade with a description:
+            code2 context add djupgrade Upgrade Django to 8.12
+
+        :param name: One word name for the context
+        :param description: Any subsequent word will be added to description
+        """
+
+    @cli2.cmd
+    def archive(self, name):
+        """
+        Archive a context
+
+        It won't show in the CLI anymore until next time you switch to it.
+
+        :param name: Context name
+        """
+
+    @cli2.cmd
+    def switch(self, name, local: bool=False):
+        """
+        Switch to a context.
+
+        :param name: Context name
+        :param local: Enable to switch to this context locally only, based on
+                      the parent shell PID. By default, it switches the context
+                      globally, for all your shells open in your repository
+                      which are not in a local context.
+        """
+
+
+class ConsoleScript(cli2.Group):
+    def __call__(self, *argv):
+        self.project = Project(os.getcwd())
+
+        # Find contexts to lazy load from project configuration
+        #for name, context in self.project.contexts.items():
+        #    self.group(name).load(context)
+
+        # Load all commands in default context anyway
+        self.load_context(self.project.contexts['default'])
+
+        # And a group to manage contexts
+        self.group(
+            'context',
+            doc=ContextCommands.__doc__,
+        ).load(ContextCommands())
+
+        return super().__call__(*argv)
+
+    def load_context(self, context):
+        for plugin in importlib.metadata.entry_points(group='code2_assist'):
+            obj = plugin.load()
+
+            async def run_plugin(*message):
+                nonlocal self, plugin, context, obj
+                if not message:
+                    return self[plugin.name].help()
+                return await obj(self.project, context).run(' '.join(message))
+
+            self.add(
+                run_plugin,
+                name=plugin.name,
+                doc=obj.run.__doc__,
+            )
+
+        # also load context commands
+        self.load(context)
+
+
+cli = ConsoleScript()
+
+
+#cli = cli2.Command(Engine.factory().run())
+
+'''
 from litellm import completion
 from pathlib import Path
-import cli2
 import os
 
 from rich.console import Console
@@ -19,7 +136,8 @@ console = Console()
 
 cli2.cfg.defaults.update(
     MODEL='openrouter/deepseek/deepseek-chat',
-    SYSTEM_PROMPT=Path(__file__).parent / 'system_prompt.txt',
+    SYSTEM_PROMPT_EDITOR=Path(__file__).parent / 'system_prompt_editor.txt',
+    SYSTEM_PROMPT_ARCHITECT=Path(__file__).parent / 'system_prompt_architect.txt',
 )
 
 
@@ -30,7 +148,6 @@ class Engine:
         if prompt_system_path.exists():
             with prompt_system_path.open('r') as f:
                 return f.read()
-
 
     def __init__(self):
         self.project = Project(os.getcwd())
@@ -101,5 +218,5 @@ class Engine:
         if tokens:
             print_tokens()
 
+'''
 
-cli = cli2.Command(Engine().run)

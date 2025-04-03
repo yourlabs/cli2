@@ -24,5 +24,9 @@ setup(
         'console_scripts': [
             'code2 = code2.cli:cli.entry_point',
         ],
+        'code2_assist': [
+            'analyze = code2.assist:Analyze',
+            'hack = code2.assist:Hack',
+        ],
     },
 )
