@@ -20,6 +20,7 @@
    client
    ansible
    lock
+   notlevenshtein
    cli2
 
 Example Sphinx

@@ -22,6 +22,7 @@ else:
     from .lock import Lock
 from .log import configure, log, parse
 from .mask import Mask
+from .notlevenshtein import closest
 from .table import Table
 
 
