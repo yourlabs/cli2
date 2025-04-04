@@ -21,12 +21,15 @@ class Project:
             if path.name not in self._contexts:
                 self._contexts[path.name] = Context(self, path)
 
-        if 'default' not in self._contexts:
-            self._contexts['default'] = Context(
+        for name in ('default', 'project'):
+            if name in self._contexts:
+                continue
+
+            self._contexts[name] = Context(
                 self,
-                self.contexts_path / 'default',
+                self.contexts_path / name,
             )
-            self._contexts['default'].path.mkdir(exist_ok=True, parents=True)
+            self._contexts[name].path.mkdir(exist_ok=True, parents=True)
 
         return self._contexts
 
@@ -54,9 +57,9 @@ class Project:
         return self._contexts
 
     @functools.cached_property
-    def prompts_path(self):
+    def data_path(self):
         """ Return the path to the project context directories """
-        path = self.path / '.code2/contexts'
+        path = self.path / '.code2/data'
         path.mkdir(exist_ok=True, parents=True)
         return path
 
@@ -100,3 +103,33 @@ class Project:
         for row in self.symbols():
             result.append(f'{row[0]}:{row[1]}:{row[2]}:{row[3]}')
         return '\n'.join(result)
+
+    def save(self, key, data):
+        self.data_path.mkdir(exist_ok=True, parents=True)
+
+        with (self.data_path / key).open('w') as f:
+            f.write(data)
+
+    def load(self, key):
+        path = self.data_path / key
+
+        if not path.exists():
+            return None
+
+        with path.open('r') as f:
+            return f.read()
+
+    def query(self, sql):
+        DB_FILE = 'repo_symbols.db'
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute('select distinct name from symbols')
+        return cursor.fetchall()
+
+    def extensions(self):
+        """ Return list of distinct file extensions for this project. """
+        rows = self.query('''
+            SELECT DISTINCT SUBSTR(path, INSTR(path, '.') + 1)
+            FROM files WHERE INSTR(path, '.') > 0;
+        ''')
+        return [row[0] for row in rows]

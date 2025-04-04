@@ -1,20 +1,33 @@
+"""
+Base Assistant plugin which you can inherit from.
+
+Plugins register themselves over the ``code2_assist`` entrypoint, and are
+exposed on the command line for every context.
+
+To create your own plugin, create a Python package with an entrypoint like:
+
+.. code-block:: python
+
+    'code2_assist': [
+        'plugin_name = your.module:ClassName',
+    ]
+
+Install the package and ``plugin_name`` will appear in the code2 command line.
+"""
+
 import cli2
 import functools
+import importlib.metadata
 import hashlib
 import re
 import textwrap
-
-from litellm import completion
-
-cli2.cfg.defaults.update(
-    MODEL='openrouter/deepseek/deepseek-chat max_tokens=16384 temperature=.7 top_p=.9',  # noqa
-)
 
 
 class AssistPlugin:
     def __init__(self, project, context):
         self.project = project
         self.context = context
+        self.llm_plugins = dict()
 
     @classmethod
     async def run_plugin(cls, name, project, context, *message, _cli2=None):
@@ -22,47 +35,6 @@ class AssistPlugin:
             return _cli2[plugin.name].help()
         obj = cls(project, context)
         return await obj.run(' '.join(message))
-
-    @functools.cached_property
-    def model_name(self):
-        return cli2.cfg['MODEL'].split()[0]
-
-    @functools.cached_property
-    def model_kwargs(self):
-        parts = cli2.cfg['MODEL'].split()
-        kwargs = dict()
-        for token in parts[1:]:
-            key, value = token.split('=')
-            try:
-                value = int(value)
-            except ValueError:
-                try:
-                    value = float(value)
-                except ValueError:
-                    pass
-            kwargs[key] = value
-        return kwargs
-
-    def llm(self, messages):
-        tokens = sum([len(msg['content']) for msg in messages])
-        cli2.log.debug('messages', tokens=tokens, json=messages)
-
-        stream = completion(
-            messages=messages,
-            stream=True,
-            model=self.model_name,
-            **self.model_kwargs,
-        )
-
-        full_content = ""
-        for chunk in stream:
-            if hasattr(chunk, 'choices') and chunk.choices:
-                delta = chunk.choices[0].delta
-                if hasattr(delta, 'content') and delta.content is not None:
-                    full_content += delta.content
-
-        cli2.log.debug('answer', content=full_content)
-        return full_content
 
     def hash(self, message):
         _ = hashlib.new('sha1')
@@ -124,6 +96,91 @@ class AssistPlugin:
             if answer.lower() in choices:
                 return answer.lower()
 
+    def completion(self, messages, models=None):
+        """
+        Request completion for a list of messages.
+
+        messages looks like this:
+
+        .. code-block:: python
+
+            messages = [
+                dict(role="user", content=user_message),
+            ]
+
+            # can also contain more:
+            messages = [
+                dict(role="system", content=your_system_prompt),
+                dict(role="user", content=previous_message),
+                dict(role="assistant", content=previous_assistant_reply),
+                dict(role="user", content=user_message),
+            ]
+
+        ``models`` is optionnal, and by default will be ``['default']``.
+        ``'default'`` will always be appended to the list.
+
+        Default model is configured by the :envvar:`MODEL` environment
+        variable, but can be used to change models based on the kind of
+        completion you want.
+
+        You can specify other models for your plugin to use in a
+        ``MODEL_$name`` environment variable. For example, if
+        :envvar:``MODEL_ARCHITECT`` is defined, then this method will use that
+        variable instead of :envvar:`MODEL` if the ``models`` argument is:
+        ``['architect']``. Refer to :envvar:`MODEL_OTHER` for more.
+
+        :param message: List of message dicts, each containing at least a
+                        ``content`` key, can have a ``role`` key, typically in
+                        "user", "assistant", "system"...
+        :param models: List of model names, the first one found will be used,
+                       "default" will be appendend to this list so that
+        """
+
+        if not models:
+            models = []
+        if 'default' not in models:
+            models.append('default')
+
+        for model in models:
+            if model in self.llm_plugins:
+                break
+
+            # load the model configuration, MODEL by default
+            if model == 'default':
+                plugin_conf = cli2.cfg['MODEL']
+            else:
+                model_var = f'MODEL_{model.upper()}'
+                if model_var in os.environ:
+                    plugin_conf = os.environ[model_var]
+                else:
+                    continue
+
+            tokens = plugin_conf.split()
+
+            # load the plugin based on first token, litellm by default
+            plugins = importlib.metadata.entry_points(
+                name=tokens[0],
+                group='code2_llm',
+            )
+            if plugins:
+                model_conf = tokens[1:]
+                plugin = plugins[0]
+            else:
+                model_conf = tokens
+                plugin = [*importlib.metadata.entry_points(
+                    name='litellm',
+                    group='code2_llm',
+                )][0]
+
+            self.llm_plugins[model] = plugin.load().factory(*model_conf)
+            break
+
+        tokens = sum([len(msg['content']) for msg in messages])
+        cli2.log.debug('messages', tokens=tokens, json=messages)
+        content = self.llm_plugins[model].completion(messages)
+        cli2.log.debug('answer', content=content)
+        return content
+
     def dependencies_refine_prompt(self, message):
         PROMPT = textwrap.dedent('''
         You are called from an automated AI assistant requiring a structured
@@ -141,7 +198,7 @@ class AssistPlugin:
             message=message,
             files='\n'.join(self.project.files()),
         )
-        return self.llm(
+        return self.completion(
             [
                 dict(
                     role='user',
@@ -177,7 +234,7 @@ class AssistPlugin:
             message=message,
             files=dump,
         )
-        return self.llm(
+        return self.completion(
             [
                 dict(
                     role='user',

@@ -46,7 +46,7 @@ class Ask(AssistPlugin):
             message=message,
             dependencies='\n'.join(dependencies),
         )
-        return self.llm(
+        return self.completion(
             [
                 dict(
                     role='user',
@@ -104,7 +104,7 @@ class Ask(AssistPlugin):
             message=message,
             files='\n'.join(dump),
         )
-        return self.llm(
+        return self.completion(
             [
                 dict(
                     role='user',
