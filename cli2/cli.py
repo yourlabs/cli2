@@ -825,7 +825,11 @@ class Argument:
             self.type = param.annotation
 
         self.negate = None
-        if self.iskw and self.param.annotation == bool:
+        if (
+            self.iskw
+            and self.param.annotation == bool
+            and self.param.default is not False
+        ):
             self.negate = 'no-' + param.name
             if cmd.posix:
                 self.negate = self.negate.replace('_', '-')
@@ -978,7 +982,11 @@ class Argument:
                 + colors.reset
             )
 
-        if self.type == bool and not self.negates:
+        if (
+            self.type == bool
+            and not self.negates
+            and self.param.default is not False
+        ):
             self.cmd.print(
                 'Accepted: '
                 + colors.blue3
