@@ -86,6 +86,13 @@ class ConsoleScript(cli2.Group):
         # Load all commands in default context anyway
         self.load_context(self.project.contexts['default'])
 
+        # Add project management commands
+        group = self.group('project')
+        # TODO: should not have to do that ptach
+        group.overrides['self']['factory'] = lambda: self.project
+        # actually load the project management commands
+        group.load(self.project)
+
         # And a group to manage contexts
         self.group(
             'context',
@@ -98,17 +105,14 @@ class ConsoleScript(cli2.Group):
         for plugin in importlib.metadata.entry_points(group='code2_assist'):
             obj = plugin.load()
 
-            async def run_plugin(*message):
-                nonlocal self, plugin, context, obj
-                if not message:
-                    return self[plugin.name].help()
-                return await obj(self.project, context).run(' '.join(message))
-
-            self.add(
-                run_plugin,
+            cmd = self.add(
+                obj.run_plugin,
                 name=plugin.name,
                 doc=obj.run.__doc__,
             )
+            cmd.overrides['project']['factory'] = lambda: self.project
+            cmd.overrides['context']['factory'] = lambda: context
+            cmd.overrides['context']['name'] = lambda: plugin.name
 
         # also load context commands
         self.load(context)

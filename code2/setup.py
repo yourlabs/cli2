@@ -8,10 +8,10 @@ setup(
     packages=['code2'],
     install_requires=[
         'cli2',
-        'prompt-toolkit',
         'tree-sitter',
         'tree-sitter-language-pack',
         'litellm',
+        'rich',
     ],
     author='James Pic',
     author_email='jamespic@gmail.com',
@@ -25,8 +25,12 @@ setup(
             'code2 = code2.cli:cli.entry_point',
         ],
         'code2_assist': [
-            'analyze = code2.assist:Analyze',
-            'hack = code2.assist:Hack',
+            'ask = code2.plugins.assist.ask:Ask',
+            'analyze = code2.plugins.assist.analyze:Analyze',
+            'hack = code2.plugins.assist.hack:Hack',
+        ],
+        'code2_llm': [
+            'litellm = code2.plugins.llm.litellm:LiteLLM',
         ],
     },
 )
