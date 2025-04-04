@@ -40,3 +40,35 @@ def closest(source_token, token_list):
             closest_token = token
 
     return closest_token
+
+
+def closest_path(path, paths):
+    """
+    Find the closest path from paths.
+
+    LLM may output broken paths, this fixes them.
+
+    :param path: Path to find closest
+    :param paths: List of paths to search in.
+    """
+    parts = path.split('/')
+    for number, part in enumerate(parts):
+        paths_parts = {
+            str(path).split('/')[number]
+            for path in paths
+        }
+        if part not in paths_parts:
+            path_part = closest(part, paths_parts)
+            if not path_part:
+                return None  # not found at all
+        else:
+            path_part = part
+
+        parts[number] = path_part
+        paths = {
+            path
+            for path in paths
+            if str(path).startswith('/'.join(parts[:number + 1]))
+        }
+
+    return '/'.join(parts)
