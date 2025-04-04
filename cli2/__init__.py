@@ -14,6 +14,7 @@ from .colors import colors as c
 
 from .configuration import Configuration, cfg
 from .display import diff, diff_data, render, print, highlight, yaml_highlight
+from .interactive import choice
 try:
     import fcntl
 except ImportError:

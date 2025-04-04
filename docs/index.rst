@@ -13,6 +13,7 @@
    log
    display
    mask
+   interactive
    colors
    table
    asyncio
