@@ -195,9 +195,12 @@ def test_load():
             raise Exception('fails')
 
     class Bar(metaclass=BarMetaclass):
+        def __init__(self, init=None):
+            self.init = init
+
         @cli2.cmd
         def test(self):
-            pass
+            return self.init
 
         @classmethod
         @cli2.cmd
@@ -229,10 +232,15 @@ def test_load():
     assert list(group.keys()) == ['help', 'test', 'classmeth', 'test2']
 
     group = cli2.Group()
-    group.load(Foo())
-    assert list(group.keys()) == ['help', 'classmeth', 'test', 'test2']
+    group['0'] = group.group('0')
+    group['1'] = group.group('1')
+    group['0'].load(Foo(0))
+    group['1'].load(Foo(1))
+    assert list(group['0'].keys()) == ['help', 'classmeth', 'test', 'test2']
 
-    assert isinstance(group['test2'](), Foo)
+    assert isinstance(group['0']['test2'](), Foo)
+    assert group['1']['test']() == 1
+    assert group['0']['test']() == 0
 
     class Child(Foo):
         test2 = None

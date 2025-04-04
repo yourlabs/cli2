@@ -314,7 +314,6 @@ class Group(EntryPoint, dict):
             if not callable(getattr(type(obj), name, None)):
                 continue
             method = getattr(obj, name)
-            arg('self', factory=lambda: obj)(method)
             self.load_method(obj, method)
 
     def load_method(self, obj, method):
@@ -330,7 +329,7 @@ class Group(EntryPoint, dict):
         if condition:
             if not condition(obj):
                 return
-        self.cmd(wrapped_method or method)
+        self.cmd(method)
 
     def __call__(self, *argv):
         self.exit_code = 0
