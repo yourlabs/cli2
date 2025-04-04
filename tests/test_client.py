@@ -304,7 +304,7 @@ async def test_handler(client_class):
     response = httpx.Response(status_code=200)
     response.request = httpx.Request('POST', '/', json=[1])
     result = await handler(client, response, 0, log)
-    log.info.assert_called_once_with(
+    log.warn.assert_called_once_with(
         'retry', status_code=200, tries=0, sleep=.0
     )
     assert not result
@@ -313,7 +313,7 @@ async def test_handler(client_class):
     response.request = httpx.Request('POST', '/', json=[1])
     with pytest.raises(chttpx.RetriesExceededError) as exc:
         await handler(client, response, handler.tries + 1, log)
-    log.info.assert_called_once_with(
+    log.warn.assert_called_once_with(
         'retry', status_code=200, tries=0, sleep=.0
     )
 
@@ -347,8 +347,9 @@ async def test_handler(client_class):
     assert not client.client_reset.await_count
     exc = httpx.TransportError('foo')
     exc.request = response.request
+    log.warn.reset_mock()
     result = await handler(client, exc, 0, log)
-    log.warn.assert_called_once_with(
+    log.warn.assert_called_with(
         'reconnect',
         error="TransportError('foo')",
         method='POST',
@@ -366,7 +367,7 @@ async def test_handler(client_class):
     assert not client.token_reset.await_count
     log.warn.reset_mock()
     result = await handler(client, response, 0, log)
-    log.warn.assert_called_once_with('retoken')
+    assert mock.call('retoken') in log.warn.call_args_list
     assert not result
     assert client.token_reset.await_count == 1
 

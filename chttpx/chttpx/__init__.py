@@ -1242,7 +1242,6 @@ class Handler:
                 raise response
             # httpx session is rendered unusable after a TransportError
             if isinstance(response, httpx.TransportError):
-                await asyncio.sleep(seconds)
                 kwargs = dict(error=repr(response))
                 try:
                     response.request
@@ -1252,6 +1251,8 @@ class Handler:
                     kwargs['method'] = response.request.method
                     kwargs['url'] = str(response.request.url)
                 log.warn('reconnect', **kwargs)
+
+                await asyncio.sleep(seconds)
                 await client.client_reset()
             return
 
@@ -1274,7 +1275,7 @@ class Handler:
             log.warn('retoken')
             await client.token_reset()
 
-        log.info(
+        log.warn(
             'retry',
             status_code=response.status_code,
             tries=tries,
