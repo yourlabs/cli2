@@ -299,6 +299,9 @@ class Group(EntryPoint, dict):
                 continue
             if leaf and getattr(final, name, '_') is None:
                 continue
+            if isinstance(method, classmethod):
+                # get the bound method
+                method = getattr(cls, name)
             self.load_method(final, method)
 
     def load_obj(self, obj):
@@ -310,7 +313,9 @@ class Group(EntryPoint, dict):
                 continue
             if not callable(getattr(type(obj), name, None)):
                 continue
-            self.load_method(obj, getattr(obj, name))
+            method = getattr(obj, name)
+            arg('self', factory=lambda: obj)(method)
+            self.load_method(obj, method)
 
     def load_method(self, obj, method):
         wrapped_method = getattr(method, '__func__', None)

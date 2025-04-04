@@ -228,7 +228,7 @@ def test_load():
     group.load(Foo)
     assert list(group.keys()) == ['help', 'test', 'classmeth', 'test2']
 
-    group = cli2.Group(overrides=dict(self=dict(factory=lambda: Foo())))
+    group = cli2.Group()
     group.load(Foo())
     assert list(group.keys()) == ['help', 'classmeth', 'test', 'test2']
 
