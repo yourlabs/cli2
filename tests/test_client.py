@@ -3,7 +3,7 @@ import cli2
 import chttpx
 import httpx
 import inspect
-import mock
+from unittest import mock
 import pytest
 
 
