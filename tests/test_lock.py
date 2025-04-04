@@ -7,7 +7,7 @@ Another test to do is to run, in two terminals:
 - python tests/lock.py
 """
 import cli2
-import mock
+from unittest import mock
 
 
 def test_non_blocking(tmp_path):

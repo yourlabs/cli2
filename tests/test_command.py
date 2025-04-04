@@ -4,6 +4,7 @@ import cli2.test
 import inspect
 import pytest
 import os
+from unittest import mock
 
 
 os.environ['FORCE_COLOR'] = '1'
@@ -438,16 +439,16 @@ def test_docstring():
     )
 
 
-def test_print(mocker):
-    cmd = cli2.Command(lambda: True, outfile=mocker.Mock())
+def test_print():
+    cmd = cli2.Command(lambda: True, outfile=mock.Mock())
     cmd.print('orangebold', 'foo', 'bar')
     assert cmd.outfile.write.call_args_list[0].args == (
         '\x1b[1;38;5;202mfoo bar\x1b[0m',
     )
 
 
-def test_print_bold(mocker):
-    cmd = cli2.Command(lambda: True, outfile=mocker.Mock())
+def test_print_bold():
+    cmd = cli2.Command(lambda: True, outfile=mock.Mock())
     cmd.print('ORANGE', 'foo', 'bar')
     assert cmd.outfile.write.call_args_list[0].args == (
         '\x1b[1;38;5;202mfoo bar\x1b[0m',
@@ -519,6 +520,8 @@ def test_arg():
     assert list(cmd.keys()) == ['bar', 'foo']
     assert cmd('bar', 'foo') == 'foo'
     assert cmd['bar'].value == 'bar'
+    del cmd['bar']
+    cmd.help()
 
 
 def test_helphack():

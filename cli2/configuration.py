@@ -8,6 +8,8 @@ The developer story we are after:
 - when there's a minute to be nice to the user, add some help that will be
   displayed to them: ``cli2.cfg.questions['YOUR_ENV_VAR'] = 'this is a help
   text that will be display to the user when we prompt them for YOUR_ENV_VAR'``
+- you can also set ``cli2.cfg.defaults['YOUR_ENV_VAR']`` if you prefer a
+  default value to an interactive prompt
 
 This is the user story we are after:
 
@@ -29,6 +31,8 @@ import shlex
 import textwrap
 from pathlib import Path
 
+from .log import log
+
 
 class Configuration(dict):
     """
@@ -42,6 +46,12 @@ class Configuration(dict):
         A dict of ``ENV_VAR=question_string``, if an env var is missing from
         configuration then question_string will be used as text to prompt the
         user.
+
+    .. py:attribute:: defaults
+
+        A dict of ``ENV_VAR='default_value'``, if an env var is missing from
+        configuration then the default value will be returned instead of
+        displaying an interactive prompt.
 
     .. py:attribute:: profile_path
 
@@ -67,8 +77,9 @@ class Configuration(dict):
             api_url = cli2.cfg['USERNAME']
 
     """
-    def __init__(self, profile_path=None, **questions):
+    def __init__(self, profile_path=None, defaults=None, **questions):
         self.questions = questions
+        self.defaults = defaults or dict()
         self.profile_path = Path(
             profile_path or os.getenv('HOME') + '/.profile'
         )
@@ -154,6 +165,11 @@ class Configuration(dict):
         # their command for the second time in the same shell
         if key in self.profile_variables:
             return self.profile_variables[key]
+
+        if key in self.defaults:
+            value = self.defaults[key]
+            log.debug(f'Defaulting {key} to {value}')
+            return value
 
         prompt = self.questions.get(key, key)
         prompt = textwrap.dedent(prompt).strip()

@@ -75,3 +75,6 @@ def test_idempotent(tmp_path):
     assert cfg.prints[0][0][0] == (
         f'Appended to {cfg.profile_path}:\nexport TEST=success'
     )
+
+    cfg.defaults['HASDEF'] = 1
+    assert cfg['HASDEF'] == 1

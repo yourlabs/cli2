@@ -4,11 +4,13 @@ import pytest
 from chttpx.example import APIClient
 
 
-@pytest.mark.chttpx_mock
-def test_object_story(ts, chttpx_vars):
-    chttpx_vars.setdefault('test_name', f'test{ts}')
-    test_name = chttpx_vars['test_name']
+@pytest.fixture
+def test_name(ts, chttpx_vars):
+    return chttpx_vars.setdefault('test_name', f'test{ts}')
 
+
+@pytest.mark.chttpx_mock
+def test_object_story(test_name):
     obj = APIClient.cli['object']['create'](f'name={test_name}')
     assert obj.name == test_name
 

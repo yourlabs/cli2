@@ -75,7 +75,7 @@ def autotest(path, cmd, ignore=None, env=None):
             '''.strip(),
         )
 
-    diff_cmd = 'diff -U 1 - "%s" | sed "1,2 d"' % path
+    diff_cmd = 'diff -U 1 "%s" - | sed "1,2 d"' % path
     proc = subprocess.Popen(
         diff_cmd,
         stdout=subprocess.PIPE,
@@ -88,8 +88,8 @@ def autotest(path, cmd, ignore=None, env=None):
     if diff_out:
         raise type(f'''
 DiffFound
-- {cmd}
-+ {path}
+- {path}
++ {cmd}
         '''.strip(), (Exception,), {})('\n' + diff_out.decode('utf8'))
 
 

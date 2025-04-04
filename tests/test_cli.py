@@ -13,19 +13,19 @@ def test_call():
     assert "args=('http://?x=bar',)" in result
 
 
-def test_doc_by_default(mocker):
+def test_doc_by_default():
     main.outfile = Outfile()
     main('cli2.examples.test')
     assert 'example_function' in main.outfile
 
 
-def test_help_argument(mocker):
+def test_help_argument():
     main.outfile = Outfile()
     main('help', 'cli2.examples.test')
     assert 'example_function' in main.outfile
 
 
-def test_help_no_argument(mocker):
+def test_help_no_argument():
     main.outfile = Outfile()
     main()
     assert 'help' in main.outfile

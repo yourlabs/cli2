@@ -454,6 +454,23 @@ you can work on the list return with the field descriptor:
 
 It's just magic I love it!
 
+Virtual fields
+``````````````
+
+Virtual fields are just like fields except that they don't live in the payload
+:py:attr:`~chttpx.Model.data`. It allows to old attributes which belong to us
+while generating defaults for data fields which belong to the remote API:
+
+.. code-block:: python
+
+    class YourModel(YourClient.Model):
+        our_name = VirtualField()
+        remote_name = Field()
+
+        @remote_name.factory(our_name)
+        def default_value(self):
+            return f'something{self.our_name}'
+
 Testing
 =======
 
@@ -467,13 +484,16 @@ Let's write a test that calls the object create and delete command, say, in the
 
 .. code-block:: python
 
-    @pytest.mark.chttpx_mock
-    def test_object_story(chttpx_vars, ts):
+    @pytest.fixture
+    def test_name(ts, chttpx_vars):
         # ts is a fixture provided by this plugin which contains the timestamp
         # chttpx_vars is variables that will be attached to the test fixture
-        chttpx_vars.setdefault('test_name', f'test{ts}')
-        test_name = chttpx_vars['test_name']
+        # doing this ensures you get either the fixture saved test_name either
+        # a new one, unique thanks to the timestamp
+        return chttpx_vars.setdefault('test_name', f'test{ts}')
 
+    @pytest.mark.chttpx_mock
+    def test_object_story(test_name):
         obj = APIClient.cli['object']['create'](f'name={test_name}')
         assert obj.name == test_name
 

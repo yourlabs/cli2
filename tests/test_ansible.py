@@ -1,7 +1,7 @@
 import cli2
 import chttpx
 import httpx
-import mock
+from unittest import mock
 import pytest
 import textwrap
 import yaml

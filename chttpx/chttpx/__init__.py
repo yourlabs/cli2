@@ -38,6 +38,7 @@ __all__ = [
     'FieldError',
     'FieldValueError',
     'FieldExternalizeError',
+    'VirtualField',
     'Client',
     'ClientCommand',
     'DateTimeField',
@@ -456,9 +457,9 @@ class Field:
             data = data[key]
         return data
 
-    def is_set(self, data):
+    def is_set(self, obj):
         try:
-            self.get(data)
+            self.get(obj._data)
         except KeyError:
             return False
         else:
@@ -538,6 +539,31 @@ class Field:
             return _
         else:
             return _(args[0])
+
+
+class VirtualField(Field):
+    def __get__(self, obj, objtype=None):
+        """
+        Get the value of a virtual field for an object.
+        """
+        if obj is None:
+            return self
+
+        return obj._data_virtual.get(self.name)
+
+    def __set__(self, obj, value):
+        """
+        Set a value that must not end up in :py:attr:`Model.data` dict.
+        """
+        if self.name in obj._data_virtual:
+            old_value = self.__get__(obj)
+            if old_value != value:
+                obj.changed_fields[self.name] = old_value
+
+        obj._data_virtual[self.name] = value
+
+    def is_set(self, obj):
+        return self.name in obj._data_virtual
 
 
 class MutableField(Field):
@@ -896,6 +922,7 @@ class Model(metaclass=ModelMetaclass):
         :param data: JSON Data
         """
         self._data = data or dict()
+        self._data_virtual = data or dict()
         self._data_updating = False
         self._dirty_fields = []
         self._field_cache = dict()
@@ -930,12 +957,12 @@ class Model(metaclass=ModelMetaclass):
         missing = []
         done = []
         for name, field in self._fields.items():
-            if not field.callback or field.is_set(self._data):
+            if not field.callback or field.is_set(self):
                 continue
 
             ready = True
             for dependency in field.callback_dependencies:
-                if not dependency.is_set(self._data):
+                if not dependency.is_set(self):
                     missing.append(dependency)
                     ready = False
             if ready:
@@ -1796,7 +1823,7 @@ class Client(metaclass=ClientMetaclass):
     def response_log_data(self, response):
         try:
             data = response.json()
-        except json.JSONDecodeError:
+        except:  # noqa
             if response.content:
                 return 'content', self.mask(response.content)
         else:
@@ -1811,7 +1838,7 @@ class Client(metaclass=ClientMetaclass):
 
         try:
             data = json.loads(content)
-        except json.JSONDecodeError:
+        except:  # noqa
             pass
         else:
             return 'json', self.mask(data)
