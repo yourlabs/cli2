@@ -11,6 +11,7 @@ from .cli import (
 )
 from .asyncio import async_resolve, async_run, Queue
 from .colors import colors as c
+from .theme import theme, t
 
 from .configuration import Configuration, cfg
 from .display import diff, diff_data, render, print, highlight, yaml_highlight
@@ -21,6 +22,7 @@ except ImportError:
     """ windows """
 else:
     from .lock import Lock
+
 from .log import configure, log, parse
 from .mask import Mask
 from .notlevenshtein import closest, closest_path

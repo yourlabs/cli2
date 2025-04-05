@@ -184,7 +184,7 @@ class Table(list):
                 if len(wrapped) > 1:
                     leftovers[colnum] = ' '.join(wrapped[1:])
                 if color:
-                    line[-1] = color + line[-1] + colors.reset
+                    line[-1] = str(color) + line[-1] + colors.reset
             for leftover in leftovers:
                 if len(leftover):
                     rows.insert(0, leftovers)

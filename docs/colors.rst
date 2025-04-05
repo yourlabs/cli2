@@ -1,8 +1,10 @@
-Colors
-~~~~~~
+Color theme
+~~~~~~~~~~~
 
-.. automodule:: cli2.colors
+.. automodule:: cli2.theme
    :members:
 
-.. literalinclude:: ../cli2/colors.py
-   :language: python
+.. image:: theme.png
+
+.. note:: The old colors system, in ``cli2.c``, is preserved for backward
+          compatibility.
