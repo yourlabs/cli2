@@ -94,7 +94,6 @@ def configure(log_file=None):
     if os.getenv('DEBUG'):
         LOG_LEVEL = 'DEBUG'
 
-    timestamper = structlog.processors.TimeStamper(fmt='%Y-%m-%d %H:%M:%S')
     pre_chain = [
         # add log level and timestamp to event_dict
         structlog.stdlib.add_log_level,
@@ -102,8 +101,11 @@ def configure(log_file=None):
         # that values in the extra parameters of log methods pass through to
         # log output
         structlog.stdlib.ExtraAdder(),
-        timestamper,
     ]
+
+    if 'NO_TIMESTAMPER' not in os.environ:
+        timestamper = structlog.processors.TimeStamper(fmt='%Y-%m-%d %H:%M:%S')
+        pre_chain.append(timestamper)
 
     cmd = '_'.join([
         re.sub('[^0-9a-zA-Z]+', '_', arg.split('/')[-1])
@@ -213,18 +215,23 @@ def configure(log_file=None):
 
     logging.config.dictConfig(LOGGING)
 
+    processors = [
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+    ]
+    if 'NO_TIMESTAMPER' not in os.environ:
+        processors.append(timestamper)
+    processors += [
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+    ]
+
     structlog.configure(
         logger_factory=structlog.stdlib.LoggerFactory(),
         wrapper_class=structlog.stdlib.BoundLogger,
         cache_logger_on_first_use=True,
-        processors=[
-            structlog.stdlib.add_log_level,
-            structlog.stdlib.PositionalArgumentsFormatter(),
-            timestamper,
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
-            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
-        ],
+        processors=processors,
     )
 
 
