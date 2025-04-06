@@ -15,7 +15,7 @@ from .theme import theme, t
 
 from .configuration import Configuration, cfg
 from .display import diff, diff_data, render, print, highlight, yaml_highlight
-from .interactive import choice
+from .interactive import choice, editor
 try:
     import fcntl
 except ImportError:

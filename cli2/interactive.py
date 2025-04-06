@@ -1,4 +1,10 @@
 """ Interactive user inputs """
+import os
+import shlex
+import subprocess
+import tempfile
+
+from .log import log
 
 
 def choice(question, choices=None, default=None):
@@ -35,3 +41,40 @@ def choice(question, choices=None, default=None):
             return answer.lower()
 
         tries -= 1
+
+
+def editor(content=None):
+    """
+    Open $EDITOR with content, return the result.
+
+    Like git rebase -i does!
+
+    :param content: Initial content if any
+    :return: The edited content after $EDITOR exit
+    """
+    tmp = tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix=".txt")
+    with tmp as f:
+        f.write(content)
+        f.flush()
+        filepath = f.name
+
+    editor = os.getenv('EDITOR', 'vim')
+
+    try:
+        command = f"{editor} {shlex.quote(filepath)}"
+        subprocess.run(shlex.split(command), check=True)
+
+        with open(filepath, 'r') as f:
+            content = f.read()
+        return content
+    except subprocess.CalledProcessError as e:
+        log.error(f"Error running Vim: {e}")
+        return None
+    except FileNotFoundError:
+        log.warn(f"Temporary file gone?? {filepath}")
+        return None
+    finally:
+        try:
+            os.remove(filepath)
+        except OSError as e:
+            log.warn(f"Error deleting temporary file {filepath}: {e}")
