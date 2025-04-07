@@ -21,7 +21,7 @@ with open(__file__, 'r') as f:
             # default should not be enabled
             dict(),
             [],
-            ValueError,
+            cli2.Cli2ValueError,
         ),
         # test bools
         (
