@@ -14,6 +14,14 @@ from .asyncio import async_resolve
 from .colors import colors
 
 
+class Cli2Error(Exception):
+    pass
+
+
+class Cli2ValueError(Cli2Error):
+    pass
+
+
 class Overrides(dict):
     """
     Lazy overrides dict
@@ -1047,7 +1055,7 @@ class Argument:
             if self.default != self.param.empty:
                 return self.default
             msg = f'{self.param.name} has no CLI bound value nor default'
-            raise ValueError(msg) from exc
+            raise Cli2ValueError(msg) from exc
 
     @value.setter
     def value(self, value):

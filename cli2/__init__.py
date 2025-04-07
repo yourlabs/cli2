@@ -8,6 +8,8 @@ from .cli import (
     Command,
     Group,
     EntryPoint,
+    Cli2Error,
+    Cli2ValueError,
 )
 from .asyncio import async_resolve, async_run, Queue
 from .colors import colors as c
