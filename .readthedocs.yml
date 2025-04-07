@@ -13,6 +13,8 @@ python:
   - method: pip
     path: .
     extra_requirements: [test,httpx,ansible]
+  - method: pip
+    path: code2
   - requirements: docs/requirements.txt
 
 formats:
