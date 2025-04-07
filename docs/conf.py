@@ -24,9 +24,9 @@ copyright = '2019-2020, YourLabs'
 author = 'jpic, jdkirkwood'
 
 # The short X.Y version
-version = '4.0'
+version = '5.2'
 # The full version, including alpha/beta/rc tags
-release = '4.0.1'
+release = '5.2.1'
 
 
 # -- General configuration ---------------------------------------------------
