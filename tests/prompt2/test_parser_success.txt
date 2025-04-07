@@ -1,0 +1,24 @@
+command: prompt2 parser wholefile
+retcode: 0
+stdout:
+[1;38;5;3mPATH[0m
+[38;5;208mredacted/prompt2/prompt2/parser.py[0m
+
+[34mclass[39;49;00m[37m [39;49;00m[04m[32mWholefile[39;49;00m(Parser):[37m[39;49;00m
+    system = [33m"[39;49;00m[33mRespond only with the complete new file content, as this will be directly written to the file by an automated AI assistant tool—no additional text, comments, or explanations are allowed.[39;49;00m[33m"[39;49;00m  [37m# noqa[39;49;00m[37m[39;49;00m
+[37m[39;49;00m
+    [34mdef[39;49;00m[37m [39;49;00m[32mmessages[39;49;00m([36mself[39;49;00m, messages):[37m[39;49;00m
+        messages.append([37m[39;49;00m
+            [36mdict[39;49;00m([37m[39;49;00m
+                role=[33m'[39;49;00m[33msystem[39;49;00m[33m'[39;49;00m,[37m[39;49;00m
+                content=[36mself[39;49;00m.system,[37m[39;49;00m
+            ),[37m[39;49;00m
+        )[37m[39;49;00m
+        [34mreturn[39;49;00m messages[37m[39;49;00m
+[37m[39;49;00m
+    [34mdef[39;49;00m[37m [39;49;00m[32mparse[39;49;00m([36mself[39;49;00m, response):[37m[39;49;00m
+        [34mif[39;49;00m response.startswith([33m'[39;49;00m[33m```[39;49;00m[33m'[39;49;00m):[37m[39;49;00m
+            [37m# strip markup the IA absolutely wants to add[39;49;00m[37m[39;49;00m
+            [34mreturn[39;49;00m [33m'[39;49;00m[33m\n[39;49;00m[33m'[39;49;00m.join([l [34mfor[39;49;00m l [35min[39;49;00m response.split([33m'[39;49;00m[33m\n[39;49;00m[33m'[39;49;00m)[[34m1[39;49;00m:-[34m1[39;49;00m]])[37m[39;49;00m
+        [34mreturn[39;49;00m response[37m[39;49;00m
+

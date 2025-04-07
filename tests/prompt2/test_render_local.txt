@@ -1,0 +1,10 @@
+command: prompt2 render local
+retcode: 0
+stdout:
+[1;38;5;3mPATH[0m
+[38;5;208mredacted/prompts_local/local.txt[0m
+
+[1;38;5;3mOUTPUT[0m
+You are called by an automated process, you MUST structure your reply or you will crash it!
+stderr:
+[36mcontent[0m=[35mYou are called by an automated process, you MUST structure your reply or you will crash it![0m [36mevent[0m=[35mprompt loaded[0m [36mlevel[0m=[35mdebug[0m [36mpath[0m=[35mredacted/prompts_local/local.txt[0m

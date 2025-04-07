@@ -21,8 +21,8 @@ def autotest(path, cmd, ignore=None, env=None):
     """
     environ = copy.copy(os.environ)
     if env:
-        for key, value in env.items():
-            environ[key] = value
+        environ.update(env)
+    environ['CLI2_THEME'] = 'standard'
     environ['FORCE_TERMSIZE'] = '1'
     environ['PATH'] = ':'.join([
         environ.get('HOME', '') + '/.local/bin',

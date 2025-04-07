@@ -1,0 +1,6 @@
+command: prompt2 list
+retcode: 0
+stdout:
+[94mlocal[39;49;00m:[37m [39;49;00mredacted/prompts_local/local.txt[37m[39;49;00m
+[94muser[39;49;00m:[37m [39;49;00mredacted/prompts_user/user.txt[37m[39;49;00m
+

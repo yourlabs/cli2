@@ -1,0 +1,10 @@
+Here's how to write "Hello, World!" in Python:
+
+```python
+print("Hello, World!")
+```
+
+**Explanation:**  
+- The `print()` function outputs text to the console.
+- In Python 3, parentheses `()` are required for function calls.
+- The text `"Hello, World!"` is a string enclosed in quotes.

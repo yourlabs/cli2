@@ -1,0 +1,9 @@
+command: prompt2 edit local local
+retcode: 0
+stdout:
+You are called by an automated process, you MUST structure your reply or you will crash it![1mSAVED PROMPT:[0m
+You are called by an automated process, you MUST structure your reply or you will crash it!
+
+[38;5;2mSaved to redacted/prompts_local/local.txt[0m
+stderr:
+[36mcontent[0m=[35mYou are called by an automated process, you MUST structure your reply or you will crash it![0m [36mevent[0m=[35mwrote[0m [36mlevel[0m=[35minfo[0m [36mpath[0m=[35mredacted/prompts_local/local.txt[0m
