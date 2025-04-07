@@ -1,5 +1,5 @@
-prompt2: AI over CLI
-~~~~~~~~~~~~~~~~~~~~
+prompt2: AI CLI
+~~~~~~~~~~~~~~~
 
 Transform your terminal into an AI powerhouse ⚡ Craft dynamic prompts,
 automate workflows, and generate code at lightspeed - all through CLI sorcery
