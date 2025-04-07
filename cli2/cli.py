@@ -660,8 +660,13 @@ class Command(EntryPoint, dict):
         except KeyboardInterrupt:
             print('exiting cleanly...')
             self.exit_code = 1
+        except Exception as exc:
+            self.handle_exception(exc)
         finally:
             self.post_result = self.post_call()
+
+    def handle_exception(self, exc):
+        raise exc
 
     async def async_call(self, *argv):
         """ Call with async stuff in single event loop """
@@ -677,8 +682,11 @@ class Command(EntryPoint, dict):
 
         await self.factories_resolve()
 
-        result = self.call(*self.bound.args, **self.bound.kwargs)
-        return await async_resolve(result, output=True)
+        try:
+            result = self.call(*self.bound.args, **self.bound.kwargs)
+            return await async_resolve(result, output=True)
+        except Exception as exc:
+            self.handle_exception(exc)
 
     async def factories_resolve(self):
         """ Resolve all factories values. """
