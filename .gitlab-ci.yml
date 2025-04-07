@@ -7,7 +7,7 @@ qa:
 pytest:
   stage: test
   script:
-  - pip install --user -e .[test] -e chttpx -e cansible
+  - pip install --user -e .[test] -e chttpx -e cansible -e prompt2
   - unset DEBUG && pytest -vv --cov cli2 --cov-report=xml:coverage.xml --junitxml=report.xml --cov-report=term-missing --strict
   - CI_PROJECT_PATH=yourlabs/cli2 CI_BUILD_REPO=https://github.com/yourlabs/cli2 codecov-bash -f coverage.xml
   artifacts:
@@ -29,3 +29,4 @@ packages:
         - cansible
         - chttpx
         - code2
+        - prompt2

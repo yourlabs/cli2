@@ -45,27 +45,51 @@ import json
 import hashlib
 import os
 
+from .exception import NotFoundError
+from .parser import Parser
+
 
 class Model:
     models = dict()
+    default = 'openrouter/deepseek/deepseek-r1:free'
+
+    class NotFoundError(NotFoundError):
+        title = 'MODEL NOT FOUND'
+
+        def available_list(self):
+            models = {
+                key[6:].lower(): os.environ[key]
+                for key in os.environ
+                if key.startswith('MODEL_')
+            }
+            models['default'] = os.getenv('MODEL', Model.default)
+            return models
 
     def __init__(self, backend, *args, **kwargs):
         self.backend = backend
         self.args = args
         self.kwargs = kwargs
+        self._cache_path = None
 
     @property
     def cache_path(self):
-        return Path(os.getenv('HOME')) / '.code2/cache'
+        if not self._cache_path:
+            if 'PROMPT2_CACHE_PATH' in os.environ:
+                self._cache_path = Path(os.getenv('PROMPT2_CACHE_PATH'))
+            else:
+                self._cache_path = Path(os.getenv('HOME')) / '.code2/cache'
+        return self._cache_path
+
+    @cache_path.setter
+    def cache_path(self, value):
+        self._cache_path = value
 
     @classmethod
-    def get(cls, *names):
+    def get(cls, *names, strict=False):
         names = list(names)
-        if 'default' not in names:
-            names.append('default')
 
         key = None
-        for name in names:
+        for name in names + ['default']:
             if not name:
                 continue
 
@@ -80,11 +104,14 @@ class Model:
             if key in os.environ:
                 break
 
+        if strict and names[0] != name:
+            raise cls.NotFoundError(names[0])
+
         if key and key in os.environ:
             configuration = os.environ[key]
         else:
             # default value
-            configuration = 'openrouter/deepseek/deepseek-r1:free'
+            configuration = cls.default
 
         cls.models[name] = cls.factory(configuration)
         return cls.models[name]
@@ -96,13 +123,13 @@ class Model:
         # load the backend plugin based on first token, litellm by default
         plugins = importlib.metadata.entry_points(
             name=tokens[0],
-            group='code2_backend',
+            group='prompt2_backend',
         )
         if plugins:
             tokens = tokens[1:]
             plugin = [*plugins][0].load()
         else:
-            from code2.plugins.backend.litellm import LiteLLMBackend
+            from .backends.litellm import LiteLLMBackend
             plugin = LiteLLMBackend
 
         args = list()
@@ -154,31 +181,14 @@ class Model:
         _.update(json.dumps(cache).encode('utf8'))
         return _.hexdigest()
 
-    def parser_get(self, parser_name):
-        plugins = importlib.metadata.entry_points(
-            name=parser_name,
-            group='code2_parser',
-        )
-        if not plugins:
-            raise Exception(f'Parser {parser_name} not found')
-        plugin = [*plugins][0]
-        cli2.log.debug('loading parser', name=plugin.name, value=plugin.value)
-        return plugin.load()(self)
+    def parser(self, name):
+        return Parser.get(name)(self)
 
     async def process(self, messages, parser=None, cache_key=None):
         if parser:
-            parser = self.parser_get(parser)
-
-        # messages quacking like a Prompt are supported
-        if getattr(messages, 'messages', None):
-            if callable(messages.messages):
-                messages = messages.messages()
-
-        if parser:
-            parser.messages(messages)
+            messages = parser.messages(messages)
 
         tokens = sum([len(msg['content']) for msg in messages])
-
         cli2.log.debug('messages', tokens=tokens, json=messages)
         result = await self.completion(messages)
         cli2.log.debug('response', response=result)
@@ -186,5 +196,15 @@ class Model:
         if parser:
             result = parser.parse(result)
             cli2.log.debug('parsed', result=result)
-
         return result
+
+    async def __call__(self, messages, parser=None, cache_key=None):
+        if isinstance(parser, str):
+            # load parser object from string
+            parser = self.parser(parser)
+
+        if callable(getattr(messages, 'messages', None)):
+            # quacks like a Prompt object
+            messages = messages.messages()
+
+        return await self.process(messages, parser, cache_key=cache_key)

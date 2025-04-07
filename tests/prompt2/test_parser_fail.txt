@@ -1,0 +1,14 @@
+command: prompt2 parser
+retcode: 1
+stdout:
+[1;38;5;1mERROR: [0mmissing 1 required argument: name[0m
+
+[1;38;5;202mSYNOPSYS[0m
+prompt2 parser [38;5;10mNAME[0m
+
+[1;38;5;202mDESCRIPTION[0m
+Show a parser
+
+[1;38;5;202mPOSITIONAL ARGUMENTS[0m
+[38;5;10mNAME[0m[0m
+Parser name to display

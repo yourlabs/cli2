@@ -2,7 +2,7 @@ import cli2
 import litellm
 import os
 
-from code2.backend import BackendPlugin
+from prompt2.backend import BackendPlugin
 
 
 class LiteLLMBackend(BackendPlugin):

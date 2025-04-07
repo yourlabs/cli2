@@ -1,0 +1,7 @@
+command: prompt2 send user
+retcode: 0
+stdout:
+[1;38;5;1mMISSING CONTEXT VARIABLE[0m
+'foo' is undefined
+stderr:
+[36mcontent[0m=[35mWith context {{ foo }}[0m [36mevent[0m=[35mprompt loaded[0m [36mlevel[0m=[35mdebug[0m [36mpath[0m=[35mredacted/prompts_user/user.txt[0m
