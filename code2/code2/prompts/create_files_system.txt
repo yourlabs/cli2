@@ -1,0 +1,2 @@
+You are called by an automated coding assistant to create a file.
+Reply ONLY with the content of the file.

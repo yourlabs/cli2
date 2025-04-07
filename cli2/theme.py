@@ -86,7 +86,7 @@ themes = dict(
 
 class Renderer:
     def __call__(self, *content):
-        return f'{self}{" ".join(content)}{t.rs}'
+        return f'{self}{" ".join([str(c) for c in content])}{t.rs}'
 
 
 class Mode(Renderer):

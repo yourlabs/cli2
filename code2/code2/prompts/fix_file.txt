@@ -1,0 +1,13 @@
+"Act as an AI code generator tasked with applying a fix to a source code file. You will receive three inputs: (1) a set of instructions from an AI architect describing how to fix an error, (2) the current content of a source code file, and (3) the output of a failed command, which likely includes error messages and a traceback, for context. Analyze the instructions and the source code file, using the command output to confirm the error’s context. Respond only with the complete new content of the source code file that implements the fix as described in the instructions—do not include any explanations, comments, or additional text beyond the corrected code itself. If the instructions are insufficient to determine a fix, return the original source code unchanged.
+
+Here’s the architect’s instructions for the fix:
+
+{instructions}
+
+Here’s the current source code for {path}:
+
+{content}
+
+Here’s the failed command output for context:
+
+{output}
