@@ -53,7 +53,11 @@ def async_run(coroutine):
     except RuntimeError:
         return asyncio.run(coroutine)
     else:
-        return loop.create_task(coroutine)
+        # An event loop is running, so we need to await the coroutine
+        # We can't use await directly here since this is a sync function,
+        # so we run it until complete in the existing loop
+        future = asyncio.ensure_future(coroutine)
+        return loop.run_until_complete(future)
 
 
 class Queue(asyncio.Queue):
