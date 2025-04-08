@@ -8,7 +8,6 @@ setup(
     packages=['prompt2'],
     install_requires=[
         'cli2',
-        'litellm',
         'markdown-it-py',
         'jinja2',
     ],
@@ -25,12 +24,11 @@ setup(
         ],
         'prompt2_parser': [
             'wholefile = prompt2.parser:Wholefile',
+            'list = prompt2.parser:List',
         ],
         'prompt2_globals': [
             'read = prompt2.jinja2:read',
-        ],
-        'prompt2_paths': [
-            'paths = prompt2.prompt:Prompt.default_paths',
+            'shell = prompt2.jinja2:shell',
         ],
         'prompt2_backend': [
             'litellm = prompt2.backends.litellm:LiteLLMBackend',

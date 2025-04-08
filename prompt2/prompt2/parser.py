@@ -40,9 +40,6 @@ class Parser:
             )
         return messages
 
-    def messages(self, messages):
-        return messages
-
     def parse(self, response):
         return response
 

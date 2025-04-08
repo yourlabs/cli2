@@ -1,0 +1,9 @@
+command: prompt2 send user foeuau
+retcode: 0
+stdout:
+[1;38;5;1mPARSER NOT FOUND[0m: foeuau
+
+[1;38;5;2mAVAILABLE[0m:
+-[37m [39;49;00mlist[37m[39;49;00m
+-[37m [39;49;00mwholefile[37m[39;49;00m
+

@@ -14,6 +14,7 @@ def test_model():
     assert model.backend.model_name == 'foo'
     assert model.backend.model_kwargs['bar'] == 1
     assert model.backend.model_kwargs['foo'] == .2
+    del os.environ['MODEL']
 
     os.environ['MODEL_FOO'] = 'test a=b'
     model = Model('foo')
@@ -69,10 +70,8 @@ def kwargs(prompt2_env, user, local):
 
 @pytest.mark.asyncio
 async def test_python(prompt2_env):
-    model = Model.get()
-
-    prompt = Prompt()
-    prompt.parts.append('make a hello world in python')
+    model = Model()
+    prompt = Prompt(content='make a hello world in python')
     result = await model(prompt)
     assert 'To run this:' in result
     result = await model(prompt, 'wholefile')
@@ -95,6 +94,32 @@ def test_parsers(kwargs):
         'prompt2 parser',
         **kwargs,
     )
+
+
+def test_ask(kwargs):
+    autotest(
+        'tests/prompt2/test_ask.txt',
+        'prompt2 ask Write hello world in python',
+        **kwargs,
+    )
+
+
+def test_command():
+    from prompt2.cli import PromptCommand
+    def test(model=None, parser=None):
+        return model, parser
+    model, parser = PromptCommand(test)()
+    assert type(model.backend).__name__ == 'LiteLLMBackend'
+    assert model.backend.model_name == Model.default
+    assert not parser
+
+    os.environ['MODEL_LOL'] = 'foo temperature=test'
+    model, parser = PromptCommand(test)('lol')
+    assert model.backend.model_name == 'foo'
+    assert model.backend.model_kwargs == dict(temperature='test')
+
+    model, parser = PromptCommand(test)('parser=wholefile')
+    assert type(parser).__name__.lower() == 'wholefile'
 
 
 def test_crud(user, kwargs):
@@ -170,5 +195,16 @@ def test_crud(user, kwargs):
     autotest(
         'tests/prompt2/test_send_code_withparser.txt',
         'prompt2 send user wholefile',
+        **kwargs,
+    )
+    autotest(
+        'tests/prompt2/test_send_code_failparser.txt',
+        'prompt2 send user foeuau',
+        **kwargs,
+    )
+    os.environ['MODEL_FOO'] = 'test a=b'
+    autotest(
+        'tests/prompt2/test_send_code_failmodel.txt',
+        'prompt2 send user model=oaeoeau',
         **kwargs,
     )

@@ -1,0 +1,10 @@
+command: prompt2 send user model=oaeoeau
+retcode: 0
+stdout:
+[1;38;5;1mMODEL NOT FOUND[0m: oaeoeau
+
+[1;38;5;2mAVAILABLE[0m:
+[94mdefault[39;49;00m:[37m [39;49;00mopenrouter/deepseek/deepseek-r1:free[37m[39;49;00m
+[94mfoo[39;49;00m:[37m [39;49;00mtest a=b[37m[39;49;00m
+[94mlol[39;49;00m:[37m [39;49;00mfoo temperature=test[37m[39;49;00m
+

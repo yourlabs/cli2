@@ -78,9 +78,10 @@ class Proc:
 
         Stderr output with ANSI escape codes preserved.
     """
-    def __init__(self, cmd, *args, quiet=False, inherit=True, timeout=None, **env):
+    def __init__(self, cmd, *args, quiet=False, inherit=True, timeout=None,
+                 **env):
         """
-        :param cmd: Command string (will be split with shlex) or initial argument
+        :param cmd: Command string (will shlex split) or initial argument
         :param args: Additional command arguments
         :param quiet: Suppress live output printing (default: False)
         :param inherit: Inherit parent environment variables (default: True)
@@ -116,7 +117,10 @@ class Proc:
 
         :return: New Proc instance ready for execution
         """
-        return type(self)(*self.args, quiet=self.quiet, inherit=True, timeout=self.timeout, **self.env)
+        return type(self)(
+            *self.args, quiet=self.quiet, inherit=True, timeout=self.timeout,
+            **self.env
+        )
 
     @property
     def cmd(self):
@@ -155,8 +159,12 @@ class Proc:
         )
         self.started = True
 
-        self.stdout_task = asyncio.create_task(self._handle_output(self.proc.stdout, 1))
-        self.stderr_task = asyncio.create_task(self._handle_output(self.proc.stderr, 2))
+        self.stdout_task = asyncio.create_task(
+            self._handle_output(self.proc.stdout, 1)
+        )
+        self.stderr_task = asyncio.create_task(
+            self._handle_output(self.proc.stderr, 2)
+        )
         return self
 
     async def wait(self):

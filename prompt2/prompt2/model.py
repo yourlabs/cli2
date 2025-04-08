@@ -39,6 +39,7 @@ Juggle between multiple models by defining environment variables.
 """
 
 from pathlib import Path
+from .backend import BackendPlugin
 import cli2
 import importlib.metadata
 import json
@@ -50,7 +51,6 @@ from .parser import Parser
 
 
 class Model:
-    models = dict()
     default = 'openrouter/deepseek/deepseek-r1:free'
 
     class NotFoundError(NotFoundError):
@@ -65,10 +65,11 @@ class Model:
             models['default'] = os.getenv('MODEL', Model.default)
             return models
 
-    def __init__(self, backend, *args, **kwargs):
+    def __init__(self, backend=None):
+        if not isinstance(backend, BackendPlugin):
+            configuration = self.configuration_get(backend or '')
+            backend = self.backend_factory(configuration)
         self.backend = backend
-        self.args = args
-        self.kwargs = kwargs
         self._cache_path = None
 
     @property
@@ -85,53 +86,25 @@ class Model:
         self._cache_path = value
 
     @classmethod
-    def get(cls, *names, strict=False):
-        names = list(names)
+    def configuration_get(cls, name, strict=False):
+        key = f'MODEL_{name.upper()}'
 
-        key = None
-        for name in names + ['default']:
-            if not name:
-                continue
-
-            if name in cls.models:
-                return cls.models[name]
-
-            if name == 'default':
-                key = 'MODEL'
+        if key not in os.environ:
+            if strict:
+                raise cls.NotFoundError(name)
             else:
-                key = f'MODEL_{name.upper()}'
+                key = 'MODEL'
 
-            if key in os.environ:
-                break
-
-        if strict and names[0] != name:
-            raise cls.NotFoundError(names[0])
-
-        if key and key in os.environ:
+        if key in os.environ:
             configuration = os.environ[key]
         else:
             # default value
             configuration = cls.default
 
-        cls.models[name] = cls.factory(configuration)
-        return cls.models[name]
+        return configuration
 
-    @classmethod
-    def factory(cls, configuration):
-        tokens = configuration.split()
-
-        # load the backend plugin based on first token, litellm by default
-        plugins = importlib.metadata.entry_points(
-            name=tokens[0],
-            group='prompt2_backend',
-        )
-        if plugins:
-            tokens = tokens[1:]
-            plugin = [*plugins][0].load()
-        else:
-            from .backends.litellm import LiteLLMBackend
-            plugin = LiteLLMBackend
-
+    @staticmethod
+    def configuration_parse(tokens):
         args = list()
         kwargs = dict()
         for token in tokens:
@@ -153,9 +126,27 @@ class Model:
                 kwargs[key] = value
             else:
                 args.append(value)
+        return args, kwargs
 
-        backend = plugin(*args, **kwargs)
-        return cls(backend, *args, **kwargs)
+    @classmethod
+    def backend_factory(cls, configuration):
+        tokens = configuration.split()
+
+        # load the backend plugin based on first token, litellm by default
+        plugins = importlib.metadata.entry_points(
+            name=tokens[0],
+            group='prompt2_backend',
+        )
+        if plugins:
+            tokens = tokens[1:]
+            plugin = [*plugins][0].load()
+        else:
+            from .backends.litellm import LiteLLMBackend
+            plugin = LiteLLMBackend
+
+        args, kwargs = cls.configuration_parse(tokens)
+
+        return plugin(*args, **kwargs)
 
     async def completion(self, messages, cache_key=None):
         cache_key = cache_key or self.hash(messages)
