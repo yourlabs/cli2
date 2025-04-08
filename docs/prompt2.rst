@@ -79,10 +79,10 @@ You could script like this:
 
     async def ai_wizard():
         # get the model defined in $MODEL_ARCHITECT, or $MODEL, or the default
-        model = Model.get('architect')
+        model = prompt2.Model.get('architect')
 
         # load one of your prompts by name
-        prompt = Prompt('hello')
+        prompt = prompt2.Prompt('hello')
 
         # call the model with the prompt, with a parser by name
         result = await model(prompt, 'wholefile')
