@@ -136,7 +136,7 @@ class Model:
         kwargs = dict()
         for token in tokens:
             key = None
-            if '=' in kwargs:
+            if '=' in token:
                 key, value = token.split('=')
             else:
                 value = token
