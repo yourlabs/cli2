@@ -1,15 +1,14 @@
 import cli2
 import difflib
 import os
+import prompt2
 import re
 import subprocess
 import sys
 from pathlib import Path
 
-from code2.model import Model
 from code2.markdown import mdprint
 from code2.workflow import WorkflowPlugin
-from code2.prompt import Prompt
 
 
 class CmdWorkflow(WorkflowPlugin):
@@ -34,12 +33,12 @@ class CmdWorkflow(WorkflowPlugin):
             if cli2.choice(question) != 'y':
                 return
 
-        architect = self.project.model('architect')
-        prompt = self.project.prompt(
+        architect = prompt2.Model('architect')
+        prompt = prompt2.Prompt(
             'fix_files_for_output',
             output=full_output,
         )
-        result = await architect.process(prompt)
+        result = await architect(prompt)
 
         path = Path(result)
         if path.is_relative_to(self.project.path):

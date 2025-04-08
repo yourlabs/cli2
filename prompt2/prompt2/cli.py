@@ -3,12 +3,9 @@ Template based prompts on the CLI
 """
 
 import cli2
-import functools
 import importlib
 import inspect
 import jinja2
-import os
-from pathlib import Path
 
 import prompt2
 
@@ -28,12 +25,14 @@ class PromptCommand(cli2.Command):
             # auto cast variables dependending on each other ...
             if 'model' in self:
                 if self['model'].value:
-                    self['model'].value = prompt2.Model.get(
+                    configuration = prompt2.Model.configuration_get(
                         self['model'].value,
                         strict=True,
                     )
+                    backend = prompt2.Model.backend_factory(configuration)
+                    self['model'].value = prompt2.Model(backend)
                 else:
-                    self['model'].value = prompt2.Model.get()
+                    self['model'].value = prompt2.Model()
 
             if 'parser' in self and self['parser'].value:
                 self['parser'].value = (
@@ -85,6 +84,22 @@ cli = cli2.Group(
 )
 
 
+@cli.cmd
+async def ask(*args, parser=None, model=None):
+    """
+    Ask a question from the CLI
+
+    Example:
+
+        prompt2 ask write a hello world in python
+
+    :param args: Question to ask
+    :param parser: Parser name if any
+    :param model: Model name to use, if any
+    """
+    return await model(prompt2.Prompt(content=' '.join(args)), parser)
+
+
 @cli.cmd(color='green')
 def paths():
     """
@@ -118,35 +133,32 @@ def edit(name, local: bool=False):
     :param local: Enable this to store in $CWD/.prompt2 instead of
                   $HOME/.prompt2
     """
-    local_path = prompt2.Prompt.LOCAL_PATH / f'{name}.txt'
-    if local_path.exists() or local:
-        path = local_path
-    else:
-        user_path = prompt2.Prompt.USER_PATH / f'{name}.txt'
-        if user_path.exists():
-            path = user_path
+    default_content = (
+        'You are called by an automated process, you MUST'
+        ' structure your reply or you will crash it!'
+    )
+
+    try:
+        prompt = prompt2.Prompt(name)
+    except prompt2.Prompt.NotFoundError:
+        if local:
+            path = prompt2.Prompt.local_path
         else:
-            path = local_path if local else user_path
-
-    if path.exists():
-        with path.open('r') as f:
-            content = f.read()
+            path = prompt2.Prompt.user_path
+        path = path / f'{name}.txt'
+        kwargs = dict(content=default_content)
     else:
-        content = (
-            'You are called by an automated process, you MUST'
-            ' structure your reply or you will crash it!'
-        )
+        path = prompt.path
+        kwargs = dict(content=prompt.path)
 
-    content = cli2.editor(content)
-    if content:
+    content = cli2.editor(**kwargs)
+    if not path.exists():
         path.parent.mkdir(exist_ok=True, parents=True)
         with path.open('w') as f:
             f.write(content)
         cli2.log.info('wrote', path=str(path), content=content)
 
-        print(cli2.t.bold('SAVED PROMPT:'))
-        print(content + '\n')
-        print(cli2.t.green(f'Saved to {path}'))
+    print(cli2.t.bold('SAVED PROMPT: ') + cli2.t.green(f'{path}'))
 
 
 @cli.cmd(color='green')
@@ -161,7 +173,7 @@ def show(prompt):
     print()
 
     print(cli2.t.y.bold('CONTENT'))
-    print(prompt.parts[0])
+    print(prompt.content)
 
 
 @cli.cmd

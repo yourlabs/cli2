@@ -14,36 +14,77 @@ from .exception import NotFoundError
 from .model import Model
 
 
-class Prompt:
+class PromptType(type):
+    @property
+    def user_path(cls):
+        if 'PROMPT2_USER_PATH' in os.environ:
+            return Path(os.getenv('PROMPT2_USER_PATH'))
+        else:
+            return Path(os.getenv('HOME')) / '.prompt2/prompts'
+
+    @property
+    def local_path(cls):
+        if 'PROMPT2_LOCAL_PATH' in os.environ:
+            return Path(os.getenv('PROMPT2_LOCAL_PATH'))
+        else:
+            return Path(os.getcwd()) / '.prompt2/prompts'
+
+
+class Prompt(metaclass=PromptType):
     """
     Build prompts from text files and context variables.
     """
-    if 'PROMPT2_USER_PATH' in os.environ:
-        USER_PATH = Path(os.getenv('PROMPT2_USER_PATH'))
-    else:
-        USER_PATH = Path(os.getenv('HOME')) / '.prompt2/prompts'
-
-    if 'PROMPT2_LOCAL_PATH' in os.environ:
-        LOCAL_PATH = Path(os.getenv('PROMPT2_LOCAL_PATH'))
-    else:
-        LOCAL_PATH = Path(os.getcwd()) / '.prompt2/prompts'
-
     entry_point = 'prompt2_paths'
 
     class NotFoundError(NotFoundError):
         pass
 
-    def __init__(self, *prompts, **context):
-        self.parts = []
-        for prompt in prompts:
-            self.read(prompt)
+    def __init__(self, path=None, content=None, **context):
+        self.path = path
+        self.content = content
         self.context = context
+
+    @property
+    def path(self):
+        return self._path
+
+    @path.setter
+    def path(self, value):
+        try:
+            path = Path(value)
+        except TypeError:
+            pass
+        else:
+            if not path.exists():
+                path = self.find(value)
+            self._path = path
+
+    @property
+    def name(self):
+        return self.path.name[:4]
+
+    @property
+    def content(self):
+        if not self._content:
+            with self.path.open('r') as f:
+                self._content = f.read()
+            cli2.log.debug(
+                'prompt loaded',
+                path=str(self.path),
+                content=self._content,
+            )
+        return self._content
+
+    @content.setter
+    def content(self, value):
+        self._content = value
 
     @classmethod
     def default_paths(cls, _cli2=None):
-        paths = [cls.LOCAL_PATH]
-        if cls.USER_PATH != cls.LOCAL_PATH:
-            paths.append(cls.USER_PATH)
+        paths = [cls.local_path]
+        if cls.user_path != cls.local_path:
+            # don't append when in home
+            paths.append(cls.user_path)
         if _cli2:
             return [str(p) for p in paths]
         return paths
@@ -53,7 +94,7 @@ class Prompt:
         plugins = importlib.metadata.entry_points(
             group=cls.entry_point,
         )
-        paths = []
+        paths = cls.default_paths()
         for plugin in plugins:
             paths += plugin.load()()
         return paths
@@ -78,24 +119,6 @@ class Prompt:
             for file in path.iterdir():
                 names.add(file.name[:-4])
         return list(names)
-
-    def read(self, name):
-        """
-        Read a prompt text file by name.
-
-        :param name: Name of the prompt, as returned by names
-        """
-        path = self.find(name)
-        with path.open('r') as f:
-            content = f.read()
-            cli2.log.debug(
-                'prompt loaded',
-                path=str(path),
-                content=content,
-            )
-            self.parts.append(content)
-            self.path = path
-            return content
 
     def render(self):
         # collect all paths from path plugins ...
@@ -123,7 +146,7 @@ class Prompt:
             env.globals[plugin.name] = plugin.load()
 
         # Render the template with the data
-        template = env.from_string('\n'.join(self.parts))
+        template = env.from_string(self.content)
         return template.render(**self.context)
 
     def messages(self):
