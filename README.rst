@@ -25,6 +25,7 @@ Batteries included, all of which are useful on their own:
   testing library so that you can go straight to the point in pytest
 - a good old fcntl based locking
 - a command line to run any python function over a beautiful CLI
-- **AI assisted programing CLI & framework with code2**
+- **AI CLI with prompt2**
+- **AI coding with code2** (TBA)
 
 `Documentation available on RTFD <https://cli2.rtfd.io>`_.
