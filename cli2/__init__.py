@@ -28,6 +28,7 @@ else:
 from .log import configure, log, parse
 from .mask import Mask
 from .notlevenshtein import closest, closest_path
+from .proc import Proc
 from .table import Table
 
 

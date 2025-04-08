@@ -13,6 +13,7 @@
    log
    display
    mask
+   proc
    interactive
    colors
    table
