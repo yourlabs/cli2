@@ -20,7 +20,9 @@ automate workflows, and generate code at lightspeed - all through CLI sorcery
 
 ::
 
-    pip install prompt2
+    # litellm pulls a lot of dependencies I don't need in my air-gapped networks
+    # as such, you need to pull it manually to use the litellm plugin:
+    pip install prompt2 litellm
     export OPENROUTER_API_KEY=sk_...
     prompt2 edit hello
     prompt2 send hello
@@ -70,16 +72,19 @@ Models
 Python API
 ==========
 
+Script
+------
+
 You could script like this:
 
 .. code-block:: python
 
-    import prompt2
+    from prompt2 import Model, Prompt
 
 
     async def ai_wizard():
         # get the model defined in $MODEL_ARCHITECT, or $MODEL, or the default
-        model = Model.get('architect')
+        model = Model('architect')
 
         # load one of your prompts by name
         prompt = Prompt('hello')
@@ -93,6 +98,17 @@ You could script like this:
 
     import asyncio
     asyncio.run(ai_wizard())
+
+Test
+----
+
+The pytest plugin was pretty easy to write, given that prompt2 already does
+response caching. Just add the ``prompt2_env`` fixture in your pytest script
+and it will:
+
+- store the cache in your repo instead of home dir, so that it can find it
+  again
+- store prompts in temporary directories, so that you can mess with them
 
 Plugins
 =======
@@ -110,6 +126,12 @@ entry points.
   litellm backend works great, but if you're using prompt2 behind an air-gapped
   network with a custom AI API, at least you're able to register another
   backend.
+
+Jinja functions
+===============
+
+.. automodule:: prompt2.jinja2
+   :members:
 
 CLI Reference
 =============

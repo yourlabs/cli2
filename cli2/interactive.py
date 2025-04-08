@@ -3,6 +3,7 @@ import os
 import shlex
 import subprocess
 import tempfile
+from pathlib import Path
 
 from .log import log
 
@@ -49,32 +50,47 @@ def editor(content=None):
 
     Like git rebase -i does!
 
-    :param content: Initial content if any
+    - If a file path is given, edit in place.
+    - Otherwise, write to a temporary file.
+    - Anyway: return the written contents.
+
+    :param content: Initial content if any, or a file path
     :return: The edited content after $EDITOR exit
     """
-    tmp = tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix=".txt")
-    with tmp as f:
-        f.write(content)
-        f.flush()
-        filepath = f.name
-
     editor = os.getenv('EDITOR', 'vim')
 
-    try:
-        command = f"{editor} {shlex.quote(filepath)}"
-        subprocess.run(shlex.split(command), check=True)
+    if Path(content).exists():
+        # open directly on target path
+        filepath = content
+        tmp = None
+    else:
+        tmp = tempfile.NamedTemporaryFile(
+            mode='w+',
+            delete=False,
+            suffix=".txt",
+        )
+        with tmp as f:
+            f.write(content)
+            f.flush()
+            filepath = f.name
 
-        with open(filepath, 'r') as f:
-            content = f.read()
-        return content
+    command = f"{editor} {shlex.quote(str(filepath))}"
+
+    try:
+        subprocess.run(shlex.split(command), check=True)
     except subprocess.CalledProcessError as e:
         log.error(f"Error running Vim: {e}")
         return None
     except FileNotFoundError:
         log.warn(f"Temporary file gone?? {filepath}")
         return None
+    else:
+        with open(filepath, 'r') as f:
+            content = f.read()
+        return content
     finally:
-        try:
-            os.remove(filepath)
-        except OSError as e:
-            log.warn(f"Error deleting temporary file {filepath}: {e}")
+        if tmp:
+            try:
+                os.remove(filepath)
+            except OSError as e:
+                log.warn(f"Error deleting temporary file {filepath}: {e}")

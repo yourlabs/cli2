@@ -1,5 +1,5 @@
 """
-AI powered coding assistant CLI with context and plugin based morphing.
+AI Coding
 """
 
 import cli2
@@ -9,7 +9,6 @@ import os
 from pathlib import Path
 
 from .context import Context
-from .prompt import Prompt
 from .project import Project
 
 
@@ -78,137 +77,6 @@ class ContextCommands:
         path.touch()
 
 
-class PromptsGroup(cli2.Group):
-    def __init__(self, project, *args, **kwargs):
-        self.project = project
-        super().__init__(*args, **kwargs)
-
-    def __call__(self, *argv):
-        self.load(self)
-        self.load(self.project.prompt())
-
-        for name in self.project.prompt().names():
-            self[name] = PromptGroup(
-                self.project,
-                name,
-                doc=f'Commands for {name} prompt',
-            )
-
-        return super().__call__(*argv)
-
-    @cli2.cmd
-    def new(self, name, user: bool=False):
-        """
-        Open $EDITOR to create a new prompt.
-
-        :param name: Name of the new prompt
-        :param user: Enable this to write in ~/.code2/prompts instead of
-                     ./.code2/prompts
-        """
-        if user:
-            path = Path(os.getenv('HOME'))
-        else:
-            path = Path(self.project.path)
-        path = path / f'.code2/prompts/{name}.txt'
-        content = cli2.editor(
-            'You are called by an automated process '
-            'as such, you MUST structure your reply or you will crash it'
-        )
-        if content:
-            path.parent.mkdir(exist_ok=True, parents=True)
-            with path.open('w') as f:
-                f.write(content)
-            cli2.log.info('wrote', path=str(path), content=content)
-
-
-class PromptGroup(cli2.Group):
-    def __init__(self, project, name, *args, **kwargs):
-        self.project = project
-        self.name = name
-        super().__init__(*args, **kwargs)
-
-    def __call__(self, *argv):
-        self.doc = '\n'.join([
-            cli2.t.bold('SOURCE'),
-            cli2.t.b(self.prompt.find(self.name)),
-            '',
-            cli2.t.bold('CONTENT'),
-            self.prompt.parts[0],
-        ])
-        self.load(self)
-        return super().__call__(*argv)
-
-    @functools.cached_property
-    def prompt(self):
-        return self.project.prompt(self.name)
-
-    @cli2.cmd
-    def edit(self, user: bool=False):
-        """
-        Edit the prompt text in your $EDITOR
-
-        This will edit the prompt for the project by default. Examples::
-
-            # edit some_prompt for this project, in .code2/prompts/some_prompt.txt
-            code2 prompt some_prompt edit
-
-            # edit some_prompt for your user, in ~/.code2/prompts/some_prompt.txt
-            code2 prompt some_prompt edit user
-
-        :param user: Edit globally for your user
-        """
-        if user:
-            path = Path(os.getenv('HOME'))
-        else:
-            path = Path(self.project.path)
-        path = path / f'.code2/prompts/{self.name}.txt'
-        result = cli2.editor(self.prompt.parts[0])
-        if result:
-            path.parent.mkdir(exist_ok=True, parents=True)
-            with path.open('w') as f:
-                f.write(result)
-
-    @cli2.cmd
-    def messages(self, **context):
-        """
-        Render a prompt's messages with a context.
-
-        :param context: Context variables to render the prompt.
-        """
-        try:
-            return self.prompt.messages(**context)
-        except KeyError as exc:
-            return f'Value required for: "{exc.args[0]}"'
-
-    @cli2.cmd
-    def render(self, **context):
-        """
-        Render a prompt with a context.
-
-        :param context: Context variables to render the prompt.
-        """
-        try:
-            return self.prompt.render(**context)
-        except KeyError as exc:
-            return f'Value required for: "{exc.args[0]}"'
-
-    @cli2.cmd
-    async def send(self, parser=None, model=None, **context):
-        """
-        Send the prompt and return the reply.
-
-        :param parser: Parser name, list them with code2 parsers
-        :param model: Model name, ie. architect, editor, whatever you have in
-                      $MODEL_modelname.
-        """
-        model = self.project.model(model)
-        self.prompt.context.update(context)
-        try:
-            return await model.process(self.prompt, parser)
-        except KeyError as exc:
-            return f'Value required for: "{exc.args[0]}"'
-
-
 class DBCommand(cli2.Command):
     def __call__(self, *argv):
         from . import orm
@@ -233,38 +101,31 @@ class ConsoleScript(cli2.Group):
             CODE2_DB=f'sqlite:///{self.project.path}/.code2/db.sqlite3',
         ))
 
-        # Command group to manage prompts
-        self['prompt'] = PromptsGroup(
-            self.project,
-            doc='Prompt management',
-        )
-
         # Load all commands in default context anyway
         self.load_context(self, self.project.contexts[context_name])
 
         # Add project management commands
-        if os.getenv('CODE2_ALPHA'):
-            group = self.group('project', doc='Project management commands')
+        group = self.group('project', doc='Project management commands')
 
-            # actually load the project management commands
-            group.load(self.project)
+        # actually load the project management commands
+        group.load(self.project)
 
-            # Find contexts to lazy load from project configuration
-            for name, context in self.project.contexts.items():
-                if context.archived:
-                    continue
+        # Find contexts to lazy load from project configuration
+        for name, context in self.project.contexts.items():
+            if context.archived:
+                continue
 
-                if name in self:
-                    group = self[name]
-                else:
-                    group = self.group(name, doc=f'Run in context: {name}')
-                self.load_context(group, context)
+            if name in self:
+                group = self[name]
+            else:
+                group = self.group(name, doc=f'Run in context: {name}')
+            self.load_context(group, context)
 
-            # And a group to manage contexts
-            self.group(
-                'context',
-                doc=ContextCommands.__doc__,
-            ).load(ContextCommands(self.project))
+        # And a group to manage contexts
+        self.group(
+            'context',
+            doc=ContextCommands.__doc__,
+        ).load(ContextCommands(self.project))
 
         return super().__call__(*argv)
 

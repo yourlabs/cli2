@@ -1,4 +1,3 @@
-import cli2
 import litellm
 import os
 

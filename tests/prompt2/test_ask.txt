@@ -1,0 +1,33 @@
+command: prompt2 ask Write hello world in python
+retcode: 0
+stdout:
+Here's how to write "Hello, World!" in Python:[37m[39;49;00m
+[37m[39;49;00m
+[04m[91m`[39;49;00m[04m[91m`[39;49;00m[04m[91m`[39;49;00mpython[37m[39;49;00m
+print("Hello, World!")[37m[39;49;00m
+[04m[91m`[39;49;00m[04m[91m`[39;49;00m[04m[91m`[39;49;00m[37m[39;49;00m
+[37m[39;49;00m
+[04m[91m*[39;49;00m[31m*Explanation[39;49;00m:**[37m  [39;49;00m[37m[39;49;00m
+-[37m [39;49;00mThe `print()` function outputs text to the console.[37m[39;49;00m
+-[37m [39;49;00mIn Python 3, parentheses `()` are required for function calls.[37m[39;49;00m
+-[37m [39;49;00mThe text `"Hello, World!"` is a string enclosed in quotes.[37m[39;49;00m
+
+stderr:
+
+-[37m   [39;49;00m[94mcontent[39;49;00m:[37m [39;49;00mWrite hello world in python[37m[39;49;00m
+[37m    [39;49;00m[94mrole[39;49;00m:[37m [39;49;00muser[37m[39;49;00m
+ [36mevent[0m=[35mmessages[0m [36mlevel[0m=[35mdebug[0m [36mtokens[0m=[35m27[0m
+
+-[37m   [39;49;00m[94mcontent[39;49;00m:[37m [39;49;00mWrite hello world in python[37m[39;49;00m
+[37m    [39;49;00m[94mrole[39;49;00m:[37m [39;49;00muser[37m[39;49;00m
+ [36mcache_key[0m=[35m1c1417265b07f0cd18f7bde68b7bdec6794b30cc[0m [36mevent[0m=[35mcache hit![0m [36mlevel[0m=[35mdebug[0m
+[36mevent[0m=[35mresponse[0m [36mlevel[0m=[35mdebug[0m [36mresponse[0m=[35mHere's how to write "Hello, World!" in Python:
+
+```python
+print("Hello, World!")
+```
+
+**Explanation:**  
+- The `print()` function outputs text to the console.
+- In Python 3, parentheses `()` are required for function calls.
+- The text `"Hello, World!"` is a string enclosed in quotes.[0m

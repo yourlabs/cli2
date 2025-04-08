@@ -10,10 +10,8 @@ setup(
         'cli2',
         'tree-sitter',
         'tree-sitter-language-pack',
-        'litellm',
         'peewee',
-        'markdown-it-py',
-        'jinja2',
+        'prompt2',
     ],
     author='James Pic',
     author_email='jamespic@gmail.com',
@@ -28,21 +26,15 @@ setup(
         ],
         'code2_workflow': [
             'cmd = code2.workflows.cmd:CmdWorkflow',
-            'analyze = code2.workflows.analyze:AnalyzeWorkflow',
-            'edit = code2.workflows.edit:EditWorkflow',
+            #'analyze = code2.workflows.analyze:AnalyzeWorkflow',
+            #'edit = code2.workflows.edit:EditWorkflow',
             #'ask = code2.plugins.workflow.ask:AskWorkflow',
             #'hack = code2.plugins.workflow.hack:HackWorkflow',
             #'ask = code2.plugins.workflow.ask:AskWorkflow',
             #'create = code2.plugins.workflow.create:CreateWorkflow',
         ],
-        'code2_parser': [
-            'wholefile = code2.parser:Wholefile',
-        ],
-        'code2_jinja2': [
-            'read = code2.jinja2:read',
-        ],
-        'code2_backend': [
-            'litellm = code2.backends.litellm:LiteLLMBackend',
+        'prompt2_paths': [
+            'code2 = code2.prompt2:paths',
         ],
     },
 )

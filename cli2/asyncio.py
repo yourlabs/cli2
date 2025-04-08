@@ -39,23 +39,6 @@ async def async_resolve(result, output=False):
     return result
 
 
-def async_run(coroutine):
-    """Run an async coroutine in the current event loop or create a new one.
-
-    If an event loop is already running, creates a task in that loop.
-    If no event loop is running, creates a new one and runs the coroutine.
-
-    :param coroutine: The coroutine to run (return value of an async function)
-    :return: The result of the coroutine execution
-    """
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        return asyncio.run(coroutine)
-    else:
-        return loop.create_task(coroutine)
-
-
 class Queue(asyncio.Queue):
     """
     An async queue with worker pool for concurrent task processing.

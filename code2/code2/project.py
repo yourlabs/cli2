@@ -6,8 +6,6 @@ from pathlib import Path
 import os
 
 from .context import Context
-from .model import Model
-from .prompt import Prompt
 
 
 class Project:
@@ -16,12 +14,6 @@ class Project:
         self._contexts = dict()
         self._files = []
         self._files_symbols = dict()
-
-    def prompt(self, *prompts, **context):
-        return Prompt(*prompts, project=self, **context)
-
-    def model(self, name):
-        return Model.get(name)
 
     def get_all_directories(self, path=None):
         path = path or self.path
@@ -34,7 +26,6 @@ class Project:
                 directories.extend(self.get_all_directories(item))
         return directories
 
-    @cli2.cmd(condition=lambda obj: os.getenv('CODE2_ALPHA', False))
     async def inspect(self):
         """
         Initialize a project.
@@ -54,16 +45,7 @@ class Project:
         - What indentation and character line limit?
         - What kind of documentation in code?
         """
-
-        prompt = DirectoriesPrompt()
-        result = prompt.process(prompt_read + self.get_all_directories())
-
-        prompt = FilesPrompt()
-        result = prompt.process(
-            'Identify all key files in this project, this is the file list:'
-            + str(self.files())  # Convert to string for prompt
-        )
-        return result
+        raise NotImplementedError()
 
     @property
     def contexts(self):
@@ -86,22 +68,6 @@ class Project:
         path = self.path / '.code2/contexts'
         path.mkdir(exist_ok=True, parents=True)
         return path
-
-    @property
-    def propmts(self):  # Note: Typo 'propmts' kept as in original
-        """Return a dict of prompts, create a default context if necessary."""
-        for path in self.contexts_path.iterdir():
-            if path.name not in self._contexts:
-                self._contexts[path.name] = Context(self, path)
-
-        if 'default' not in self._contexts:
-            self._contexts['default'] = Context(
-                self,
-                self.contexts_path / 'default',
-            )
-            self._contexts['default'].path.mkdir(exist_ok=True, parents=True)
-
-        return self._contexts
 
     @functools.cached_property
     def data_path(self):
