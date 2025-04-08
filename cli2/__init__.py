@@ -11,7 +11,7 @@ from .cli import (
     Cli2Error,
     Cli2ValueError,
 )
-from .asyncio import async_resolve, async_run, Queue
+from .asyncio import async_resolve, Queue
 from .colors import colors as c
 from .theme import theme, t
 

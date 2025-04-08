@@ -23,13 +23,10 @@ def read(path):
     return content
 
 
-def shell(command):
+def shell(*command, **env):
     """
     Execute a command and return the full output.
 
     :param command: String or args list.
     """
-    async def _(command):
-        proc = await cli2.Proc(command, quiet=True).wait()
-        return proc.out
-    return cli2.async_run(_(command))
+    return cli2.Proc(*command, quiet=True, **env).wait_sync().out
