@@ -129,23 +129,23 @@ class Project:
         if not self._files_symbols:
             with scan.db:
                 query = (File
-                         .select(File.path, Symbol.line_number, Symbol.type, Symbol.name)
+                         .select(File.path, Symbol.line_start, Symbol.type, Symbol.name)
                          .left_outer_join(Symbol, on=(File.id == Symbol.file))
-                         .order_by(File.path.asc(), Symbol.line_number.asc()))
+                         .order_by(File.path.asc(), Symbol.line_start.asc()))
                 for row in query.tuples():
-                    path, line_number, sym_type, name = row
+                    path, line_start, sym_type, name = row
                     if path not in self._files_symbols:
                         self._files_symbols[path] = {}
-                    self._files_symbols[path][name] = [sym_type, line_number]
+                    self._files_symbols[path][name] = [sym_type, line_start]
         return self._files_symbols
 
     def symbols(self, where=None, *args):
         """Get symbols from project with optional where clause."""
         with scan.db:
             query = (File
-                     .select(File.path, Symbol.line_number, Symbol.type, Symbol.name)
+                     .select(File.path, Symbol.line_start, Symbol.type, Symbol.name)
                      .left_outer_join(Symbol, on=(File.id == Symbol.file))
-                     .order_by(File.path.asc(), Symbol.line_number.asc()))
+                     .order_by(File.path.asc(), Symbol.line_start.asc()))
             if where:
                 # Assuming 'where' is a raw SQL snippet; use Peewee expressions instead if possible
                 query = query.where(SQL(where, *args))
@@ -160,8 +160,8 @@ class Project:
     def symbols_dump(self):
         """Dump symbols as a formatted string."""
         result = ['List of file, line number, symbol type, symbol name:\n']
-        for path, line_number, sym_type, name in self.symbols():
-            result.append(f'{path}:{line_number}:{sym_type}:{name}')
+        for path, line_start, sym_type, name in self.symbols():
+            result.append(f'{path}:{line_start}:{sym_type}:{name}')
         return '\n'.join(result)
 
     def save(self, key, data):

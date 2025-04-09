@@ -50,7 +50,8 @@ class Symbol(Base):
     )
     type = Column(String, nullable=False)
     name = Column(String, nullable=False)
-    line_number = Column(Integer, nullable=False)
+    line_start = Column(Integer, nullable=False)
+    line_end = Column(Integer, nullable=True)
     score = Column(Integer, nullable=False)
 
     # Relationship

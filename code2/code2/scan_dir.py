@@ -198,7 +198,8 @@ class CodeIndexer:
                         {
                             "type": "function",
                             "name": name,
-                            "line_number": node.start_point[0] + 1,
+                            "line_start": node.start_point[0] + 1,
+                            "line_end": node.end_point[0] + 1,
                             "score": score,
                         }
                     )
@@ -210,7 +211,8 @@ class CodeIndexer:
                         {
                             "type": "class",
                             "name": name,
-                            "line_number": node.start_point[0] + 1,
+                            "line_start": node.start_point[0] + 1,
+                            "line_end": node.end_point[0] + 1,
                             "score": 15,
                         }
                     )
@@ -235,7 +237,8 @@ class CodeIndexer:
                     file_id=file_id,
                     type=s["type"],
                     name=s["name"],
-                    line_number=s["line_number"],
+                    line_start=s["line_start"],
+                    line_end=s["line_end"],
                     score=s.get("score", 0),
                 )
                 for s in symbols
