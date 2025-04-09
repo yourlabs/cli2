@@ -72,7 +72,7 @@ class RepoMapGenerator:
         return any(fnmatch.fnmatch(value, pattern) for pattern in patterns)
 
     async def _build_file_map(self, files) -> Dict:
-        """Builds a map of files and their symbol names with glob filtering."""
+        """Builds a map of files with their symbol names as a direct list, skipping empty files."""
         file_map = {}
         for file in files:
             path = self._decode(file.path)
@@ -83,7 +83,7 @@ class RepoMapGenerator:
             if not include_file or exclude_file:
                 continue
 
-            # Apply symbol filters
+            # Apply symbol filters and build symbol list
             symbols = []
             if file.symbols:
                 for sym in file.symbols:
@@ -93,7 +93,10 @@ class RepoMapGenerator:
                     if include_symbol and not exclude_symbol:
                         symbols.append(name)
 
-            file_map[path] = {"symbols": symbols}
+            # Only include file if it has symbols after filtering
+            if symbols:
+                file_map[path] = symbols
+
         return file_map
 
     async def _optimize_map(self, repo_map: Dict, max_size: int) -> Dict:
@@ -110,10 +113,13 @@ class RepoMapGenerator:
         optimized = repo_map.copy()
 
         # Prune symbol lists
-        for file_path in optimized["files"]:
-            symbols = optimized["files"][file_path]["symbols"]
+        for file_path in list(optimized["files"]):
+            symbols = optimized["files"][file_path]
             if len(symbols) > 5:  # Adjust threshold as needed
-                optimized["files"][file_path]["symbols"] = symbols[:5]
+                optimized["files"][file_path] = symbols[:5]
+            # Remove file if no symbols remain after pruning
+            if not optimized["files"][file_path]:
+                del optimized["files"][file_path]
 
         return optimized
 

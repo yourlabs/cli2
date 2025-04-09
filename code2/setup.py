@@ -37,5 +37,8 @@ setup(
         'prompt2_paths': [
             'code2 = code2.prompt2:paths',
         ],
+        'prompt2_globals': [
+            'project = code2.prompt2:project',
+        ],
     },
 )

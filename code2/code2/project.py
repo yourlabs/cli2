@@ -101,10 +101,10 @@ class Project:
         """
         from . import repo_map
         from . import db
-        session_factory = await db.connect()
+        session_factory = await db.connecta()
         generator = repo_map.RepoMapGenerator(session_factory)
         map_str = await generator.get_map_string()
-        await db.close()
+        await db.closea()
         print(map_str)
 
     def files(self):

@@ -245,7 +245,7 @@ class CodeIndexer:
     async def index_repo_async(self):
         """Index all files in the repository asynchronously."""
         # Initialize database connection
-        session_factory = await db.connect()
+        session_factory = await db.connecta()
 
         # Pre-populate the global language cache
         await self.initialize_language_cache(session_factory)
@@ -287,4 +287,4 @@ class CodeIndexer:
         if queue.results:
             processed_files = len(queue.results)
             print(f"Processed {processed_files}/{len(file_paths)} files")
-        await db.close()
+        await db.closea()

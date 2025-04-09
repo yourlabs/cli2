@@ -74,7 +74,7 @@ class Import(Base):
     )
 
 
-async def connect():
+async def connecta():
     """Initialize database connection and create tables asynchronously."""
     global async_session_factory
     if async_session_factory is None:
@@ -88,9 +88,24 @@ async def connect():
     return async_session_factory
 
 
-async def close():
+async def closea():
     """Close the database engine."""
     await engine.dispose()
+
+
+def connect():
+    """Initialize database connection and create tables synchronously."""
+    global session_factory
+    if session_factory is None:
+        # Create all tables if they don't exist
+        Base.metadata.create_all(engine, checkfirst=True)
+        # Create synchronous session factory
+        session_factory = sessionmaker(bind=engine, expire_on_commit=False)
+    return session_factory
+
+def close():
+    """Close the database engine."""
+    engine.dispose()
 
 
 # Optional: Initialize database when module is imported (for testing)
