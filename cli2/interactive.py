@@ -1,4 +1,5 @@
 """ Interactive user inputs """
+import cli2
 import os
 import shlex
 import subprocess
@@ -44,7 +45,7 @@ def choice(question, choices=None, default=None):
         tries -= 1
 
 
-def editor(content=None):
+def editor(content=None, path=None):
     """
     Open $EDITOR with content, return the result.
 
@@ -54,27 +55,31 @@ def editor(content=None):
     - Otherwise, write to a temporary file.
     - Anyway: return the written contents.
 
-    :param content: Initial content if any, or a file path
+    :param content: Initial content if any
+    :param path: Path to edit or write content into
     :return: The edited content after $EDITOR exit
     """
     editor = os.getenv('EDITOR', 'vim')
 
-    if Path(content).exists():
-        # open directly on target path
-        filepath = content
-        tmp = None
+    tmp_file = None
+    if path and path.exists():
+        edit_path = path
     else:
         tmp = tempfile.NamedTemporaryFile(
             mode='w+',
             delete=False,
             suffix=".txt",
         )
-        with tmp as f:
-            f.write(content)
-            f.flush()
-            filepath = f.name
+        edit_path = tmp.name
+        if content:
+            with tmp as f:
+                cli2.log.debug('writing', path=f.name)
+                f.write(str(content))
+                f.flush()
+                tmp_file = Path(f.name)
 
-    command = f"{editor} {shlex.quote(str(filepath))}"
+    cli2.log.debug('editing', path=edit_path)
+    command = f"{editor} {shlex.quote(str(edit_path))}"
 
     try:
         subprocess.run(shlex.split(command), check=True)
@@ -82,15 +87,21 @@ def editor(content=None):
         log.error(f"Error running Vim: {e}")
         return None
     except FileNotFoundError:
-        log.warn(f"Temporary file gone?? {filepath}")
+        log.warn(f"Temporary file gone?? {path}")
         return None
     else:
-        with open(filepath, 'r') as f:
+        with open(edit_path, 'r') as f:
+            cli2.log.debug('reading', path=edit_path)
             content = f.read()
+        if path and not path.exists():
+            path.parent.mkdir(exist_ok=True, parents=True)
+            with path.open('w') as f:
+                cli2.log.debug('writing', path=path)
+                f.write(content)
         return content
     finally:
-        if tmp:
+        if tmp_file:
             try:
-                os.remove(filepath)
+                os.remove(tmp_file)
             except OSError as e:
-                log.warn(f"Error deleting temporary file {filepath}: {e}")
+                log.warn(f"Error deleting temporary file {tmp_file}: {e}")
