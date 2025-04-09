@@ -38,7 +38,7 @@ class File(Base):
 
     # Relationships
     symbols = relationship("Symbol", backref="file")
-    references = relationship("Reference", backref="file")
+    references = relationship("Import", backref="file")
 
 
 class Symbol(Base):
@@ -54,11 +54,11 @@ class Symbol(Base):
     score = Column(Integer, nullable=False)
 
     # Relationship
-    references = relationship("Reference", backref="symbol")
+    references = relationship("Import", backref="symbol")
 
 
-class Reference(Base):
-    __tablename__ = "reference"
+class Import(Base):
+    __tablename__ = "import"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     symbol_id = Column(
