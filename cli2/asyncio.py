@@ -1,5 +1,6 @@
 import asyncio
 import inspect
+import os
 from . import display
 from .log import log
 
@@ -55,7 +56,7 @@ class Queue(asyncio.Queue):
 
     .. py:attribute:: num_workers
 
-        Number of concurrent workers (default: 12)
+        Number of concurrent workers (default: cpucount * 2)
 
     .. py:attribute:: results
 
@@ -63,14 +64,15 @@ class Queue(asyncio.Queue):
         due to concurrency.
     """
 
-    def __init__(self, *args, num_workers=12, **kwargs):
+    def __init__(self, *args, num_workers=None, **kwargs):
         """Initialize the queue with worker pool.
 
-        :param num_workers: Number of concurrent workers (default: 12)
+        :param num_workers: Number of concurrent workers
+                            (default: cpu count * 2)
         :paarm *args: Positional arguments for asyncio.Queue
         :param **kwargs: Keyword arguments for asyncio.Queue
         """
-        self.num_workers = num_workers or 12
+        self.num_workers = num_workers or os.cpu_count() * 2
         self.results = []
         super().__init__(*args, **kwargs)
 
