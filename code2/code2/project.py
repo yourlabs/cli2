@@ -94,6 +94,19 @@ class Project:
         indexer = scan_files.ImportAnalyzer(files, 'python')
         return await indexer.analyze_and_store_imports()
 
+    @cli2.cmd(name='map')
+    async def repo_map(self):
+        """
+        Index files and symbols in the current directory.
+        """
+        from . import repo_map
+        from . import db
+        session_factory = await db.connect()
+        generator = repo_map.RepoMapGenerator(session_factory)
+        map_str = await generator.get_map_string()
+        await db.close()
+        print(map_str)
+
     def files(self):
         """Get files from project."""
         if self._files:
