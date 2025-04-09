@@ -49,6 +49,14 @@ class Proc:
 
         Full command arguments list used to launch the process
 
+    .. py:attribute:: env
+
+        Dict of environment variables
+
+    .. py:attribute:: cwd
+
+        Working directory path to run the command in
+
     .. py:attribute:: rc
 
         Return Code: process exit code (available after process completes)
@@ -78,7 +86,7 @@ class Proc:
         Stderr output with ANSI escape codes preserved.
     """
     def __init__(self, cmd, *args, quiet=False, inherit=True, timeout=None,
-                 **env):
+                 cwd=None, **env):
         """
         :param cmd: Command string (will shlex split) or initial argument
         :param args: Additional command arguments
@@ -93,6 +101,7 @@ class Proc:
         else:
             self.args = shlex.split(cmd)
 
+        self.cwd = cwd or os.getcwd()
         self.quiet = quiet
 
         self.env = dict()
@@ -151,6 +160,7 @@ class Proc:
 
         self.proc = await asyncio.create_subprocess_exec(
             *[str(arg) for arg in self.args],
+            cwd=str(self.cwd),
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
@@ -232,6 +242,7 @@ class Proc:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             env=self.env,
+            cwd=self.cwd,
             universal_newlines=True
         )
         self.started = True
