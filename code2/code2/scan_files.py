@@ -67,13 +67,13 @@ class ImportAnalyzer:
         return self.file_id_map[file_path]
 
     async def _find_or_create_symbol(self, session, file_id: int,
-                                   symbol_name: str, line_number: int) -> int:
+                                   symbol_name: str, line_start: int) -> int:
         """Find or create a symbol and return its ID."""
         result = await session.execute(
             select(db.Symbol).where(
                 db.Symbol.file_id == file_id,
                 db.Symbol.name == symbol_name,
-                db.Symbol.line_number == line_number
+                db.Symbol.line_start == line_start
             )
         )
         symbol = result.scalar_one_or_none()
@@ -84,7 +84,7 @@ class ImportAnalyzer:
                 file_id=file_id,
                 type=symbol_type,
                 name=symbol_name,
-                line_number=line_number,
+                line_start=line_start,
                 score=5
             )
             session.add(symbol)
@@ -115,7 +115,7 @@ class ImportAnalyzer:
                 file_id = await self._ensure_file_in_db(session, file_path)
 
                 for node in imports['import']:
-                    line_number = node.start_point[0] + 1
+                    line_start = node.start_point[0] + 1
                     if node.type == "import_statement":
                         symbol_name = node.children[0].text.decode("utf-8")
                     elif node.type == "import_from_statement":
@@ -124,7 +124,7 @@ class ImportAnalyzer:
                         continue
 
                     symbol_id = await self._find_or_create_symbol(
-                        session, file_id, symbol_name, line_number)
+                        session, file_id, symbol_name, line_start)
                     await self._add_import(session, symbol_id, file_id)
 
                 # Commit all changes after all tasks are complete
