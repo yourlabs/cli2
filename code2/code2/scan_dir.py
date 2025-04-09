@@ -270,12 +270,21 @@ class CodeIndexer:
         )
         file_paths = [f for f in finder.files()]
 
-        # Process files concurrently with a semaphore
-        semaphore = asyncio.Semaphore(os.cpu_count() * 2)
+        # Process files concurrently with cli2.Queue
+        queue = cli2.Queue()  # Uses default 12 workers
 
-        async def sem_process(filepath):
-            async with semaphore:
-                await file_callback(filepath)
+        async def process_file(filepath):
+            await file_callback(filepath)
+            return filepath  # Optional: return something to track in queue.results
 
-        await asyncio.gather(*(sem_process(fp) for fp in file_paths))
+        # Create tasks for each file
+        tasks = [process_file(fp) for fp in file_paths]
+
+        # Run all tasks through the queue
+        await queue.run(*tasks)
+
+        # Optional: Check results if needed
+        if queue.results:
+            processed_files = len(queue.results)
+            print(f"Processed {processed_files}/{len(file_paths)} files")
         await db.close()

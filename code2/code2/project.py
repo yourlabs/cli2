@@ -76,12 +76,23 @@ class Project:
         path.mkdir(exist_ok=True, parents=True)
         return path
 
-    @cli2.cmd
-    async def scan(self):
-        """Run a project scan."""
-        from . import scan
-        indexer = scan.CodeIndexer(self.path)
+    @cli2.cmd(name='scan')
+    async def scan_dir(self):
+        """
+        Index files and symbols in the current directory.
+        """
+        from . import scan_dir
+        indexer = scan_dir.CodeIndexer(self.path)
         return await indexer.index_repo_async()
+
+    @cli2.cmd(name='scanf')
+    async def scan_files(self, *files):
+        """
+        Index imports made by given files.
+        """
+        from . import scan_files
+        indexer = scan_files.ImportAnalyzer(files, 'python')
+        return await indexer.analyze_and_store_imports()
 
     def files(self):
         """Get files from project."""
