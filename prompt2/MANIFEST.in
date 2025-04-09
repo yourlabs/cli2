@@ -1,0 +1,2 @@
+include requirements.txt classifiers.txt README.* entry_points.ini LICENSE
+recursive-include cli2 *.yml *.sh *.rst *.html *.css *.js *.py *.po *.mo *.conf *.j2 *.txt

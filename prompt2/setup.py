@@ -5,7 +5,6 @@ setup(
     name='prompt2',
     versioning='dev',
     setup_requires='setupmeta',
-    packages=['prompt2'],
     install_requires=[
         'cli2',
         'markdown-it-py',
