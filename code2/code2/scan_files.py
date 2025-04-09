@@ -104,48 +104,49 @@ class ImportAnalyzer:
             import_entry = db.Import(symbol_id=symbol_id, file_id=file_id)
             session.add(import_entry)
 
-    async def _analyze_file(self, file_path: str, session):
+    async def _analyze_file(self, file_path: str):
         """Analyze a single file and store its imports."""
-        try:
-            code = await self._read_file(file_path)
-            tree = self.parser.parse(bytes(code, "utf-8"))
-            imports = self.query.captures(tree.root_node)
-            file_id = await self._ensure_file_in_db(session, file_path)
+        session_factory = await db.connect()
+        async with session_factory() as session:
+            try:
+                code = await self._read_file(file_path)
+                tree = self.parser.parse(bytes(code, "utf-8"))
+                imports = self.query.captures(tree.root_node)
+                file_id = await self._ensure_file_in_db(session, file_path)
 
-            for node in imports['import']:
-                line_number = node.start_point[0] + 1
-                if node.type == "import_statement":
-                    symbol_name = node.children[0].text.decode("utf-8")
-                elif node.type == "import_from_statement":
-                    symbol_name = f"{node.children[0].text.decode('utf-8')}.{node.children[1].text.decode('utf-8')}"
-                else:
-                    continue
+                for node in imports['import']:
+                    line_number = node.start_point[0] + 1
+                    if node.type == "import_statement":
+                        symbol_name = node.children[0].text.decode("utf-8")
+                    elif node.type == "import_from_statement":
+                        symbol_name = f"{node.children[0].text.decode('utf-8')}.{node.children[1].text.decode('utf-8')}"
+                    else:
+                        continue
 
-                symbol_id = await self._find_or_create_symbol(
-                    session, file_id, symbol_name, line_number)
-                await self._add_import(session, symbol_id, file_id)
-            return True  # Return success indicator
-        except Exception as e:
-            cli2.log.exception(f"Error processing {file_path}: {str(e)}")
-            return False  # Return failure indicator
+                    symbol_id = await self._find_or_create_symbol(
+                        session, file_id, symbol_name, line_number)
+                    await self._add_import(session, symbol_id, file_id)
+
+                # Commit all changes after all tasks are complete
+                await session.commit()
+                return True  # Return success indicator
+            except Exception as e:
+                cli2.log.exception(f"Error processing {file_path}: {str(e)}")
+                await session.rollback()
+                return False  # Return failure indicator
 
     async def analyze_and_store_imports(self):
         """Analyze all files using the queue and store imports."""
-        async_session_factory = await db.connect()
-        async with async_session_factory() as session:
-            # Create tasks for each file
-            tasks = [
-                self._analyze_file(file_path, session)
-                for file_path in self.file_paths
-            ]
+        # Create tasks for each file
+        tasks = [
+            self._analyze_file(file_path)
+            for file_path in self.file_paths
+        ]
 
-            # Run tasks through the queue
-            await self.queue.run(*tasks)
+        # Run tasks through the queue
+        await self.queue.run(*tasks)
 
-            # Commit all changes after all tasks are complete
-            await session.commit()
-
-            # Optionally check results
-            if self.queue.results:
-                successful = sum(1 for r in self.queue.results if r)
-                print(f"Processed {successful}/{len(self.file_paths)} files successfully")
+        # Optionally check results
+        if self.queue.results:
+            successful = sum(1 for r in self.queue.results if r)
+            print(f"Processed {successful}/{len(self.file_paths)} files successfully")
