@@ -29,6 +29,7 @@ from .log import configure, log, parse
 from .mask import Mask
 from .notlevenshtein import closest, closest_path
 from .proc import Proc
+from .find import Find
 from .table import Table
 
 
