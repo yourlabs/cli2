@@ -80,7 +80,7 @@ async def connect():
     if async_session_factory is None:
         # Create all tables if they don't exist
         async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(lambda connection: Base.metadata.create_all(connection, checkfirst=True))
         # Create async session factory
         async_session_factory = async_sessionmaker(
             engine, class_=AsyncSession, expire_on_commit=False
