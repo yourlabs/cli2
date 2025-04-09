@@ -7,9 +7,11 @@ Note that all prompt paths are added to the Jinja2 loader, so, you can already
 include your prompts in your prompts::
 
     {% include('your_prompt.txt') %}
+
+Or even go crazy with ``{% extend %}`` and ``{% macro %}``!
 """
 import cli2
-import prompt2
+import os
 
 
 def file(path):
@@ -67,3 +69,41 @@ def exec(*command, **env):
     :param command: String or args list.
     """
     return cli2.Proc(*command, quiet=True, **env).wait().out
+
+
+def dirs(path=None):
+    """
+    Show the list of directories within a path.
+
+    Renders::
+
+        Directories:
+        - path/to/directory1
+        - path/to/directory2
+
+    :param path: Path to walk
+    """
+    path = path or os.getcwd()
+    return '\n'.join(
+        ['Directories:']
+        + [str(_) for _ in cli2.Find(path).dirs()]
+    )
+
+
+def files(path=None):
+    """
+    Show the list of files within a path.
+
+    Renders::
+
+        Files:
+        - path/to/file1
+        - path/to/file2
+
+    :param path: Path to walk
+    """
+    path = path or os.getcwd()
+    return '\n'.join(
+        ['Files:']
+        + [str(_) for _ in cli2.Find(path).files()]
+    )
