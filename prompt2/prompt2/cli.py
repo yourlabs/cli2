@@ -177,7 +177,7 @@ def show(prompt):
 
 
 @cli.cmd
-def render(prompt, **context):
+async def render(prompt, **context):
     """
     Render a prompt with a given template context.
 
@@ -189,7 +189,7 @@ def render(prompt, **context):
     print()
 
     print(cli2.t.y.bold('OUTPUT'))
-    print(prompt.render())
+    print(await prompt.render())
 
 
 @cli.cmd
@@ -233,7 +233,7 @@ def parsers():
 
 
 @cli.cmd
-def messages(prompt, parser=None, model=None, **context):
+async def messages(prompt, parser=None, model=None, **context):
     """
     Render prompt messages with a given template context.
 
@@ -242,7 +242,7 @@ def messages(prompt, parser=None, model=None, **context):
     :param model: Model name to use, if any
     :param context: Context variables.
     """
-    messages = prompt.messages()
+    messages = await prompt.messages()
     if parser:
         messages = parser.messages(messages)
 

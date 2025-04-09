@@ -120,7 +120,7 @@ class Prompt(metaclass=PromptType):
                 names.add(file.name[:-4])
         return list(names)
 
-    def render(self):
+    async def render(self):
         # collect all paths from path plugins ...
         plugins = importlib.metadata.entry_points(
             group='prompt2_paths',
@@ -136,6 +136,7 @@ class Prompt(metaclass=PromptType):
             ),
             undefined=jinja2.StrictUndefined,
             autoescape=False,
+            enable_async=True,
         )
 
         # ... in which you can hook your plugins
@@ -147,13 +148,13 @@ class Prompt(metaclass=PromptType):
 
         # Render the template with the data
         template = env.from_string(self.content)
-        return template.render(**self.context)
+        return await template.render_async(**self.context)
 
-    def messages(self):
+    async def messages(self):
         messages = [
             dict(
                 role='user',
-                content=self.render(),
+                content=await self.render(),
             ),
         ]
         return messages
