@@ -1,5 +1,5 @@
-Find (Path walker)
-~~~~~~~~~~~~~~~~~~
+Find: fast path walker
+~~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: cli2.find
    :members:
