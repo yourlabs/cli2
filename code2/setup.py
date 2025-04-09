@@ -5,7 +5,6 @@ setup(
     name='code2',
     versioning='dev',
     setup_requires='setupmeta',
-    packages=['code2'],
     install_requires=[
         'cli2',
         'tree-sitter',
