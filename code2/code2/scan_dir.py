@@ -10,8 +10,8 @@ from typing import Literal
 
 
 class CodeIndexer:
-    def __init__(self, path: str):
-        self.path = path
+    def __init__(self, project):
+        self.project = project
         self.parsers: dict[str, object] = {}  # Tree-sitter parsers
         self.global_language_cache: dict[
             str, db.Language
@@ -35,7 +35,7 @@ class CodeIndexer:
             except Exception as e:
                 cli2.log.exception(f"Failed to load {lang_name} parser: {e}")
 
-    async def initialize_language_cache(self, session_factory):
+    async def initialize_language_cache(self):
         """Pre-populate the global language cache with all supported languages."""
         supported_languages = [
             "python",
@@ -45,7 +45,7 @@ class CodeIndexer:
             "c",
         ]
 
-        async with session_factory() as session:
+        async with await self.project.session_make() as session:
             for lang_name in supported_languages:
                 language = (
                     await session.execute(
@@ -247,19 +247,16 @@ class CodeIndexer:
 
     async def index_repo_async(self):
         """Index all files in the repository asynchronously."""
-        # Initialize database connection
-        session_factory = await db.connecta()
-
         # Pre-populate the global language cache
-        await self.initialize_language_cache(session_factory)
+        await self.initialize_language_cache()
 
         async def file_callback(filepath):
             # Each task gets its own local cache
             local_cache = {}
             try:
-                async with session_factory() as session:
+                async with await self.project.session_make() as session:
                     await self.process_file(
-                        filepath.relative_to(self.path), session, local_cache
+                        filepath.relative_to(self.project.path), session, local_cache
                     )
                 cli2.log.debug(f"Processed: {filepath}")
             except Exception:
@@ -267,7 +264,7 @@ class CodeIndexer:
 
         # Collect file paths synchronously
         finder = cli2.Find(
-            root=self.path,
+            root=self.project.path,
             glob_include=["*.py", "*.js", "*.ts", "*.cpp", "*.c"],
             glob_exclude=["*test*", "*.spec.*", "node_modules/*"],
         )
@@ -290,4 +287,3 @@ class CodeIndexer:
         if queue.results:
             processed_files = len(queue.results)
             print(f"Processed {processed_files}/{len(file_paths)} files")
-        await db.closea()

@@ -1,19 +1,14 @@
 import cli2
+import os
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
     AsyncSession,
     async_sessionmaker,
 )
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Index
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Index, create_engine
 from sqlalchemy.orm import declarative_base, relationship
 
-# Create async engine from config
-engine = create_async_engine(cli2.cfg["CODE2_DB"], echo=False)
 Base = declarative_base()
-
-# Global async session factory
-async_session_factory = None
-
 
 class Language(Base):
     __tablename__ = "languages"
@@ -73,44 +68,3 @@ class Import(Base):
     __table_args__ = (
         Index("idx_symbol_file", "symbol_id", "file_id", unique=True),
     )
-
-
-async def connecta():
-    """Initialize database connection and create tables asynchronously."""
-    global async_session_factory
-    if async_session_factory is None:
-        # Create all tables if they don't exist
-        async with engine.begin() as conn:
-            await conn.run_sync(lambda connection: Base.metadata.create_all(connection, checkfirst=True))
-        # Create async session factory
-        async_session_factory = async_sessionmaker(
-            engine, class_=AsyncSession, expire_on_commit=False
-        )
-    return async_session_factory
-
-
-async def closea():
-    """Close the database engine."""
-    await engine.dispose()
-
-
-def connect():
-    """Initialize database connection and create tables synchronously."""
-    global session_factory
-    if session_factory is None:
-        # Create all tables if they don't exist
-        Base.metadata.create_all(engine, checkfirst=True)
-        # Create synchronous session factory
-        session_factory = sessionmaker(bind=engine, expire_on_commit=False)
-    return session_factory
-
-def close():
-    """Close the database engine."""
-    engine.dispose()
-
-
-# Optional: Initialize database when module is imported (for testing)
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(connect())

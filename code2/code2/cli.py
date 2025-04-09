@@ -83,9 +83,6 @@ class ConsoleScript(cli2.Group):
         self.doc = __doc__
 
         self.project = Project(os.getcwd())
-        cli2.cfg.defaults.update(dict(
-            CODE2_DB=f'sqlite+aiosqlite:///{self.project.path}/.code2/db.sqlite3',
-        ))
 
         # Load all commands in default context anyway
         self.load_context(self, self.project.contexts[context_name])
@@ -132,4 +129,16 @@ class ConsoleScript(cli2.Group):
         group.load(context)
 
 
-cli = ConsoleScript()
+class DBCommand(cli2.Command):
+    def async_mode(self):
+        return True
+
+    async def async_call(self, *argv):
+        await Project.session_open()
+        return await super().async_call(*argv)
+
+    async def post_call(self):
+        await Project.session_close()
+
+
+cli = ConsoleScript(cmdclass=DBCommand)
