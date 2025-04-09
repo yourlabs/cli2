@@ -26,7 +26,8 @@ language_id_map = {'python': 1, 'java': 2, 'cpp': 3}
 symbol_type_map = {'python': 'import', 'java': 'import', 'cpp': 'include'}
 
 class ImportAnalyzer:
-    def __init__(self, file_paths: List[str], language_name: str):
+    def __init__(self, project, file_paths: List[str], language_name: str):
+        self.project = project
         self.file_paths = file_paths
         self.language_name = language_name
         self.language = get_language(language_name)
@@ -106,7 +107,7 @@ class ImportAnalyzer:
 
     async def _analyze_file(self, file_path: str):
         """Analyze a single file and store its imports."""
-        session_factory = await db.connecta()
+        session_factory = await self.project.session_factory()
         async with session_factory() as session:
             try:
                 code = await self._read_file(file_path)
@@ -114,7 +115,7 @@ class ImportAnalyzer:
                 imports = self.query.captures(tree.root_node)
                 file_id = await self._ensure_file_in_db(session, file_path)
 
-                for node in imports['import']:
+                for node in imports.get('import', []):
                     line_start = node.start_point[0] + 1
                     if node.type == "import_statement":
                         symbol_name = node.children[0].text.decode("utf-8")

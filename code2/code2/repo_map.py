@@ -10,7 +10,7 @@ class RepoMapGenerator:
 
     def __init__(
         self,
-        session_factory,
+        project,
         glob_include_files: Optional[List[str]] = None,
         glob_exclude_files: Optional[List[str]] = None,
         glob_include_symbols: Optional[List[str]] = None,
@@ -26,7 +26,7 @@ class RepoMapGenerator:
             glob_include_symbols: List of glob patterns to include symbols (e.g., ["test_*"])
             glob_exclude_symbols: List of glob patterns to exclude symbols (e.g., ["_*"])
         """
-        self.session_factory = session_factory
+        self.project = project
         self.glob_include_files = glob_include_files or []
         self.glob_exclude_files = glob_exclude_files or []
         self.glob_include_symbols = glob_include_symbols or []
@@ -42,7 +42,7 @@ class RepoMapGenerator:
         Returns:
             Dictionary containing the optimized repo map
         """
-        async with self.session_factory() as session:
+        async with await self.project.session_make() as session:
             # Get all files with their symbols eagerly loaded
             files_stmt = (
                 select(db.File)
