@@ -56,8 +56,7 @@ def shell(*command, **env):
     :param command: Command
     :param env: Environment variables
     """
-    proc = cli2.Proc(*command, quiet=True, **env)
-    proc.wait_sync()
+    proc = cli2.Proc(*command, quiet=True, **env).wait()
     return f'\n\nOutput of `{proc.cmd}`:\n```\n{proc.out}\n```\n\n\n'
 
 
@@ -67,4 +66,4 @@ def exec(*command, **env):
 
     :param command: String or args list.
     """
-    return cli2.Proc(*command, quiet=True, **env).wait_sync().out
+    return cli2.Proc(*command, quiet=True, **env).wait().out

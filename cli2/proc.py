@@ -14,22 +14,21 @@ Example usage:
     # pass shell command in a string for convenience
     proc = cli2.Proc('foo bar')
 
-    # or as list, butter when building commands
+    # or as list, better when building commands
     proc = cli2.Proc('foo', 'bar')
 
     # run in sync mode (ie. for jinja2)
-    proc.wait_sync()
+    proc.wait()
 
     # OR run in async loop
-    await proc.wait()
+    await proc.waita()
 
     # You can chain
-    proc = cli2.Proc('hi').wait_sync()
-    proc = await cli2.Proc('hi').wait()
+    proc = cli2.Proc('hi').wait()
+    proc = await cli2.Proc('hi').waita()
 
 .. note:: There are also start functions, sync and async, in case you want to
           start the proc and wait later.
-
 """
 import asyncio
 import os
@@ -137,7 +136,7 @@ class Proc:
     def cmd(self, value):
         self.args = shlex.split(value)
 
-    async def start(self):
+    async def starta(self):
         """
         Launch the subprocess asynchronously.
 
@@ -167,7 +166,7 @@ class Proc:
         )
         return self
 
-    async def wait(self):
+    async def waita(self):
         """
         Wait for process completion with timeout handling.
 
@@ -176,7 +175,7 @@ class Proc:
         :return: Self reference for method chaining
         """
         if not self.started:
-            await self.start()
+            await self.starta()
 
         try:
             if self.timeout:
@@ -217,7 +216,7 @@ class Proc:
             if not self.quiet:
                 print(decoded_line)
 
-    def start_sync(self):
+    def start(self):
         """
         Start the subprocess synchronously without waiting for output.
         """
@@ -236,16 +235,16 @@ class Proc:
             universal_newlines=True
         )
         self.started = True
-        # Do NOT start output handling here; defer to wait_sync
+        # Do NOT start output handling here; defer to wait
         return self
 
-    def wait_sync(self):
+    def wait(self):
         """
         Wait for process completion synchronously with timeout handling.
         Collects output streams after waiting.
         """
         if not self.started:
-            self.start_sync()
+            self.start()
 
         try:
             if self.timeout:
