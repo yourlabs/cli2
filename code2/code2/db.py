@@ -6,9 +6,15 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
 )
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Index, create_engine
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import declarative_base, relationship, configure_mappers
 
 Base = declarative_base()
+
+if os.getenv('DEBUG'):
+    import logging
+    logging.basicConfig()
+    logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+
 
 class Language(Base):
     __tablename__ = "languages"
@@ -41,7 +47,9 @@ class Symbol(Base):
 
     id = Column(Integer, primary_key=True)
     file_id = Column(
-        Integer, ForeignKey("files.id", ondelete="CASCADE"), nullable=False
+        Integer,
+        ForeignKey("files.id", ondelete="CASCADE"),
+        nullable=False,
     )
     type = Column(String, nullable=False)
     name = Column(String, nullable=False)
@@ -68,3 +76,6 @@ class Import(Base):
     __table_args__ = (
         Index("idx_symbol_file", "symbol_id", "file_id", unique=True),
     )
+
+
+configure_mappers()

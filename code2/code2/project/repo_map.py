@@ -3,7 +3,7 @@ from sqlalchemy.orm import joinedload
 from typing import Dict, List, Optional
 import json
 import fnmatch
-from . import db
+from code2 import db
 
 class RepoMapGenerator:
     """Generates an optimized repository map with files and symbols for LLM consumption."""
@@ -42,7 +42,7 @@ class RepoMapGenerator:
         Returns:
             Dictionary containing the optimized repo map
         """
-        async with await self.project.session_make() as session:
+        async with await self.project.db.session_make() as session:
             # Get all files with their symbols eagerly loaded
             files_stmt = (
                 select(db.File)
