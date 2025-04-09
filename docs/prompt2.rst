@@ -5,6 +5,10 @@ Transform your terminal into an AI powerhouse ⚡ Craft dynamic prompts,
 automate workflows, and generate code at lightspeed - all through CLI sorcery
 🧙♂️
 
+.. image:: prompt2.png
+
+**THIS THING IS STEALING MY JOB!!**
+
 
 **Why prompt2?**
 ================
