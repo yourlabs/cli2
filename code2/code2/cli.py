@@ -77,28 +77,14 @@ class ContextCommands:
         path.touch()
 
 
-class DBCommand(cli2.Command):
-    def __call__(self, *argv):
-        from . import orm
-        orm.db.connect()
-        orm.init()
-        return super().__call__(*argv)
-
-    def post_call(self):
-        from . import orm
-        orm.db.close()
-        cli2.log.debug('Closed DB connection')
-
-
 class ConsoleScript(cli2.Group):
     def __call__(self, *argv):
         context_name = 'default'
-        self.cmdclass = DBCommand
         self.doc = __doc__
 
         self.project = Project(os.getcwd())
         cli2.cfg.defaults.update(dict(
-            CODE2_DB=f'sqlite:///{self.project.path}/.code2/db.sqlite3',
+            CODE2_DB=f'sqlite+aiosqlite:///{self.project.path}/.code2/db.sqlite3',
         ))
 
         # Load all commands in default context anyway
