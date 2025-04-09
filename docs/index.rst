@@ -14,6 +14,7 @@
    display
    mask
    proc
+   find
    interactive
    colors
    table
