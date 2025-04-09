@@ -12,6 +12,24 @@ import cli2
 import prompt2
 
 
+def file(path):
+    """
+    Show a file path content with context markers.
+
+    It will render::
+
+
+        path/to/file source code:
+        ```
+        <source code here>
+        ```
+
+
+    :param path: File path
+    """
+    return f'\n\n{path} source code:\n```\n{read(path)}\n```\n\n\n'
+
+
 def read(path):
     """
     Read a file from the filesystem
@@ -24,6 +42,26 @@ def read(path):
 
 
 def shell(*command, **env):
+    """
+    Show a command output with context markers.
+
+    It will render::
+
+
+        Output of `command line`:
+        ```
+        <output here>
+        ```
+
+    :param command: Command
+    :param env: Environment variables
+    """
+    proc = cli2.Proc(*command, quiet=True, **env)
+    proc.wait_sync()
+    return f'\n\nOutput of `{proc.cmd}`:\n```\n{proc.out}\n```\n\n\n'
+
+
+def exec(*command, **env):
     """
     Execute a command and return the full output.
 
