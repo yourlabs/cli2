@@ -29,6 +29,8 @@ setup(
         'prompt2_globals': [
             'read = prompt2.jinja2:read',
             'shell = prompt2.jinja2:shell',
+            'files = prompt2.jinja2:files',
+            'dirs = prompt2.jinja2:dirs',
         ],
         'prompt2_backend': [
             'litellm = prompt2.backends.litellm:LiteLLMBackend',
