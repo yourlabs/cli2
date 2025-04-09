@@ -45,7 +45,7 @@ class CodeIndexer:
             "c",
         ]
 
-        async with await self.project.session_make() as session:
+        async with await self.project.db.session_make() as session:
             for lang_name in supported_languages:
                 language = (
                     await session.execute(
@@ -180,14 +180,11 @@ class CodeIndexer:
 
         def traverse(node):
             node_type = node.type
-            content[node.start_byte : node.end_byte].decode(
-                "utf-8", errors="ignore"
-            )
-
+            # Avoid decoding here unless necessary, since we only need it for names
             if node_type == "function_definition":
                 name_node = node.child_by_field_name("name")
                 if name_node:
-                    name = name_node.text.decode()
+                    name = name_node.text.decode("utf-8", errors="ignore").strip()  # Trim here
                     if name.startswith("__"):
                         score = 1
                     elif name.startswith("_"):
@@ -206,7 +203,7 @@ class CodeIndexer:
             elif node_type == "class_definition":
                 name_node = node.child_by_field_name("name")
                 if name_node:
-                    name = name_node.text
+                    name = name_node.text.decode("utf-8", errors="ignore").strip()  # Trim here
                     symbols.append(
                         {
                             "type": "class",
@@ -236,7 +233,7 @@ class CodeIndexer:
                 db.Symbol(
                     file_id=file_id,
                     type=s["type"],
-                    name=s["name"],
+                    name=s["name"].strip(),  # Double-check trim here for safety
                     line_start=s["line_start"],
                     line_end=s["line_end"],
                     score=s.get("score", 0),
@@ -254,7 +251,7 @@ class CodeIndexer:
             # Each task gets its own local cache
             local_cache = {}
             try:
-                async with await self.project.session_make() as session:
+                async with await self.project.db.session_make() as session:
                     await self.process_file(
                         filepath.relative_to(self.project.path), session, local_cache
                     )

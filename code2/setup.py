@@ -27,6 +27,7 @@ setup(
         ],
         'code2_workflow': [
             'cmd = code2.workflows.cmd:CmdWorkflow',
+            'edit = code2.workflows.edit:EditWorkflow',
             #'analyze = code2.workflows.analyze:AnalyzeWorkflow',
             #'edit = code2.workflows.edit:EditWorkflow',
             #'ask = code2.plugins.workflow.ask:AskWorkflow',
@@ -39,6 +40,7 @@ setup(
         ],
         'prompt2_globals': [
             'project = code2.prompt2:project',
+            'symbols_src = code2.prompt2:symbols_src',
         ],
     },
 )

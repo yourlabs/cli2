@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 
 from .context import Context
-from .project import Project
+from code2 import project
 
 
 class ContextCommands:
@@ -82,19 +82,17 @@ class ConsoleScript(cli2.Group):
         context_name = 'default'
         self.doc = __doc__
 
-        self.project = Project(os.getcwd())
-
         # Load all commands in default context anyway
-        self.load_context(self, self.project.contexts[context_name])
+        self.load_context(self, project.contexts[context_name])
 
         # Add project management commands
         group = self.group('project', doc='Project management commands')
 
         # actually load the project management commands
-        group.load(self.project)
+        group.load(project)
 
         # Find contexts to lazy load from project configuration
-        for name, context in self.project.contexts.items():
+        for name, context in project.contexts.items():
             if context.archived:
                 continue
 
@@ -108,13 +106,13 @@ class ConsoleScript(cli2.Group):
         self.group(
             'context',
             doc=ContextCommands.__doc__,
-        ).load(ContextCommands(self.project))
+        ).load(ContextCommands(project))
 
         return super().__call__(*argv)
 
     def load_context(self, group, context):
         for plugin in importlib.metadata.entry_points(group='code2_workflow'):
-            obj = plugin.load()(self.project, context)
+            obj = plugin.load()(project, context)
 
             group.add(
                 obj.run,
@@ -134,11 +132,11 @@ class DBCommand(cli2.Command):
         return True
 
     async def async_call(self, *argv):
-        await Project.session_open()
+        await project.db.session_open()
         return await super().async_call(*argv)
 
     async def post_call(self):
-        await Project.session_close()
+        await project.db.session_close()
 
 
 cli = ConsoleScript(cmdclass=DBCommand)

@@ -107,7 +107,7 @@ class ImportAnalyzer:
 
     async def _analyze_file(self, file_path: str):
         """Analyze a single file and store its imports."""
-        session_factory = await self.project.session_factory()
+        session_factory = await self.project.db.session_factory()
         async with session_factory() as session:
             try:
                 code = await self._read_file(file_path)
