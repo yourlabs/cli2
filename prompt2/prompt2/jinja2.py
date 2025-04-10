@@ -20,12 +20,10 @@ def file(path):
 
     It will render::
 
-
         path/to/file source code:
         ```
         <source code here>
         ```
-
 
     :param path: File path
     """
@@ -71,7 +69,7 @@ def exec(*command, **env):
     return cli2.Proc(*command, quiet=True, **env).wait().out
 
 
-def dirs(path=None):
+def dir_list(*paths):
     """
     Show the list of directories within a path.
 
@@ -83,14 +81,15 @@ def dirs(path=None):
 
     :param path: Path to walk
     """
-    path = path or os.getcwd()
-    return '\n'.join(
-        ['Directories:']
-        + [str(_) for _ in cli2.Find(path).dirs()]
-    )
+    result = ['Directory list:']
+    if not paths:
+        paths = [os.getcwd()]
+    for path in paths:
+        result += cli2.Find(path, flags='-type d').run()
+    return '\n'.join(result)
 
 
-def files(path=None):
+def file_list(*paths):
     """
     Show the list of files within a path.
 
@@ -102,8 +101,41 @@ def files(path=None):
 
     :param path: Path to walk
     """
-    path = path or os.getcwd()
-    return '\n'.join(
-        ['Files:']
-        + [str(_) for _ in cli2.Find(path).files()]
-    )
+    result = ['File list:']
+    if not paths:
+        paths = [os.getcwd()]
+    for path in paths:
+        result += cli2.Find(path, flags='-type f').run()
+    return '\n'.join(result)
+
+
+async def files_read(*paths):
+    """
+    Show the sources of files of given paths.
+
+    Renders::
+
+        path/to/file1 source code:
+        ```
+        ... code here ...
+        ```
+
+        path/to/file2 source code:
+        ```
+        ... code here ...
+        ```
+        - path/to/file2
+    """
+    if not paths:
+        raise Exception('At least one path is required')
+
+    result = []
+    for name, content in await cli2.files_read(*paths):
+        path = Path(name).relative_to(os.getcwd())
+        result += [
+            'Source for {path}:',
+            '```',
+            content,
+            '```',
+        ]
+    return '\n\n' + '\n\n'.join(result)

@@ -1,5 +1,6 @@
 import cli2
 import importlib.metadata
+import re
 
 from .exception import NotFoundError
 
@@ -55,8 +56,23 @@ class Wholefile(Parser):
 
 
 class List(Parser):
-    system = "Respond only with the requested list because it will be processed by an automated AI assistant tool—no additional text, comments, or explanations are allowed."  # noqa
+    system = """
+Provide your response as a list in the following format, with each item on a new line preceded by a hyphen and a space. Include only the item names, with no additional text, descriptions, or annotations:
+
+- item1
+- item2
+    """  # noqa
+
 
     def parse(self, response):
-        breakpoint()
+        if response.startswith('```'):
+            # strip markup the IA absolutely wants to add
+            return '\n'.join([l for l in response.split('\n')[1:-1]])
+        if response.strip().startswith('-'):
+            result = []
+            for line in response.splitlines():
+                if match := re.match('^- (.*)', line):
+                    for item in match.group(1).split('- '):
+                        result.append(item)
+            return result
         return response
