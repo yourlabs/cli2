@@ -1,3 +1,4 @@
+import aiofiles
 import asyncio
 import inspect
 import os
@@ -37,6 +38,26 @@ async def async_resolve(result, output=False):
             else:
                 results.append(await async_resolve(_))
         return None if output else results
+    return result
+
+
+async def files_read(*paths, num_workers=None, mode='r'):
+    """
+    Read a list of files asynchronously with anyio.
+
+    :param paths: File paths to read.
+    :param num_workers: Number of workers, cpucount*2 by default.
+    :return: Dict of path=content
+    """
+
+    result = dict()
+    async def file_read(path):
+        async with aiofiles.open(str(path), mode) as f:
+            result[path] = await f.read()
+
+    queue = Queue(num_workers=num_workers)
+    await queue.run(*[file_read(path) for path in paths])
+
     return result
 
 
