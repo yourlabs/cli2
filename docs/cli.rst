@@ -111,9 +111,11 @@ If you need to know if a function is executed from cli2, you can add a
 
 .. code-block:: python
 
-    def your_cmd(some, _cli2=None):
+    def your_cmd(*args, _cli2=None):
         if _cli2:
             print('in cli2')
+            if not args:
+                return _cli2.help(error='Send me some args please!')
         else:
             return some
 
