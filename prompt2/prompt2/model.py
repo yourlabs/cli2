@@ -196,6 +196,6 @@ class Model:
 
         if callable(getattr(messages, 'messages', None)):
             # quacks like a Prompt object
-            messages = messages.messages()
+            messages = await messages.messages()
 
         return await self.process(messages, parser, cache_key=cache_key)

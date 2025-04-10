@@ -6,10 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from code2 import orm
-
-from code2.markdown import mdprint
-from code2.prompt import Prompt
+from code2 import project
 from code2.workflow import WorkflowPlugin
 
 

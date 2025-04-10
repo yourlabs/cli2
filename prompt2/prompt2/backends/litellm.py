@@ -24,6 +24,7 @@ class LiteLLMBackend(BackendPlugin):
             if hasattr(chunk, 'choices') and chunk.choices:
                 delta = chunk.choices[0].delta
                 if hasattr(delta, 'content') and delta.content is not None:
+                    print(delta.content, end='')
                     full_content += delta.content
 
         return full_content

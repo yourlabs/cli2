@@ -20,15 +20,15 @@ Example usage:
         root="/path/to/repo",
         glob_include=['*.py'],
         glob_exclude=['*test*'],
-        file_callback=callback
+        callback=callback
     )
     files = finder.files()
     dirs = finder.dirs()
 """
-import cli2
 from fnmatch import fnmatch
 from pathlib import Path
 import os
+import subprocess
 
 
 class Find:
@@ -48,9 +48,13 @@ class Find:
 
         Optional list of glob patterns to exclude
 
-    .. py:attribute:: file_callback
+    .. py:attribute:: callback
 
         Optional callback function called for each file or directory
+
+    .. py:attribute:: flags
+
+        Set this to '-type f' to limit find to files or example.
     """
 
     def __init__(
@@ -58,7 +62,8 @@ class Find:
         root=None,
         glob_include=None,
         glob_exclude=None,
-        file_callback=None,
+        callback=None,
+        flags='',
     ):
         """
         Initialize Find with optional root directory, filters, and callback.
@@ -70,13 +75,15 @@ class Find:
         :type glob_include: list or None
         :param glob_exclude: List of glob patterns to exclude
         :type glob_exclude: list or None
-        :param file_callback: Function to call for each file or directory
-        :type file_callback: callable or None
+        :param callback: Function to call for each file or directory
+        :type callback: callable or None
+        :param flags: Arguments for the fing command.
         """
         self.root = Path(root if root is not None else os.getcwd()).resolve()
         self.glob_include = glob_include if glob_include is not None else []
         self.glob_exclude = glob_exclude if glob_exclude is not None else []
-        self.file_callback = file_callback
+        self.callback = callback
+        self.flags = flags
 
     def _matches_filters(self, filepath):
         """
@@ -103,87 +110,37 @@ class Find:
 
         return True
 
-    def files(self, directory=None):
+    def run(self, directory=None):
         """
-        List files not ignored by git, applying filters and callback.
+        Actually run the find command.
 
-        :param directory: Directory to start search from (defaults to root if
-                          not specified)
-        :type directory: str or pathlib.Path or None
-        :return: List of Path objects for files not ignored by git that match
-                 filters
-        :rtype: list
-        :raises RuntimeError: If the git command fails
+        :param directory: str or Path, or None to use self.root
         """
         base_path = Path(directory).resolve() if directory else self.root
 
         cmd = ' '.join([
-            f'comm -23 <(find {base_path} -type f | sort)',
-            f'<(find {base_path} -type f | git check-ignore --stdin | sort)'
+            f'comm -23 <(find . {self.flags} | sort)',
+            f'<(find . {self.flags} | git check-ignore --stdin | sort)',
         ])
-        proc = cli2.Proc("bash", "-c", cmd).wait()
+        stdout = subprocess.check_output(
+            cmd,
+            shell=True,
+            stderr=subprocess.STDOUT,
+            cwd=str(base_path)
+        )
 
-        if proc.rc != 0:
-            raise RuntimeError(
-                f"Command failed with return code {proc.rc}: {proc.stderr}"
-            )
-
-        files = []
-        for line in proc.stdout.splitlines():
+        results = []
+        for line in stdout.splitlines():
             if not line.strip():
                 continue
 
-            filepath = (base_path / line.strip()).resolve()
+            filepath = (base_path / line.decode().strip()).resolve()
 
             if (
                 not self.glob_include and not self.glob_exclude
             ) or self._matches_filters(filepath):
-                files.append(filepath)
-                if self.file_callback:
-                    self.file_callback(filepath)
+                results.append(filepath)
+                if self.callback:
+                    self.callback(filepath)
 
-        return files
-
-    def dirs(self, directory=None):
-        """
-        List directories not ignored by git, applying filters and callback.
-
-        :param directory: Directory to start search from (defaults to root if
-                          not specified)
-        :type directory: str or pathlib.Path or None
-        :return: List of Path objects for directories not ignored by git that
-                 match filters
-        :rtype: list
-        :raises RuntimeError: If the git command fails
-        """
-        base_path = Path(directory).resolve() if directory else self.root
-
-        cmd = ' '.join([
-            f'comm -23 <(find {base_path} -type d | sort)',
-            f'<(find {base_path} -type d | git check-ignore --stdin | sort)'
-        ])
-        proc = cli2.Proc("bash", "-c", cmd).wait()
-
-        if proc.rc != 0:
-            raise RuntimeError(
-                f"Command failed with return code {proc.rc}: {proc.stderr}"
-            )
-
-        dirs = []
-        for line in proc.stdout.splitlines():
-            if not line.strip():
-                continue
-
-            dirpath = (base_path / line.strip()).resolve()
-
-            if dirpath == base_path:
-                continue
-
-            if (
-                not self.glob_include and not self.glob_exclude
-            ) or self._matches_filters(dirpath):
-                dirs.append(dirpath)
-                if self.file_callback:
-                    self.file_callback(dirpath)
-
-        return dirs
+        return results
