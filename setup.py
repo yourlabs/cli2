@@ -52,6 +52,7 @@ setup(
         'pyyaml',
         'pygments',
         'structlog',
+        'aiofiles',
     ],
     extras_require=dict(
         httpx=['chttpx'],
