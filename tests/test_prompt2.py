@@ -98,6 +98,11 @@ def test_parsers(kwargs):
 
 
 def test_ask(kwargs):
+    autotest(  # ensure clean error without arguments
+        'tests/prompt2/test_ask_fail.txt',
+        'prompt2 ask',
+        **kwargs,
+    )
     autotest(
         'tests/prompt2/test_ask.txt',
         'prompt2 ask Write hello world in python',
