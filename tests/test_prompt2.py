@@ -63,6 +63,7 @@ def kwargs(prompt2_env, user, local):
             str(user.parent.parent),
             str(local.parent.parent),
             str(Path(__file__).parent.parent),
+            r'/tmp/.*',
         ],
         env=prompt2_env,
     )
