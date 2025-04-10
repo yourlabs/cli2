@@ -19,6 +19,8 @@
    colors
    table
    asyncio
+   tasks
+   queue
    cli
    client
    ansible
