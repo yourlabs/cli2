@@ -77,7 +77,7 @@ class SymbolsManager:
 
         return file_paths
 
-    async def list( self, include=None, exclude=None, paths=None,):
+    async def list(self, include=None, exclude=None, paths=None,):
         """
         List all symbols from the database with optional filters on symbol names and file paths.
 

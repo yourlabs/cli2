@@ -1,0 +1,5 @@
+Given this list of files in my project, which would give you an overview of the
+coding style, line length, type hinting or not, and other style guidelines?
+Pick a representative set of source code files in different languages and
+select the linter related files.
+{{ file_list(all_files) }}

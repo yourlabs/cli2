@@ -26,20 +26,3 @@ async def symbols_src(*symbol_names):
     return '\n\n\n'.join(await project.symbols.src(*symbol_names))
 
 
-# Example usage:
-async def main():
-    # Assuming project is set
-    symbol_names = ["function1", "class2", "variable3"]
-    codes = await get_symbol_codes(symbol_names)
-    for i, code in enumerate(codes):
-        print(f"db.Symbol: {symbol_names[i]}")
-        if code:
-            print("Code:")
-            print(code)
-        else:
-            print("No code retrieved")
-        print("---")
-
-# If you need to run it:
-# import asyncio
-# asyncio.run(main())

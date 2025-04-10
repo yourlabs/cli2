@@ -1,0 +1,7 @@
+{% for name, content in files.items() %}
+Source for {{ name }}:
+```
+{{ content }}
+```
+
+{% endfor %}

@@ -1,12 +1,12 @@
 import textwrap
 import re
 
+import prompt2
 from code2.workflow import WorkflowPlugin
-from code2.prompt import Prompt
 
 
 class AnalyzeWorkflow(WorkflowPlugin):
-    async def run(self, *message, _cli2=None):
+    async def run(self, message, _cli2=None):
         """
         Ask AI for a code analysis.
 
@@ -15,16 +15,23 @@ class AnalyzeWorkflow(WorkflowPlugin):
 
         Example:
 
-            code2 analyze why is my widget always hidden
-
-        Keep it mind you can open an editor for your CLI with CTRL+X CTRL+E in bash.
-
-        :param message: Your message to the AI
+            code2 analyze
         """
-        if not message:
-            return _cli2.help(error='message is required')
+        architect = prompt2.Model('architect')
+        prompt = prompt2.Prompt(
+            content='You are my AI programming assistant, given my'
+            ' request and repo symbol list, tell me which symbols do you need'
+            ' to have full context for my request'
+        )
+        prompt.content += '\nMy request is: ' + message
+        repo_map = await self.project.repo_map()
+        prompt.content += '\nMy repo map is: ' + repo_map
+        result = await architect(prompt, 'list')
+        search = []
+        for item in result:
+            for word in item.split():
+                search.append(word)
 
-        architect = Prompt('architect')
         request = prompt_read('directions').format(
             message=message,
             symbols=symbols,

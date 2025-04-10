@@ -125,14 +125,17 @@ class Project(metaclass=ProjectMetaclass):
         return await indexer.analyze_and_store_imports()
 
     @cli2.cmd(name='map')
-    async def repo_map(self):
+    async def repo_map(self, _cli2=None):
         """
         Index files and symbols in the current directory.
         """
         from code2.project import repo_map
         generator = repo_map.RepoMapGenerator(self)
         map_str = await generator.get_map_string()
-        print(map_str)
+        if _cli2:
+            print(map_str)
+        else:
+            return map_str
 
 
 

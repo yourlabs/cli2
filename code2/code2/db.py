@@ -10,11 +10,6 @@ from sqlalchemy.orm import declarative_base, relationship, configure_mappers
 
 Base = declarative_base()
 
-if os.getenv('DEBUG'):
-    import logging
-    logging.basicConfig()
-    logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
-
 
 class Language(Base):
     __tablename__ = "languages"
