@@ -125,14 +125,14 @@ class Prompt(metaclass=PromptType):
         plugins = importlib.metadata.entry_points(
             group='prompt2_paths',
         )
-        paths = [
-            plugin.load()() for plugin in plugins
-        ]
+        paths = []
+        for plugin in plugins:
+            paths += [str(p) for p in plugin.load()()]
 
         # ... to build a jinja2 environment ...
         env = jinja2.Environment(
             loader=jinja2.FileSystemLoader(
-                [str(p) for p in paths],
+                paths,
             ),
             undefined=jinja2.StrictUndefined,
             autoescape=False,

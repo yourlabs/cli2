@@ -1,12 +1,19 @@
 command: prompt2 list
 retcode: 0
 stdout:
+[94mcode2.context.build[39;49;00m:[37m [39;49;00mredacted/code2/code2/prompts/code2.context.build.txt[37m[39;49;00m
+[94mcode2.directions[39;49;00m:[37m [39;49;00mredacted/code2/code2/prompts/code2.directions.txt[37m[39;49;00m
+[94mcode2.source[39;49;00m:[37m [39;49;00mredacted/code2/code2/prompts/code2.source.txt[37m[39;49;00m
 [94mcreate_files_system[39;49;00m:[37m [39;49;00mredacted/code2/code2/prompts/create_files_system.txt[37m[39;49;00m
-[94mdirections[39;49;00m:[37m [39;49;00mredacted/code2/code2/prompts/directions.txt[37m[39;49;00m
 [94mfix_file[39;49;00m:[37m [39;49;00mredacted/code2/code2/prompts/fix_file.txt[37m[39;49;00m
 [94mfix_file_output[39;49;00m:[37m [39;49;00mredacted/code2/code2/prompts/fix_file_output.txt[37m[39;49;00m
 [94mfix_files_for_output[39;49;00m:[37m [39;49;00mredacted/code2/code2/prompts/fix_files_for_output.txt[37m[39;49;00m
+[94minspect.code_style_files[39;49;00m:[37m [39;49;00mredacted/code2/code2/prompts/inspect.code_style_files.txt[37m[39;49;00m
+[94minspect.code_style_prompt[39;49;00m:[37m [39;49;00mredacted/code2/code2/prompts/inspect.code_style_prompt.txt[37m[39;49;00m
+[94minspect.testing_files[39;49;00m:[37m [39;49;00mredacted/code2/code2/prompts/inspect.testing_files.txt[37m[39;49;00m
+[94minspect.testing_prompt[39;49;00m:[37m [39;49;00mredacted/code2/code2/prompts/inspect.testing_prompt.txt[37m[39;49;00m
 [94mirrelevant_directories_to_ignore[39;49;00m:[37m [39;49;00mredacted/code2/code2/prompts/irrelevant_directories_to_ignore.txt[37m[39;49;00m
 [94mlocal[39;49;00m:[37m [39;49;00mredacted/prompts_local/local.txt[37m[39;49;00m
+[94mmacros[39;49;00m:[37m [39;49;00mredacted/code2/code2/prompts/macros.txt[37m[39;49;00m
 [94muser[39;49;00m:[37m [39;49;00mredacted/prompts_user/user.txt[37m[39;49;00m
 
