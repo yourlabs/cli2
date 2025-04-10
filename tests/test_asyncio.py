@@ -51,3 +51,16 @@ async def test_queue_error_handling(monkeypatch):
 
     # Exceptions should be printed though, not swallowed
     logger.exception.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_files_read(tmp_path):
+    files = [tmp_path / 'a', tmp_path / 'b', tmp_path / 'c']
+    expected = dict()
+    for file in files:
+        content = f'{file.name}content'
+        with file.open('w') as f:
+            f.write(content)
+        expected[file] = content
+    result = await cli2.files_read(*files)
+    assert result == expected
