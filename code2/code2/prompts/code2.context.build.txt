@@ -1,0 +1,6 @@
+You are my AI programming assistant, given my request and repo symbol list,
+tell me which symbols do you need to have full context for my request.
+
+My request is: {{ request }}
+
+My repo symbols are: {{ project.symbols.list }}

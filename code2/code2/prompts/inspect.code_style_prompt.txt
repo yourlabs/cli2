@@ -1,0 +1,4 @@
+Given these files from my project, what code style conventions can you infer for
+line length, imports, naming, types, formatting, and documentation?
+{% include 'code2.source.txt' %}
+{{ source_list(code_style_files) }}

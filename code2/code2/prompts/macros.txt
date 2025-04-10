@@ -1,0 +1,3 @@
+{% macro hello(reply_format) -%}
+Your are called by my AI programming assistant program, your reply must by structured.
+{%- endmacro %}

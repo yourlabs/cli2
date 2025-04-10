@@ -10,6 +10,20 @@ class Context:
         self._data = dict()
 
     @property
+    def prompt_path(self):
+        return self.path / 'prompt.txt'
+
+    @property
+    def prompt(self):
+        return prompt2.Prompt(self.prompt_path)
+
+    @property
+    def prompt_text(self):
+        if self.prompt_path.exists():
+            with self.prompt_path.open('r') as f:
+                return f.read()
+
+    @property
     def data(self):
         if not self._data and self.data_path.exists():
             self._data = self.yaml_load('data')
