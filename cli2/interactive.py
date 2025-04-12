@@ -65,10 +65,11 @@ def editor(content=None, path=None):
     if path and path.exists():
         edit_path = path
     else:
+        suffix = 'txt' if not path else path.name.split('.')[-1]
         tmp = tempfile.NamedTemporaryFile(
             mode='w+',
             delete=False,
-            suffix=".txt",
+            suffix=f'.{suffix}',
         )
         edit_path = tmp.name
         if content:
