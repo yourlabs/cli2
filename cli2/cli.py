@@ -282,12 +282,12 @@ class Group(EntryPoint, dict):
         table.print(self.print)
     help.cli2 = dict(color='green')
 
-    def load(self, obj):
+    def load(self, obj, cmdclass=None):
         if isinstance(obj, type):
-            return self.load_cls(obj)
-        return self.load_obj(obj)
+            return self.load_cls(obj, cmdclass=cmdclass)
+        return self.load_obj(obj, cmdclass=cmdclass)
 
-    def load_cls(self, cls, leaf=None):
+    def load_cls(self, cls, leaf=None, cmdclass=None):
         """
         Load all methods which have been decorated with @cmd
 
@@ -310,9 +310,9 @@ class Group(EntryPoint, dict):
             if isinstance(method, classmethod):
                 # get the bound method
                 method = getattr(cls, name)
-            self.load_method(final, method)
+            self.load_method(final, method, cmdclass=cmdclass)
 
-    def load_obj(self, obj):
+    def load_obj(self, obj, cmdclass=None):
         """
         Load all methods which have been decorated with @cmd
         """
@@ -322,9 +322,9 @@ class Group(EntryPoint, dict):
             if not callable(getattr(type(obj), name, None)):
                 continue
             method = getattr(obj, name)
-            self.load_method(obj, method)
+            self.load_method(obj, method, cmdclass=cmdclass)
 
-    def load_method(self, obj, method):
+    def load_method(self, obj, method, cmdclass=None):
         wrapped_method = getattr(method, '__func__', None)
         cfg = getattr(
             wrapped_method,
@@ -337,6 +337,8 @@ class Group(EntryPoint, dict):
         if condition:
             if not condition(obj):
                 return
+        if cmdclass:
+            cmd(cls=cmdclass)(method)
         self.cmd(method)
 
     def __call__(self, *argv):
