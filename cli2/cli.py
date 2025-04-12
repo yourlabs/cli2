@@ -816,6 +816,9 @@ class Command(EntryPoint, dict):
         """
         pass
 
+    def __repr__(self):
+        return f'{type(self).__name__}(name={self.name})'
+
 
 class Argument:
     """
