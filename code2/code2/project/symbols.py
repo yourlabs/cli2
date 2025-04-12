@@ -81,13 +81,10 @@ class SymbolsManager:
         """
         List all symbols from the database with optional filters on symbol names and file paths.
 
-        Args:
-            include: Optional list of symbol name patterns to include (SQL LIKE syntax)
-            exclude: Optional list of symbol name patterns to exclude (SQL LIKE syntax)
-            paths: Optional list of file path patterns to filter on (SQL LIKE syntax)
-
-        Returns:
-            List of dictionaries containing symbol information
+        :param include: Optional list of symbol name patterns to include (SQL LIKE syntax)
+        :param exclude: Optional list of symbol name patterns to exclude (SQL LIKE syntax)
+        :param paths: Optional list of file path patterns to filter on (SQL LIKE syntax)
+        :return: List of dictionaries containing symbol information
         """
         # Get session factory
         session_factory = await connect()

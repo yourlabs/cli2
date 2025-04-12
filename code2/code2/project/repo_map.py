@@ -19,12 +19,11 @@ class RepoMapGenerator:
         """
         Initialize the RepoMapGenerator with optional glob patterns for filtering.
 
-        Args:
-            session_factory: SQLAlchemy async session factory
-            glob_include_files: List of glob patterns to include files (e.g., ["*.py"])
-            glob_exclude_files: List of glob patterns to exclude files (e.g., ["test/*"])
-            glob_include_symbols: List of glob patterns to include symbols (e.g., ["test_*"])
-            glob_exclude_symbols: List of glob patterns to exclude symbols (e.g., ["_*"])
+        :param session_factory: SQLAlchemy async session factory
+        :param glob_include_files: List of glob patterns to include files (e.g., ["*.py"])
+        :param glob_exclude_files: List of glob patterns to exclude files (e.g., ["test/*"])
+        :param glob_include_symbols: List of glob patterns to include symbols (e.g., ["test_*"])
+        :param glob_exclude_symbols: List of glob patterns to exclude symbols (e.g., ["_*"])
         """
         self.project = project
         self.glob_include_files = glob_include_files or []
@@ -36,11 +35,8 @@ class RepoMapGenerator:
         """
         Generates a repository map with file structure and symbol names.
 
-        Args:
-            max_size: Maximum approximate size in characters for the output
-
-        Returns:
-            Dictionary containing the optimized repo map
+        :param max_size: Maximum approximate size in characters for the output
+        :return: Dictionary containing the optimized repo map
         """
         async with await self.project.db.session_make() as session:
             # Get all files with their symbols eagerly loaded
@@ -127,19 +123,3 @@ class RepoMapGenerator:
         """Returns the repo map as a compact formatted string."""
         repo_map = await self.generate_map(max_size)
         return json.dumps(repo_map, separators=(',', ':'))
-
-# Example usage:
-"""
-async def main():
-    session_factory = await db.connect()
-    generator = RepoMapGenerator(
-        session_factory,
-        glob_include_files=['*.py', '*.js'],
-        glob_exclude_files=['tests/*', '*_test.py'],
-        glob_include_symbols=['get_*', 'set_*'],
-        glob_exclude_symbols=['_*']
-    )
-    map_str = await generator.get_map_string()
-    print(map_str)
-    await db.close()
-"""
