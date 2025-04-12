@@ -194,11 +194,17 @@ def test_load():
         def fails3(self):
             raise Exception('fails')
 
+    class BarCommand(cli2.Command):
+        pass
+
+    class FooCommand(cli2.Command):
+        pass
+
     class Bar(metaclass=BarMetaclass):
         def __init__(self, init=None):
             self.init = init
 
-        @cli2.cmd
+        @cli2.cmd(cls=BarCommand)
         def test(self):
             return self.init
 
@@ -230,6 +236,13 @@ def test_load():
     group = cli2.Group()
     group.load(Foo)
     assert list(group.keys()) == ['help', 'test', 'classmeth', 'test2']
+    assert isinstance(group['test'], BarCommand)
+
+    group = cli2.Group()
+    # so far, the cmdclass override works only when loading instances
+    group.load(Foo(), cmdclass=FooCommand)
+    assert isinstance(group['test'], FooCommand)
+    assert isinstance(group['test2'], FooCommand)
 
     group = cli2.Group()
     group['0'] = group.group('0')

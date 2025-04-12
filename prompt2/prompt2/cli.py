@@ -85,7 +85,7 @@ cli = cli2.Group(
 
 
 @cli.cmd
-async def ask(*args, parser=None, model=None):
+async def ask(*args, parser=None, model=None, _cli2=None):
     """
     Ask a question from the CLI
 
@@ -97,6 +97,8 @@ async def ask(*args, parser=None, model=None):
     :param parser: Parser name if any
     :param model: Model name to use, if any
     """
+    if not args:
+        return _cli2.help(error='Ask a question please')
     return await model(prompt2.Prompt(content=' '.join(args)), parser)
 
 
