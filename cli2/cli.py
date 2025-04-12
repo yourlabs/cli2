@@ -12,10 +12,7 @@ from docstring_parser import parse
 from . import display
 from .asyncio import async_resolve
 from .colors import colors
-
-
-class Cli2Error(Exception):
-    pass
+from .exceptions import Cli2Error
 
 
 class Cli2ValueError(Cli2Error):
@@ -640,7 +637,13 @@ class Command(EntryPoint, dict):
             finally:
                 self.post_result = asyncio.run(async_resolve(self.post_call()))
 
-        error = self.parse(*argv)
+        try:
+            error = self.parse(*argv)
+        except Cli2ValueError as exc:
+            return self.help(error=exc.args[0])
+        except Exception as exc:
+            return self.handle_exception(exc)
+
         if error:
             self.exit_code = 1
             return self.help(error=error)
@@ -670,7 +673,13 @@ class Command(EntryPoint, dict):
 
     async def async_call(self, *argv):
         """ Call with async stuff in single event loop """
-        error = self.parse(*argv)
+        try:
+            error = self.parse(*argv)
+        except Cli2ValueError as exc:
+            return self.help(error=exc.args[0])
+        except Exception as exc:
+            return self.handle_exception(exc)
+
         if error:
             self.exit_code = 1
             return self.help(error=error)
