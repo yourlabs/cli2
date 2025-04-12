@@ -58,4 +58,4 @@ async def files_read(*paths, num_workers=None, mode='r'):
     queue = Queue(num_workers=num_workers)
     await queue.run(*[file_read(path) for path in paths])
 
-    return result
+    return {key: result[key] for key in sorted(result)}
