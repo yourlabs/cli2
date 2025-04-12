@@ -79,7 +79,7 @@ class Find:
         :type callback: callable or None
         :param flags: Arguments for the fing command.
         """
-        self.root = Path(root if root is not None else os.getcwd()).resolve()
+        self.root = Path(os.getcwd() if root is None else root).resolve()
         self.glob_include = glob_include if glob_include is not None else []
         self.glob_exclude = glob_exclude if glob_exclude is not None else []
         self.callback = callback
