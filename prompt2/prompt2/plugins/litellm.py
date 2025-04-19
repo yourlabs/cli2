@@ -1,10 +1,9 @@
 import litellm
+import prompt2
 import os
 
-from prompt2.backend import BackendPlugin
 
-
-class LiteLLMBackend(BackendPlugin):
+class LiteLLMPlugin(prompt2.Plugin):
     def __init__(self, model_name, **model_kwargs):
         self.model_name = model_name
         self.model_kwargs = model_kwargs

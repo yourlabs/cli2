@@ -28,8 +28,9 @@ automate workflows, and generate code at lightspeed - all through CLI sorcery
     # as such, you need to pull it manually to use the litellm plugin:
     pip install prompt2 litellm
     export OPENROUTER_API_KEY=sk_...
-    prompt2 edit hello
-    prompt2 send hello
+    prompt2 ask greet me
+    p2txt edit hello
+    p2txt send hello
 
 .. epigraph:: prompt2 is the AI CLI where **YOU** control the narrative.
 
@@ -38,26 +39,100 @@ automate workflows, and generate code at lightspeed - all through CLI sorcery
 🕹️ Tutorial Time!
 =================
 
+p2txt: Jinja2 Templates to render prompts and context
+-----------------------------------------------------
 
-- run ``prompt2 edit hello``, this will open your ``$EDITOR``, there, type
+- run ``p2txt edit hello``, this will open your ``$EDITOR``, there, type
   something like ``create a hello world in python``. This created a prompt in
-  ~/.prompt2/prompts/hello.txt and you can see it with ``prompt2 list``.
-- run ``prompt2 send hello``, you will see the AI responded with a tutorial to
+  ~/.p2txt/prompts/hello.txt and you can see it with ``p2txt list``.
+- run ``p2txt send hello``, you will see the AI responded with a tutorial to
   create a python script.
 - run ``prompte2 send hello wholefile`` to use the **wholefile parser** with
   that prompt, you will see that you only get the python source code as output
-- run ``prompt2 send hello wholefile > hello.py``,  you will see that prompt2
+- run ``p2txt send hello wholefile > hello.py``,  you will see that p2txt
   caches responses to save costs, so the second time running that command is
   very fast
-- run ``prompt2 edit hello``, change your text with::
+- run ``p2txt edit hello``, change your text with::
 
     update this script to also print any sys arg with the hello string {{read('hello.py')}}
 
   Hell yes, we're using jinja2 inside the prompt and telling it to actually
   read the content of the file, you'll be able to register your own jinja
   functions and template paths too!
-- run ``prompt2 send hello wholefile > hello.py``
-- profit
+- run ``p2txt send hello wholefile > hello.py``
+
+p2yml: YAML-defined prompt workflows
+------------------------------------
+
+Run prompt workflows defined like this:
+
+.. code-block:: yaml
+
+  - Output:
+      render: |
+        {{ shell('git diff') }}
+        {{ shell('py.test -svvv' + test }}
+
+  - Commands:
+      parser: list
+      model: architect
+      prompt: |
+        What commands do you need to run to fix this?
+        {{ output }}
+        Reply with commands only
+
+  - Plan:
+      model: architect
+      prompt: |
+        You need to make a plan to fix these errors:
+        {{ output }}
+
+        You decided to run these commands:
+        {% for command in commands %}
+        {{ prompt2.shell(command) }}
+        {% endfor %}
+
+        Now, write a plan to fix this in markdown format.
+
+  - Files:
+      model: architect
+      parser: list
+      prompt: |
+        You made a plan to fix these errors:
+        {{ output }}
+
+        This is your plan:
+        {{ plan }}
+
+        What files will you need to see to produce a diff that fixes the
+        problem? Reply with full path only.
+        {{ prompt2.paths_list(find()) }}
+
+  - Fix:
+      parser: diff
+      model: editor
+      prompt: |
+        You wrote this plan:
+        {{ plan }}
+
+        To fix this problem:
+        {{ context }}
+
+        These are the files you wanted to see:
+        {{ prompt2.files_show(files) }}
+
+        Now, output only the diffs to apply
+
+  - Apply:
+      diffs_apply: fix
+
+As you can see here, we're using the result of a parsed first prompt "Code
+style files" in the second prompt as ``code_style_files``.
+
+Prompts can be executed in serial (in YAML list case) or parallel mode (in YAML
+hash/dict case).
+
+This is used with the ``p2yml`` command instead of ``py2txt``.
 
 **I know prompt-fu**
 

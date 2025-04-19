@@ -1,9 +1,8 @@
 command: prompt2 edit user
 retcode: 0
 stdout:
-You are called by an automated process, you MUST structure your reply or you will crash it![1mSAVED PROMPT: [0m[38;5;2mredacted/prompts_user/user.txt[0m
+[1mSAVED file: [0m[38;5;2mredacted/prompts_user/user.txt[0m
 stderr:
-[36mevent[0m=[35mwriting[0m [36mlevel[0m=[35mdebug[0m [36mpath[0m=[35mredacted
 [36mevent[0m=[35mediting[0m [36mlevel[0m=[35mdebug[0m [36mpath[0m=[35mredacted
 [36mevent[0m=[35mreading[0m [36mlevel[0m=[35mdebug[0m [36mpath[0m=[35mredacted
 [36mevent[0m=[35mwriting[0m [36mlevel[0m=[35mdebug[0m [36mpath[0m=[35mredacted/prompts_user/user.txt[0m

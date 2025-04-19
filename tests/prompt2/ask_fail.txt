@@ -1,0 +1,28 @@
+command: prompt2 ask
+retcode: 0
+stdout:
+[1;38;5;1mERROR: [0mAsk a question please I am begging you![0m
+
+[1;38;5;208mSYNOPSYS[0m
+prompt2 ask [[38;5;2mARGS[0m]... [[38;5;208mparser[0m=[38;5;2mPARSER[0m] [[38;5;208mmodel[0m=[38;5;2mMODEL[0m]
+
+[1;38;5;208mDESCRIPTION[0m
+Ask a question from the CLI
+
+Example:
+
+    prompt2 ask write a hello world in python
+
+[1;38;5;208mPOSITIONAL ARGUMENTS[0m
+[[38;5;2mARGS[0m]...[0m
+Any number of un-named arguments
+Question to ask
+
+[1;38;5;208mNAMED ARGUMENTS[0m
+[38;5;208mparser[0m=[38;5;2mPARSER[0m 
+Default: [38;5;6mNone[0m
+Parser name if any
+
+[38;5;208mmodel[0m=[38;5;2mMODEL[0m 
+Default: [38;5;6mNone[0m
+Model name to use, if any
