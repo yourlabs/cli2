@@ -1,6 +1,0 @@
-command: prompt2 parsers
-retcode: 0
-stdout:
-[94mlist[39;49;00m:[37m [39;49;00mprompt2.parser:List[37m[39;49;00m
-[94mwholefile[39;49;00m:[37m [39;49;00mprompt2.parser:Wholefile[37m[39;49;00m
-

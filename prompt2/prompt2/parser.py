@@ -2,7 +2,7 @@ import cli2
 import importlib.metadata
 import re
 
-from .exception import NotFoundError
+from cli2.exceptions import NotFoundError
 
 
 class Parser:
@@ -73,6 +73,6 @@ Provide your response as a list in the following format, with each item on a new
             for line in response.splitlines():
                 if match := re.match('^- (.*)', line):
                     for item in match.group(1).split('- '):
-                        result.append(item)
+                        result.append(item.strip())
             return result
         return response

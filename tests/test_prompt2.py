@@ -4,13 +4,14 @@ import pytest
 import os
 
 from unittest import mock
-from prompt2 import cli, Model, Prompt
+from prompt2 import Model, Prompt
+from prompt2.cli import cli
 
 
 def test_model():
     os.environ['MODEL'] = 'litellm foo bar=1 foo=.2'
     model = Model()
-    assert type(model.backend).__name__ == 'LiteLLMBackend'
+    assert type(model.backend).__name__ == 'LiteLLMPlugin'
     assert model.backend.model_name == 'foo'
     assert model.backend.model_kwargs['bar'] == 1
     assert model.backend.model_kwargs['foo'] == .2
@@ -18,7 +19,7 @@ def test_model():
 
     os.environ['MODEL_FOO'] = 'test a=b'
     model = Model('foo')
-    assert type(model.backend).__name__ == 'LiteLLMBackend'
+    assert type(model.backend).__name__ == 'LiteLLMPlugin'
     assert model.backend.model_name == 'test'
     assert model.backend.model_kwargs['a'] == 'b'
 
@@ -36,7 +37,7 @@ def test_prompt(user, local):
 
 
 def test_paths():
-    paths = cli.cli('paths')
+    paths = cli('paths')
     assert paths[0] == str(Prompt.local_path)
     assert paths[1] == str(Prompt.user_path)
 
@@ -81,17 +82,17 @@ async def test_python(prompt2_env):
 
 def test_parsers(kwargs):
     autotest(
-        'tests/prompt2/test_parsers.txt',
+        'tests/prompt2/parsers.txt',
         'prompt2 parsers',
         **kwargs,
     )
     autotest(
-        'tests/prompt2/test_parser_success.txt',
+        'tests/prompt2/parser_success.txt',
         'prompt2 parser wholefile',
         **kwargs,
     )
     autotest(
-        'tests/prompt2/test_parser_fail.txt',
+        'tests/prompt2/parser_fail.txt',
         'prompt2 parser',
         **kwargs,
     )
@@ -99,12 +100,12 @@ def test_parsers(kwargs):
 
 def test_ask(kwargs):
     autotest(  # ensure clean error without arguments
-        'tests/prompt2/test_ask_fail.txt',
+        'tests/prompt2/ask_fail.txt',
         'prompt2 ask',
         **kwargs,
     )
     autotest(
-        'tests/prompt2/test_ask.txt',
+        'tests/prompt2/ask.txt',
         'prompt2 ask Write hello world in python',
         **kwargs,
     )
@@ -115,102 +116,112 @@ def test_command():
     def test(model=None, parser=None):
         return model, parser
     model, parser = PromptCommand(test)()
-    assert type(model.backend).__name__ == 'LiteLLMBackend'
+    assert type(model.backend).__name__ == 'LiteLLMPlugin'
     assert model.backend.model_name == Model.default
     assert not parser
 
     os.environ['MODEL_LOL'] = 'foo temperature=test'
-    model, parser = PromptCommand(test)('lol')
-    assert model.backend.model_name == 'foo'
-    assert model.backend.model_kwargs == dict(temperature='test')
+    try:
+        model, parser = PromptCommand(test)('lol')
+    except:
+        raise
+    else:
+        assert model.backend.model_name == 'foo'
+        assert model.backend.model_kwargs == dict(temperature='test')
+    finally:
+        del os.environ['MODEL_LOL']
 
     model, parser = PromptCommand(test)('parser=wholefile')
     assert type(parser).__name__.lower() == 'wholefile'
 
 
-def test_crud(user, kwargs):
+def test_crud(user, local, kwargs):
     autotest(
-        'tests/prompt2/test_edit_user.txt',
+        'tests/prompt2/edit_user.txt',
         'prompt2 edit user',
         **kwargs,
     )
+    with user.open('w') as f:
+        f.write('user hello')
     autotest(
-        'tests/prompt2/test_edit_local.txt',
+        'tests/prompt2/edit_local.txt',
         'prompt2 edit local local',
         **kwargs,
     )
+    with local.open('w') as f:
+        f.write('local hello')
     autotest(
-        'tests/prompt2/test_list.txt',
+        'tests/prompt2/list.txt',
         'prompt2 list',
         **kwargs,
     )
     autotest(
-        'tests/prompt2/test_show_user.txt',
+        'tests/prompt2/show_user.txt',
         'prompt2 show user',
         **kwargs,
     )
     autotest(
-        'tests/prompt2/test_show_local.txt',
+        'tests/prompt2/show_local.txt',
         'prompt2 show local',
         **kwargs,
     )
     autotest(
-        'tests/prompt2/test_render_local.txt',
+        'tests/prompt2/render_local.txt',
         'prompt2 render local',
         **kwargs,
     )
     with user.open('w') as f:
         f.write('With context {{ foo }}')
     autotest(
-        'tests/prompt2/test_render_user_fail.txt',
+        'tests/prompt2/render_user_fail.txt',
         'prompt2 render user',
         **kwargs,
     )
     autotest(
-        'tests/prompt2/test_render_user_success.txt',
+        'tests/prompt2/render_user_success.txt',
         'prompt2 render user foo=bar',
         **kwargs,
     )
     autotest(
-        'tests/prompt2/test_messages_user_fail.txt',
+        'tests/prompt2/messages_user_fail.txt',
         'prompt2 messages user',
         **kwargs,
     )
     autotest(
-        'tests/prompt2/test_messages_user_success.txt',
+        'tests/prompt2/messages_user_success.txt',
         'prompt2 messages user foo=bar',
         **kwargs,
     )
     autotest(
-        'tests/prompt2/test_send_user_fail.txt',
+        'tests/prompt2/send_user_fail.txt',
         'prompt2 send user',
         **kwargs,
     )
     autotest(
-        'tests/prompt2/test_send_user_success.txt',
+        'tests/prompt2/send_user_success.txt',
         'prompt2 send user foo=bar',
         **kwargs,
     )
     with user.open('w') as f:
         f.write('Write hello world in python')
     autotest(
-        'tests/prompt2/test_send_code_noparser.txt',
+        'tests/prompt2/send_code_noparser.txt',
         'prompt2 send user',
         **kwargs,
     )
     autotest(
-        'tests/prompt2/test_send_code_withparser.txt',
+        'tests/prompt2/send_code_withparser.txt',
         'prompt2 send user wholefile',
         **kwargs,
     )
     autotest(
-        'tests/prompt2/test_send_code_failparser.txt',
+        'tests/prompt2/send_code_failparser.txt',
         'prompt2 send user foeuau',
         **kwargs,
     )
     os.environ['MODEL_FOO'] = 'test a=b'
     autotest(
-        'tests/prompt2/test_send_code_failmodel.txt',
+        'tests/prompt2/send_code_failmodel.txt',
         'prompt2 send user model=oaeoeau',
         **kwargs,
     )

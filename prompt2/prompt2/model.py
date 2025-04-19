@@ -39,15 +39,15 @@ Juggle between multiple models by defining environment variables.
 """
 
 from pathlib import Path
-from .backend import BackendPlugin
 import cli2
 import importlib.metadata
 import json
 import hashlib
 import os
 
-from .exception import NotFoundError
+from cli2.exceptions import NotFoundError
 from .parser import Parser
+from .plugin import Plugin
 
 
 class Model:
@@ -66,7 +66,7 @@ class Model:
             return models
 
     def __init__(self, backend=None):
-        if not isinstance(backend, BackendPlugin):
+        if not isinstance(backend, Plugin):
             configuration = self.configuration_get(backend or '')
             backend = self.backend_factory(configuration)
         self.backend = backend
@@ -135,14 +135,14 @@ class Model:
         # load the backend plugin based on first token, litellm by default
         plugins = importlib.metadata.entry_points(
             name=tokens[0],
-            group='prompt2_backend',
+            group='prompt2',
         )
         if plugins:
             tokens = tokens[1:]
             plugin = [*plugins][0].load()
         else:
-            from .backends.litellm import LiteLLMBackend
-            plugin = LiteLLMBackend
+            from .plugins.litellm import LiteLLMPlugin
+            plugin = LiteLLMPlugin
 
         args, kwargs = cls.configuration_parse(tokens)
 

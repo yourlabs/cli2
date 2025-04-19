@@ -1,0 +1,29 @@
+{# callable: false #}
+
+{% macro paths(paths) %}
+Path list:
+{% for path in paths %}
+- {{ path }}
+{% endfor %}
+{% endmacro %}
+
+{% macro contents(paths) %}
+# File contents
+{% for path, content in plugins.cli2.files_read(paths, silent=True).items() %}
+Source of {{ path }}:
+```
+{{ content }}
+```
+{% endfor %}
+{% endmacro %}
+
+{% macro content(path) %}
+{{ files_contents([path]) }}
+{% endmacro %}
+
+{% macro shell(command) %}
+Output of {{ command }}
+```
+{{ shell(command) }}
+```
+{% endmacro %}
