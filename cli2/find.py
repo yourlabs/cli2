@@ -8,9 +8,7 @@ Example usage:
 .. code-block:: python
 
     # Simple usage with default root
-    finder = cli2.Find()
-    files = finder.files()
-    dirs = finder.dirs()
+    finder = cli2.Find(flags='-type f')
 
     # Usage with filters and callback
     def callback(filepath):
@@ -22,8 +20,7 @@ Example usage:
         glob_exclude=['*test*'],
         callback=callback
     )
-    files = finder.files()
-    dirs = finder.dirs()
+    files = finder.run()
 """
 from fnmatch import fnmatch
 from pathlib import Path
