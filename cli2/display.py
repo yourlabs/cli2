@@ -5,6 +5,10 @@ Generic pretty display utils.
 
     By default, we will not color strings in non-interactive ttys, but you can
     force it with :envvar:`FORCE_COLOR`, ie. gitlab-ci etc
+
+.. envvar:: CLI2_PYGMENTS_STYLE
+
+    Pygments style to use when highlighting code, monokai by default.
 """
 import difflib
 import json
@@ -14,6 +18,8 @@ import yaml
 
 _print = print
 
+COLOR = sys.stdout.isatty() or bool(os.getenv('FORCE_COLOR', ''))
+
 
 def highlight(string, lexer):
     """
@@ -22,8 +28,7 @@ def highlight(string, lexer):
     :param string: String to render
     :param lexer: Lexer name, Yaml, Diff, etc
     """
-    FORCE_COLOR = bool(os.getenv('FORCE_COLOR', ''))
-    if not sys.stdout.isatty() and not FORCE_COLOR:
+    if not COLOR:
         return string
 
     try:
@@ -33,9 +38,11 @@ def highlight(string, lexer):
     except ImportError:
         return string
 
-    formatter = pygments.formatters.TerminalFormatter()
+    formatter = pygments.formatters.Terminal256Formatter(
+        style=os.getenv('CLI2_PYGMENTS_STYLE', 'monokai'),
+    )
     lexer = getattr(pygments.lexers, lexer + 'Lexer')()
-    return pygments.highlight(string, lexer, formatter)
+    return pygments.highlight(string, lexer, formatter).rstrip()
 
 
 def yaml_dump(data):
