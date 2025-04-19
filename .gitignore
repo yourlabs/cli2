@@ -1,4 +1,8 @@
 __pycache__
+.coverage
+.hypothesis/
+.prompt2/
+cvllm
 *.pyc
 tests/db.sqlite3
 .setupmeta.version
