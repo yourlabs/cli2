@@ -1,0 +1,73 @@
+name: Generate Code Guidance
+plugin: serial
+tasks:
+  - name: Discover Project Files
+    plugin: find
+    path: .
+    output: project_files
+    flags: '-type f -not -path "./.git/*" -not -path "./node_modules/*" -not -path "./venv/*"'
+    description: Collect all relevant files, excluding common ignored directories.
+
+  - name: Gather Guidance Information
+    plugin: parallel
+    description: Collect factual details for build/test commands and code style.
+    tasks:
+      - name: Build and Test Commands
+        plugin: serial
+        tasks:
+          - name: Identify Build Test Files
+            plugin: prompt
+            parser: list
+            output: build_test_files
+            content: |
+              From the provided files, list only those that define build or test commands (e.g., files like pyproject.toml, setup.py, pytest.ini, .github/workflows/ci.yml). Return full paths exactly as provided.
+              Available files: {{ prompt2.paths(project_files) }}
+          - name: Output Build Test Commands
+            plugin: prompt
+            output: build_test_commands
+            content: |
+              List commands for building and testing the project, referencing only the full paths of the provided files. Include only commands explicitly defined or implied by the files (e.g., install, test, lint, format). Format as a bulleted list of direct statements (e.g., "- File /path/to/pyproject.toml specifies pip install -e ."). Reference only files in the input. Do not invent files, commands, or use phrases like "based on" or analysis context.
+              Files: {{ prompt2.paths(build_test_files) }}
+              Contents: {{ prompt2.contents(build_test_files) }}
+
+      - name: Code Style Guidelines
+        plugin: serial
+        tasks:
+          - name: Identify Code Style Files
+            plugin: prompt
+            parser: list
+            output: code_style_files
+            content: |
+              From the provided files, list only those that define code style or conventions (e.g., files like .eslintrc, pyproject.toml, .prettierrc, .ruff.toml). Return full paths exactly as provided.
+              Available files: {{ prompt2.paths(project_files) }}
+          - name: Output Code Style Guidelines
+            plugin: prompt
+            output: code_style_guidelines
+            content: |
+              Describe the project's code style guidelines in a concise bulleted list, referencing only the full paths of the provided files. Include only:
+              - Formatting rules (e.g., line length, indentation).
+              - Testing conventions.
+              - Style standards (e.g., PEP 8, naming).
+              - Documentation standards.
+              - Import ordering.
+              - Error handling.
+              - State management.
+              - Test design principles.
+              Use direct statements (e.g., "- File /path/to/pyproject.toml specifies 79-character line length"). Reference only files in the input. Do not invent files, guidelines, or use phrases like "based on" or analysis context.
+              Files: {{ prompt2.paths(code_style_files) }}
+              Contents: {{ prompt2.contents(code_style_files) }}
+
+  - name: Generate Code Guidance File
+    plugin: prompt
+    output: code_guidance_content
+    description: Generate a CODE_GUIDANCE.md file with build/test commands and code style guidelines.
+    content: |
+      Generate a Markdown file named CODE_GUIDANCE.md for the project. Use a clear, concise tone suitable for developers. Include only the following sections with their exact content, formatted as bulleted lists. Omit sections with empty content without comment. Do not add analysis, context, introductions, or phrases like "based on."
+
+      ## Build and Test Commands
+      {{ build_test_commands }}
+
+      ## Code Style Guidelines
+      {{ code_style_guidelines }}
+
+      Ensure the output is valid Markdown with no additional text or comments.
