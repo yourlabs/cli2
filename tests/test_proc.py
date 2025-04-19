@@ -55,10 +55,10 @@ async def test_proc_cmd_property():
 
 
 @pytest.mark.asyncio
-async def test_proc_start_and_waita():
+async def test_proc_start_and_wait():
     proc = cli2.Proc("echo hello")
-    await proc.starta()
-    await proc.waita()
+    await proc.start()
+    await proc.wait()
     assert proc.started is True
     assert proc.waited is True
     assert proc.rc == 0
@@ -68,16 +68,16 @@ async def test_proc_start_and_waita():
 @pytest.mark.asyncio
 async def test_proc_start_and_wait_with_timeout():
     proc = cli2.Proc("sleep 2", timeout=1)
-    await proc.starta()
-    await proc.waita()
+    await proc.start()
+    await proc.wait()
     assert proc.rc != 0  # Should be terminated due to timeout
 
 
 @pytest.mark.asyncio
 async def test_proc_output_properties():
     proc = cli2.Proc("echo hello")
-    await proc.starta()
-    await proc.waita()
+    await proc.start()
+    await proc.wait()
     assert proc.stdout == "hello"
     assert proc.stderr == ""
     assert proc.out == "hello"
@@ -89,8 +89,8 @@ async def test_proc_output_properties():
 @pytest.mark.asyncio
 async def test_proc_with_stderr():
     proc = cli2.Proc("bash", "-c", "echo error >&2 ")
-    await proc.starta()
-    await proc.waita()
+    await proc.start()
+    await proc.wait()
     assert proc.stdout == ""
     assert proc.stderr == "error"
     assert proc.out == "error"
@@ -102,8 +102,8 @@ async def test_proc_with_stderr():
 @pytest.mark.asyncio
 async def test_proc_with_ansi_codes():
     proc = cli2.Proc("echo -e '\033[31mred\033[0m'")
-    await proc.starta()
-    await proc.waita()
+    await proc.start()
+    await proc.wait()
     assert proc.stdout == "red"
     assert proc.stdout_ansi == "\x1b[31mred\x1b[0m"
 
@@ -111,40 +111,6 @@ async def test_proc_with_ansi_codes():
 @pytest.mark.asyncio
 async def test_proc_quiet_mode():
     proc = cli2.Proc("echo hello", quiet=True)
-    await proc.starta()
-    await proc.waita()
-    assert proc.out == "hello"
-
-
-def test_proc_start_and_wait():
-    proc = cli2.Proc("echo hello").wait()
-    assert proc.started is True
-    assert proc.waited is True
-    assert proc.rc == 0
-    assert proc.out == "hello"
-
-
-def test_proc_start_and_wait_with_timeout():
-    proc = cli2.Proc("sleep 2", timeout=1).wait()
-    assert proc.rc != 0  # Should be terminated due to timeout
-
-
-def test_proc_start_and_wait_with_stderr():
-    proc = cli2.Proc("bash", "-c", "echo error >&2").wait()
-    assert proc.stdout == ""
-    assert proc.stderr == "error"
-    assert proc.out == "error"
-    assert proc.stdout_ansi == ""
-    assert proc.stderr_ansi == "error"
-    assert proc.out_ansi == "error"
-
-
-def test_proc_start_and_wait_with_ansi_codes():
-    proc = cli2.Proc("echo -e '\033[31mred\033[0m'").wait()
-    assert proc.stdout == "red"
-    assert proc.stdout_ansi == "\x1b[31mred\x1b[0m"
-
-
-def test_proc_start_and_wait_quiet_mode():
-    proc = cli2.Proc("echo hello", quiet=True).wait()
+    await proc.start()
+    await proc.wait()
     assert proc.out == "hello"

@@ -15,17 +15,10 @@ Example usage:
     proc = cli2.Proc('foo bar')
 
     # or as list, better when building commands
-    proc = cli2.Proc('foo', 'bar')
+    proc = await cli2.Proc('foo', 'bar')
 
-    # run in sync mode (ie. for jinja2)
-    proc.wait()
-
-    # OR run in async loop
-    await proc.waita()
-
-    # You can chain
-    proc = cli2.Proc('hi').wait()
-    proc = await cli2.Proc('hi').waita()
+    # wait in async loop
+    await proc.wait()
 
 .. note:: There are also start functions, sync and async, in case you want to
           start the proc and wait later.
@@ -145,7 +138,7 @@ class Proc:
     def cmd(self, value):
         self.args = shlex.split(value)
 
-    async def starta(self):
+    async def start(self):
         """
         Launch the subprocess asynchronously.
 
@@ -176,7 +169,7 @@ class Proc:
         )
         return self
 
-    async def waita(self):
+    async def wait(self):
         """
         Wait for process completion with timeout handling.
 
@@ -185,7 +178,7 @@ class Proc:
         :return: Self reference for method chaining
         """
         if not self.started:
-            await self.starta()
+            await self.start()
 
         try:
             if self.timeout:
@@ -225,68 +218,6 @@ class Proc:
 
             if not self.quiet:
                 print(decoded_line)
-
-    def start(self):
-        """
-        Start the subprocess synchronously without waiting for output.
-        """
-        if self.started:
-            raise RuntimeError("Process already started")
-
-        if not self.quiet:
-            log.debug('cmd', cmd=self.cmd)
-
-        self.proc = subprocess.Popen(
-            self.args,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=self.env,
-            cwd=self.cwd,
-            universal_newlines=True
-        )
-        self.started = True
-        # Do NOT start output handling here; defer to wait
-        return self
-
-    def wait(self):
-        """
-        Wait for process completion synchronously with timeout handling.
-        Collects output streams after waiting.
-        """
-        if not self.started:
-            self.start()
-
-        try:
-            if self.timeout:
-                self.rc = self.proc.wait(timeout=self.timeout)
-            else:
-                self.rc = self.proc.wait()
-        except subprocess.TimeoutExpired:
-            print(f"Process timed out after {self.timeout}s")
-            self.proc.terminate()
-            try:
-                # Grace period for termination
-                self.rc = self.proc.wait(timeout=1)
-            except subprocess.TimeoutExpired:
-                self.proc.kill()
-                self.rc = self.proc.wait()  # Final wait after kill
-
-        # Collect output after process has finished or been terminated
-        stdout, stderr = self.proc.communicate()
-        if stdout:
-            self.out_raw.extend(stdout.encode())
-            self.raw.extend(stdout.encode())
-            if not self.quiet:
-                print(stdout.rstrip())
-        if stderr:
-            self.err_raw.extend(stderr.encode())
-            self.raw.extend(stderr.encode())
-            if not self.quiet:
-                print(stderr.rstrip())
-
-        self.waited = True
-        return self
 
     @property
     def stdout_ansi(self):
