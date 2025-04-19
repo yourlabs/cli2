@@ -79,6 +79,7 @@ setup(
             'cli2 = cli2.cli2:main.entry_point',
             'cli2-theme = cli2.theme:main',
             'cli2-md = cli2.markdown:cli.entry_point',
+            'cli2-traceback = cli2.examples.traceback_demo:main',
             'cli2-example = cli2.examples.obj:cli.entry_point',
             'cli2-example2 = cli2.examples.obj2:cli.entry_point',
             'cli2-example-nesting = cli2.examples.nesting:cli.entry_point',
