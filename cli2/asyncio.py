@@ -40,7 +40,7 @@ async def async_resolve(result, output=False):
     return result
 
 
-async def files_read(*paths, num_workers=None, mode='r'):
+async def files_read(paths, num_workers=None, mode='r', silent=False):
     """
     Read a list of files asynchronously with anyio.
 
@@ -52,8 +52,12 @@ async def files_read(*paths, num_workers=None, mode='r'):
     result = dict()
 
     async def file_read(path):
-        async with aiofiles.open(str(path), mode) as f:
-            result[path] = await f.read()
+        try:
+            async with aiofiles.open(str(path), mode) as f:
+                result[path] = await f.read()
+        except:
+            if not silent:
+                raise
 
     queue = Queue(num_workers=num_workers)
     await queue.run(*[file_read(path) for path in paths])
