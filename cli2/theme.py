@@ -42,7 +42,6 @@ Run ``cli2-theme`` for the list of colors by theme.
 import re
 import os
 
-from .cli import Command
 
 themes = dict(
     standard=dict(
@@ -136,13 +135,13 @@ class Color(Renderer):
 
 
 class Theme:
-    def __init__(self, colors):
-        self.colors = colors
+    def __init__(self, colors=None):
+        self.colors = colors or themes[os.getenv('CLI2_THEME', 'standard')]
 
         for name, mode in modes.items():
             setattr(self, mode.name, mode)
 
-        for name, value in colors.items():
+        for name, value in self.colors.items():
             if name in ('black', 'gray'):
                 alias = name[0].upper()
             else:
@@ -179,7 +178,7 @@ class Theme:
         return letter_count
 
 
-t = theme = Theme(themes[os.getenv('CLI2_THEME', 'standard')])
+t = theme = Theme()
 
 
 def demo():
@@ -220,4 +219,6 @@ def _demo(theme):
     table.print()
 
 
-cli = Command(demo)
+def main():
+    from .cli import Command
+    return Command(demo).entry_point()

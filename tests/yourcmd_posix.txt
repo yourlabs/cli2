@@ -3,10 +3,10 @@ retcode: 1
 stdout:
 [1;38;5;1mERROR: [0mmissing 1 required argument: somearg[0m
 
-[1;38;5;202mSYNOPSYS[0m
-example.py [38;5;10mSOMEARG[0m [[38;5;202m-x[0m=[38;5;10mX[0m] [[38;5;202m--verbose[0m] [[38;5;10mARGS[0m]... [[38;5;202m--foo[0m=[38;5;10mFOO[0m] [--[38;5;10mKWARGS[0m=[38;5;10mVALUE[0m]...
+[1;38;5;208mSYNOPSYS[0m
+example.py [38;5;2mSOMEARG[0m [[38;5;208m-x[0m=[38;5;2mX[0m] [[38;5;208m--verbose[0m] [[38;5;2mARGS[0m]... [[38;5;208m--foo[0m=[38;5;2mFOO[0m] [--[38;5;2mKWARGS[0m=[38;5;2mVALUE[0m]...
 
-[1;38;5;202mDESCRIPTION[0m
+[1;38;5;208mDESCRIPTION[0m
 Your own command.
 
 - Some List
@@ -16,23 +16,23 @@ Example code:
 
     example indented code
 
-[1;38;5;202mPOSITIONAL ARGUMENTS[0m
-[38;5;10mSOMEARG[0m[0m
+[1;38;5;208mPOSITIONAL ARGUMENTS[0m
+[38;5;2mSOMEARG[0m[0m
 It's some string argument that this function will return
 
-[1;38;5;202mNAMED ARGUMENTS[0m
-[38;5;202m-x[0m=[38;5;10mX[0m 
-Default: [38;5;81mNone[0m
+[1;38;5;208mNAMED ARGUMENTS[0m
+[38;5;208m-x[0m=[38;5;2mX[0m 
+Default: [38;5;6mNone[0m
 
-[38;5;202m-v[0m[0m [38;5;202m--verbose[0m[0m 
-Default: [38;5;81mFalse[0m
+[38;5;208m-v[0m[0m [38;5;208m--verbose[0m[0m 
+Default: [38;5;6mFalse[0m
 
-[[38;5;10mARGS[0m]...[0m
+[[38;5;2mARGS[0m]...[0m
 Any number of un-named arguments
 
-[38;5;202m-f[0m=[38;5;10mFOO[0m [38;5;202m--foo[0m=[38;5;10mFOO[0m 
-Default: [38;5;81mNone[0m
+[38;5;208m-f[0m=[38;5;2mFOO[0m [38;5;208m--foo[0m=[38;5;2mFOO[0m 
+Default: [38;5;6mNone[0m
 
-[--[38;5;10mKWARGS[0m=[38;5;10mVALUE[0m]...[0m
+[--[38;5;2mKWARGS[0m=[38;5;2mVALUE[0m]...[0m
 Any number of named arguments, examples:
---[38;5;10msomething[0m=[38;5;10msomearg
+--[38;5;2msomething[0m=[38;5;2msomearg[0m

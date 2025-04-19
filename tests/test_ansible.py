@@ -24,7 +24,7 @@ async def test_mask(monkeypatch):
         {'a': 'a', 'b': 'b', 'c': 'c', 'd': 'foo a rrr'}
     }
     # output has proper masking
-    expected = "\x1b[94mx\x1b[39;49;00m:\x1b[37m\x1b[39;49;00m\n\x1b[37m    \x1b[39;49;00m\x1b[94ma\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m***MASKED***\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[37m    \x1b[39;49;00m\x1b[94mb\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m***MASKED***\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[37m    \x1b[39;49;00m\x1b[94mc\x1b[39;49;00m:\x1b[37m \x1b[39;49;00mc\x1b[37m\x1b[39;49;00m\n\x1b[37m    \x1b[39;49;00m\x1b[94md\x1b[39;49;00m:\x1b[37m \x1b[39;49;00mfoo ***MASKED*** rrr\x1b[37m\x1b[39;49;00m\n"  # noqa
+    expected = "\x1b[38;5;204mx\x1b[39m\x1b[38;5;15m:\x1b[39m\n\x1b[38;5;15m    \x1b[39m\x1b[38;5;204ma\x1b[39m\x1b[38;5;15m:\x1b[39m\x1b[38;5;15m \x1b[39m\x1b[38;5;186m'\x1b[39m\x1b[38;5;186m***MASKED***\x1b[39m\x1b[38;5;186m'\x1b[39m\n\x1b[38;5;15m    \x1b[39m\x1b[38;5;204mb\x1b[39m\x1b[38;5;15m:\x1b[39m\x1b[38;5;15m \x1b[39m\x1b[38;5;186m'\x1b[39m\x1b[38;5;186m***MASKED***\x1b[39m\x1b[38;5;186m'\x1b[39m\n\x1b[38;5;15m    \x1b[39m\x1b[38;5;204mc\x1b[39m\x1b[38;5;15m:\x1b[39m\x1b[38;5;15m \x1b[39m\x1b[38;5;141mc\x1b[39m\n\x1b[38;5;15m    \x1b[39m\x1b[38;5;204md\x1b[39m\x1b[38;5;15m:\x1b[39m\x1b[38;5;15m \x1b[39m\x1b[38;5;141mfoo\x1b[39m\x1b[38;5;141m \x1b[39m\x1b[38;5;141m***MASKED***\x1b[39m\x1b[38;5;141m \x1b[39m\x1b[38;5;141mrrr\x1b[39m"  # noqa
     module.print.assert_called_once_with(expected, mask=False)
 
 
@@ -126,7 +126,7 @@ async def test_diff(monkeypatch):
             self.before_set(dict(foo=1))
             self.after_set(dict(foo=2))
     await Action.run_test_async()
-    expected = '\x1b[91m--- before\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[32m+++ after\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[01m\x1b[35m@@ -1 +1 @@\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[91m-foo: 1\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[32m+foo: 2\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n'  # noqa
+    expected = '\x1b[38;5;204m--- before\x1b[39m\n\x1b[38;5;148m+++ after\x1b[39m\n\x1b[38;5;245m@@ -1 +1 @@\x1b[39m\n\x1b[38;5;204m-foo: 1\x1b[39m\n\x1b[38;5;148m+foo: 2\x1b[39m'  # noqa
     _print.assert_called_once_with(expected)
 
 
