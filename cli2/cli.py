@@ -10,9 +10,10 @@ import textwrap
 from docstring_parser import parse
 
 from . import display
-from .asyncio import async_resolve
 from .colors import colors
-from .exceptions import Cli2Error
+from .asyncio import async_resolve
+from .theme import t
+from .exceptions import Cli2Error, NotFoundError
 
 
 class Cli2ValueError(Cli2Error):
@@ -112,17 +113,30 @@ class EntryPoint:
         sys.exit(self.exit_code)
 
     def print(self, *args, sep=' ', end='\n', file=None, color=None):
-        if args and args[0].lower() in colors.__dict__ and not color:
+        if args and args[0].lower() in t.__dict__ and not color:
+            color_name = args[0]
+            args = args[1:]
+            color = getattr(t, color_name.lower())
+            if color_name.lower() != color_name:
+                color = getattr(color, 'bold')
+        elif args and args[0].lower() in colors.__dict__ and not color:
+            # backward compatibility
             color = args[0]
             args = args[1:]
             if color.lower() != color:
                 color = color.lower() + 'bold'
             color = getattr(colors, color)
+        elif color:
+            color = getattr(t, color)
 
         msg = sep.join(map(str, args))
 
         if color:
-            msg = color + msg + colors.reset
+            if isinstance(color, str):
+                # backward compatibility
+                msg = color + msg + colors.reset
+            else:
+                msg = color(msg)
 
         print(msg, end=end, file=file or self.outfile, flush=True)
 
@@ -161,7 +175,7 @@ class Group(EntryPoint, dict):
             self.doc = textwrap.dedent(doc).strip()
         else:
             self.doc = inspect.getdoc(self)
-        self.color = color or colors.green
+        self.color = color or 'green'
         self.posix = posix
         self.parent = None
         self.cmdclass = cmdclass or Command
@@ -244,7 +258,7 @@ class Group(EntryPoint, dict):
             return ''
 
         if error:
-            self.print('RED', 'ERROR: ' + colors.reset + error, end='\n\n')
+            self.print('RED', 'ERROR: ' + t.reset + error, end='\n\n')
 
         self.print('ORANGE', 'SYNOPSYS')
         chain = []
@@ -268,7 +282,7 @@ class Group(EntryPoint, dict):
         table = Table(*[
             (
                 (
-                    getattr(colors, command.color, command.color),
+                    getattr(t, command.color, command.color),
                     name,
                 ),
                 command.help(short=True),
@@ -362,8 +376,11 @@ class Command(EntryPoint, dict):
 
     def __new__(cls, target, *args, **kwargs):
         overrides = getattr(target, 'cli2', {})
-        cls = overrides.get('cls', cls)
-        return super().__new__(cls, *args, **kwargs)
+        other_cls = overrides.get('cls', cls)
+        if other_cls:
+            cls = other_cls
+        result = super().__new__(cls, *args, **kwargs)
+        return result
 
     def __init__(self, target, name=None, color=None, doc=None, posix=False,
                  help_hack=True, outfile=None, log=True, overrides=None):
@@ -513,7 +530,7 @@ class Command(EntryPoint, dict):
             )
 
         if error:
-            self.print('RED', 'ERROR: ' + colors.reset + error, end='\n\n')
+            self.print('RED', 'ERROR: ' + t.reset + error, end='\n\n')
 
         self.print('ORANGE', 'SYNOPSYS')
         chain = []
@@ -669,6 +686,16 @@ class Command(EntryPoint, dict):
             self.post_result = self.post_call()
 
     def handle_exception(self, exc):
+        if isinstance(exc, NotFoundError):
+            print(t.red.bold(exc.title) + f': {exc.name}\n')
+            if exc.available:
+                print(t.green.bold('AVAILABLE') + ':')
+                display.print(exc.available)
+                return
+            elif exc.searched:
+                print(t.green.bold('SEARCHED') + ':')
+                display.print(exc.searched)
+                return
         raise exc
 
     async def async_call(self, *argv):
@@ -935,25 +962,20 @@ class Argument:
 
     def __str__(self):
         if self.alias:
-            out = '[' + colors.orange + self.alias[-1]
-            out += colors.reset
+            out = '[' + t.orange(self.alias[-1])
 
             if self.type != bool:
-                out += '=' + colors.green + self.param.name.upper()
-                out += colors.reset
+                out += '=' + t.green(self.param.name.upper())
 
             if self.negates:
-                out += '|' + colors.orange + self.negates[-1]
-                out += colors.reset
+                out += '|' + t.orange(self.negates[-1])
 
             out += ']'
             return out
         elif self.param.kind == self.param.VAR_POSITIONAL:
             return (
                 '['
-                + colors.green
-                + self.param.name.upper()
-                + colors.reset
+                + t.green(self.param.name.upper())
                 + ']...'
             )
         elif self.param.kind == self.param.VAR_KEYWORD:
@@ -961,27 +983,23 @@ class Argument:
             return (
                 '['
                 + prefix
-                + colors.green
-                + self.param.name.upper()
-                + colors.reset
+                + t.green(self.param.name.upper())
                 + '='
-                + colors.green
-                + 'VALUE'
-                + colors.reset
+                + t.green('VALUE')
                 + ']...'
             )
         else:
-            return colors.green + self.param.name.upper() + colors.reset
+            return t.green(self.param.name.upper())
 
     def help(self):
         """Render help for this argument."""
         if self.alias:
             out = ''
             for alias in self.alias:
-                out += colors.orange + alias + colors.reset
+                out += t.orange(alias)
                 if self.type != bool:
                     out += '='
-                    out += colors.green
+                    out += str(t.green)
                     if self.type:
                         if isinstance(self.type, str):
                             out += self.type
@@ -989,17 +1007,16 @@ class Argument:
                             out += self.type.__name__
                     else:
                         out += self.param.name.upper()
-                out += colors.reset
+                out += str(t.reset)
                 out += ' '
             self.cmd.print(out)
         else:
-            self.cmd.print(str(self) + colors.reset)
+            self.cmd.print(f'{self}{t.reset}')
 
         if self.negates:
             out = ''
             for negate in self.negates:
-                out += colors.orange + negate + colors.reset
-                out += colors.reset
+                out += t.orange(negate)
                 out += ' '
             self.cmd.print(out)
 
@@ -1009,9 +1026,7 @@ class Argument:
         ):
             self.cmd.print(
                 'Default: '
-                + colors.blue3
-                + str(self.default or self.param.default)
-                + colors.reset
+                + t.cyan(self.default or self.param.default)
             )
 
         if (
@@ -1021,9 +1036,7 @@ class Argument:
         ):
             self.cmd.print(
                 'Accepted: '
-                + colors.blue3
-                + 'yes, 1, true, no, 0, false'
-                + colors.reset
+                + t.cyan('yes, 1, true, no, 0, false')
             )
 
         if self.param.kind == self.param.VAR_KEYWORD:
@@ -1031,12 +1044,9 @@ class Argument:
             if self.cmd.posix:
                 self.cmd.print(
                     '--'
-                    + colors.green
-                    + 'something'
-                    + colors.reset
+                    + t.green('something')
                     + '='
-                    + colors.green
-                    + 'somearg'
+                    + t.green('somearg')
                 )
             else:
                 self.cmd.print('something=somearg')

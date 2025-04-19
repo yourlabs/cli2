@@ -64,6 +64,7 @@ setup(
             'pytest-mock',
             'pytest-asyncio',
             'pytest-httpx',
+            'pytest-env',
         ],
     ),
     author='James Pic',
@@ -76,7 +77,7 @@ setup(
     entry_points={
         'console_scripts': [
             'cli2 = cli2.cli2:main.entry_point',
-            'cli2-theme = cli2.theme:cli.entry_point',
+            'cli2-theme = cli2.theme:main',
             'cli2-md = cli2.markdown:cli.entry_point',
             'cli2-example = cli2.examples.obj:cli.entry_point',
             'cli2-example2 = cli2.examples.obj2:cli.entry_point',

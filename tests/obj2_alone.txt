@@ -3,16 +3,16 @@ retcode: 0
 stdout:
 [1;38;5;1mERROR: [0mNo sub-command provided[0m
 
-[1;38;5;202mSYNOPSYS[0m
+[1;38;5;208mSYNOPSYS[0m
 cli2-example2 SUB-COMMAND <...>
 cli2-example2 help SUB-COMMAND
 
-[1;38;5;202mDESCRIPTION[0m
+[1;38;5;208mDESCRIPTION[0m
 Represents a group of named commands.
 
-[1;38;5;202mSUB-COMMANDS[0m
-[38;5;10mhelp           [0m  Get help for a command or group
-[38;5;202mclass_method   [0m  
-[38;5;202minstance_method[0m  
-[38;5;202mnoise          [0m  
-[38;5;10mchild          [0m  Represents a group of named commands
+[1;38;5;208mSUB-COMMANDS[0m
+[38;5;2mhelp           [0m  Get help for a command or group
+[38;5;208mclass_method   [0m  
+[38;5;208minstance_method[0m  
+[38;5;208mnoise          [0m  
+[38;5;2mchild          [0m  Represents a group of named commands

@@ -441,17 +441,22 @@ def test_docstring():
 
 def test_print():
     cmd = cli2.Command(lambda: True, outfile=mock.Mock())
-    cmd.print('orangebold', 'foo', 'bar')
+    cmd.print('orange', 'foo', 'bar')
     assert cmd.outfile.write.call_args_list[0].args == (
-        '\x1b[1;38;5;202mfoo bar\x1b[0m',
+        '\x1b[38;5;202mfoo bar\x1b[0m',
     )
 
-
-def test_print_bold():
     cmd = cli2.Command(lambda: True, outfile=mock.Mock())
     cmd.print('ORANGE', 'foo', 'bar')
     assert cmd.outfile.write.call_args_list[0].args == (
         '\x1b[1;38;5;202mfoo bar\x1b[0m',
+    )
+
+    # backward compatibility
+    cmd = cli2.Command(lambda: True, outfile=mock.Mock())
+    cmd.print('BLUE2', 'foo', 'bar')
+    assert cmd.outfile.write.call_args_list[0].args == (
+        '\x1b[1;38;5;75mfoo bar\x1b[0m',
     )
 
 
@@ -548,7 +553,7 @@ def test_generator(capsys):
     result = cmd()
     assert result is None
     captured = capsys.readouterr()
-    assert captured.out == 'foo\x1b[37m\x1b[39;49;00m\n\n'
+    assert captured.out == '\x1b[38;5;141mfoo\x1b[39m\n'
 
 
 async def async_factory():
@@ -614,7 +619,7 @@ def test_async_yield(capsys):
     cmd = cli2.Command(async_yield)
     assert cmd() is None
     captured = capsys.readouterr()
-    assert captured.out == 'foo\x1b[37m\x1b[39;49;00m\n\n'
+    assert captured.out == '\x1b[38;5;141mfoo\x1b[39m\n'
 
 
 def test_async_iter(capsys):
@@ -628,7 +633,7 @@ def test_async_iter(capsys):
     cmd = cli2.Command(async_iter)
     assert cmd() is None
     captured = capsys.readouterr()
-    assert captured.out == 'foo\x1b[37m\x1b[39;49;00m\n\n'
+    assert captured.out == '\x1b[38;5;141mfoo\x1b[39m\n'
 
 
 def test_class_method():

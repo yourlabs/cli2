@@ -317,7 +317,7 @@ async def test_handler(client_class):
         'retry', status_code=200, tries=0, sleep=.0
     )
 
-    msg = 'Unacceptable response <Response [200 OK]> after 4 tries\n\x1b[0m\x1b[1mPOST /\x1b[0m\n-\x1b[37m \x1b[39;49;00m1\x1b[37m\x1b[39;49;00m\n\n\x1b[1mHTTP 200\x1b[0m\n-\x1b[37m \x1b[39;49;00m2\x1b[37m\x1b[39;49;00m\n'  # noqa
+    msg = 'Unacceptable response <Response [200 OK]> after 4 tries\n\x1b[0m\x1b[1mPOST /\x1b[0m\n\x1b[38;5;15m-\x1b[39m\x1b[38;5;15m \x1b[39m\x1b[38;5;141m1\x1b[39m\n\x1b[1mHTTP 200\x1b[0m\n\x1b[38;5;15m-\x1b[39m\x1b[38;5;15m \x1b[39m\x1b[38;5;141m2\x1b[39m'  # noqa
     assert str(exc.value) == msg
 
     response = httpx.Response(status_code=200)
@@ -1016,7 +1016,7 @@ async def test_mask_exceptions(client_class):
     client.mask.keys.add('a')
     client.mask.keys.add('c')
     error = chttpx.ResponseError(client, response, 1)
-    expected = "\n\x1b[0m\x1b[1mPOST /\x1b[0m\n\x1b[94ma\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m***MASKED***\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[94mb\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m2\x1b[37m\x1b[39;49;00m\n\n\x1b[1mHTTP 218\x1b[0m\n\x1b[94mc\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m***MASKED***\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[94md\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m4\x1b[37m\x1b[39;49;00m\n"  # noqa
+    expected = "\n\x1b[0m\x1b[1mPOST /\x1b[0m\n\x1b[38;5;204ma\x1b[39m\x1b[38;5;15m:\x1b[39m\x1b[38;5;15m \x1b[39m\x1b[38;5;186m'\x1b[39m\x1b[38;5;186m***MASKED***\x1b[39m\x1b[38;5;186m'\x1b[39m\n\x1b[38;5;204mb\x1b[39m\x1b[38;5;15m:\x1b[39m\x1b[38;5;15m \x1b[39m\x1b[38;5;141m2\x1b[39m\n\x1b[1mHTTP 218\x1b[0m\n\x1b[38;5;204mc\x1b[39m\x1b[38;5;15m:\x1b[39m\x1b[38;5;15m \x1b[39m\x1b[38;5;186m'\x1b[39m\x1b[38;5;186m***MASKED***\x1b[39m\x1b[38;5;186m'\x1b[39m\n\x1b[38;5;204md\x1b[39m\x1b[38;5;15m:\x1b[39m\x1b[38;5;15m \x1b[39m\x1b[38;5;141m4\x1b[39m"  # noqa
     assert str(error) == expected
 
     # this needs to work with form data too
@@ -1025,6 +1025,7 @@ async def test_mask_exceptions(client_class):
     client.mask = chttpx.Mask(['a', 'c'])
     error = chttpx.ResponseError(client, response, 1)
     expected = "\n\x1b[0m\x1b[1mPOST /\x1b[0m\n\x1b[94ma\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m***MASKED***\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[94mb\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m2\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\n\x1b[1mHTTP 218\x1b[0m\n\x1b[94mc\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[33m***MASKED***\x1b[39;49;00m\x1b[33m'\x1b[39;49;00m\x1b[37m\x1b[39;49;00m\n\x1b[94md\x1b[39;49;00m:\x1b[37m \x1b[39;49;00m4\x1b[37m\x1b[39;49;00m\n"  # noqa
+    expected = "\n\x1b[0m\x1b[1mPOST /\x1b[0m\n\x1b[38;5;204ma\x1b[39m\x1b[38;5;15m:\x1b[39m\x1b[38;5;15m \x1b[39m\x1b[38;5;186m'\x1b[39m\x1b[38;5;186m***MASKED***\x1b[39m\x1b[38;5;186m'\x1b[39m\n\x1b[38;5;204mb\x1b[39m\x1b[38;5;15m:\x1b[39m\x1b[38;5;15m \x1b[39m\x1b[38;5;186m'\x1b[39m\x1b[38;5;186m2\x1b[39m\x1b[38;5;186m'\x1b[39m\n\x1b[1mHTTP 218\x1b[0m\n\x1b[38;5;204mc\x1b[39m\x1b[38;5;15m:\x1b[39m\x1b[38;5;15m \x1b[39m\x1b[38;5;186m'\x1b[39m\x1b[38;5;186m***MASKED***\x1b[39m\x1b[38;5;186m'\x1b[39m\n\x1b[38;5;204md\x1b[39m\x1b[38;5;15m:\x1b[39m\x1b[38;5;15m \x1b[39m\x1b[38;5;141m4\x1b[39m"  # noqa
     assert str(error) == expected
 
 
