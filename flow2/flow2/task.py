@@ -14,20 +14,22 @@ Example:
 
 .. code-block:: python
 
+    import flow2
+
     async def your_callback1(task_queue, context):
         return 'something'
 
-    queue = cli2.TaskQueue(
+    queue = flow2.TaskQueue(
         'Your workflow',
-        cli2.ParallelTaskGroup(
+        flow2.ParallelTaskGroup(
             'Parallel task',
-            cli2.CallbackTask('Task 1', your_callback1),
-            cli2.CallbackTask('Task 2', your_callback2),
+            flow2.CallbackTask('Task 1', your_callback1),
+            flow2.CallbackTask('Task 2', your_callback2),
         ),
-        cli2.SerialTaskGroup(
+        flow2.SerialTaskGroup(
             'Parallel task',
             YourTask('Task 3', your, args),
-            cli2.CallbackTask('Task 4', your_callback4),
+            flow2.CallbackTask('Task 4', your_callback4),
         ),
     )
 
@@ -43,10 +45,10 @@ your_callback4 will have the 'task_3' key in the context when called.
 """
 
 
-from . import Queue
-from .asyncio import async_resolve
-from .theme import t
-from .log import log
+from cli2.queue import Queue
+from cli2.asyncio import async_resolve
+from cli2.theme import t
+from cli2.log import log
 
 
 class Task:
@@ -62,17 +64,19 @@ class Task:
         lower_snake_cased conversion of the name
     """
 
-    def __init__(self, name):
+    def __init__(self, name, description=None, output=None):
         """
         Instanciate a task.
 
         :param name: Name of the task
         """
         self.name = name
+        self.description = description
+        self.output = output
 
     @property
     def key(self):
-        return self.name.lower().replace(' ', '_')
+        return self.output or self.name.lower().replace(' ', '_')
 
     async def run(self, task_queue, context):
         """
@@ -121,7 +125,7 @@ class Task:
         """
         log.info('task success', name=self.name)
         if task_queue.printer:
-            task_queue.printer(t.green.bold('SUCESS') + ' ' + self.name)
+            task_queue.printer(t.green.bold('SUCCESS') + ' ' + self.name)
 
     async def process(self, task_queue, context):
         """
@@ -141,6 +145,7 @@ class Task:
             return
 
         if result:
+            log.info(self.name, result=result)
             context[self.key] = result
 
         await self.success(result, task_queue, context)
@@ -157,11 +162,11 @@ class CallbackTask(Task):
         Sync or async task callback, result will be processed by
         :py:func:`cli2.asyncio.async_resolve`.
     """
-    def __init__(self, name, callback):
+    def __init__(self, name, callback, **kwargs):
         if not callable(callback):
             raise TypeError(f'{callback} must be callable')
         self.callback = callback
-        super().__init__(name)
+        super().__init__(name, **kwargs)
 
     async def run(self, task_queue, context):
         return await async_resolve(self.callback(task_queue, context))
@@ -177,9 +182,9 @@ class TaskGroup(Task):
 
         Task objects
     """
-    def __init__(self, name, *tasks):
+    def __init__(self, name, *tasks, **kwargs):
         self.tasks = tasks
-        super().__init__(name)
+        super().__init__(name, **kwargs)
 
 
 class ParallelTaskGroup(TaskGroup):
@@ -198,10 +203,6 @@ class SerialTaskGroup(TaskGroup):
     async def run(self, task_queue, context):
         for task in self.tasks:
             await task.process(task_queue, context)
-
-    async def exception(self, exception, task_queue, context):
-        # no need to re-raise here
-        super().exception(task_queue, task_queue, context, reraise=False)
 
 
 class TaskQueue:

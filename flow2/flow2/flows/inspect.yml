@@ -1,0 +1,233 @@
+name: Repository Inspect
+plugin: serial
+tasks:
+  - name: Discover Project Files
+    plugin: find
+    path: .
+    output: project_files
+    flags: '-type f -not -path "./.git/*" -not -path "./node_modules/*" -not -path "./venv/*"'
+    description: Collect all relevant files, excluding common ignored directories.
+
+  - name: Analyze Project Aspects
+    plugin: parallel
+    description: Gather factual descriptions of project aspects for README.
+    tasks:
+      - name: Code Style Description
+        plugin: serial
+        tasks:
+          - name: Identify Code Style Files
+            plugin: prompt
+            parser: list
+            output: code_style_files
+            content: |
+              From the provided files, list only those that define code style and conventions. Return full paths exactly as provided.
+              Available files: {{ prompt2.paths(project_files) }}
+          - name: Output Code Style
+            plugin: prompt
+            output: code_style_description
+            content: |
+              Describe the project's code style in a concise list, referencing only the full paths of the provided files. Include only:
+              - Formatting (e.g., indentation, line length).
+              - Naming conventions (e.g., camelCase, snake_case).
+              - Language-specific practices.
+              - Tools used (e.g., linters, formatters).
+              - Comment/documentation standards.
+              - File structure.
+              Use direct statements (e.g., "File /path/to/.eslintrc specifies 2-space indentation"). Reference only files in the input. Do not invent files or use analysis context, phrases like "based on," or speculative language.
+              Files: {{ prompt2.paths(code_style_files) }}
+              Contents: {{ prompt2.contents(code_style_files) }}
+
+      - name: Build Description
+        plugin: serial
+        tasks:
+          - name: Identify Build Files
+            plugin: prompt
+            parser: list
+            output: build_files
+            content: |
+              From the provided files, list only those that define how to build the project (e.g., files like package.json, Makefile, pom.xml). Return full paths exactly as provided.
+              Available files: {{ prompt2.paths(project_files) }}
+          - name: Output Build Steps
+            plugin: prompt
+            output: build_description
+            content: |
+              List steps to build the project, referencing only the full paths of the provided files. Include only:
+              - Required software.
+              - Commands to install dependencies.
+              - Commands to build.
+              - Environment setup (e.g., variables, services).
+              Use direct statements (e.g., "File /path/to/package.json specifies npm install"). Reference only files in the input. Do not invent files or use analysis context, phrases like "based on," or speculative language.
+              Files: {{ prompt2.paths(build_files) }}
+              Contents: {{ prompt2.contents(build_files) }}
+
+      - name: Installation Description
+        plugin: serial
+        tasks:
+          - name: Identify Installation Files
+            plugin: prompt
+            parser: list
+            output: install_files
+            content: |
+              From the provided files, list only those that define how to install the project (e.g., files like README.md, requirements.txt). Return full paths exactly as provided.
+              Available files: {{ prompt2.paths(project_files) }}
+#          - name: Output Installation Steps
+#            plugin: prompt
+#            output: install_description
+#            content: |
+#              List steps to install the project for development, referencing only the full paths of the provided files. Include only:
+#              - Required software.
+#              - Commands to install dependencies.
+#              - Configuration needed.
+#              Use direct statements (e.g., "File /path/to/requirements.txt specifies pip install"). Reference only files in the input. Do not invent files or use analysis context, phrases like "based on," or speculative language.
+#              Files: {{ prompt2.paths(install_files) }}
+#              Contents: {{ prompt2.contents(install_files) }}
+#
+#      - name: Deployment Description
+#        plugin: serial
+#        tasks:
+#          - name: Identify Deployment Files
+#            plugin: prompt
+#            parser: list
+#            output: deploy_files
+#            content: |
+#              From the provided files, list only those that define how to deploy the project (e.g., files like docker-compose.yml, deploy.sh). Return full paths exactly as provided.
+#              Available files: {{ prompt2.paths(project_files) }}
+#          - name: Output Deployment Steps
+#            plugin: prompt
+#            output: deploy_description
+#            content: |
+#              List steps to deploy the project, referencing only the full paths of the provided files. Include only:
+#              - Required software or services.
+#              - Build/packaging steps.
+#              - Deployment commands.
+#              - Configuration needed.
+#              Use direct statements (e.g., "File /path/to/docker-compose.yml specifies docker-compose up"). Reference only files in the input. Do not invent files or use analysis context, phrases like "based on," or speculative language.
+#              Files: {{ prompt2.paths(deploy_files) }}
+#              Contents: {{ prompt2.contents(deploy_files) }}
+#
+#      - name: Testing Description
+#        plugin: serial
+#        tasks:
+#          - name: Identify Test Files
+#            plugin: prompt
+#            parser: list
+#            output: test_files
+#            content: |
+#              From the provided files, list only those that define how to run tests (e.g., files like pytest.ini, test/). Return full paths exactly as provided.
+#              Available files: {{ prompt2.paths(project_files) }}
+#          - name: Output Testing Steps
+#            plugin: prompt
+#            output: test_description
+#            content: |
+#              List steps to run tests, referencing only the full paths of the provided files. Include only:
+#              - Required software or frameworks.
+#              - Commands to run tests.
+#              - Configuration needed.
+#              - Test types (e.g., unit, integration).
+#              Use direct statements (e.g., "File /path/to/pytest.ini specifies pytest"). Reference only files in the input. Do not invent files or use analysis context, phrases like "based on," or speculative language.
+#              Files: {{ prompt2.paths(test_files) }}
+#              Contents: {{ prompt2.contents(test_files) }}
+#
+#      - name: Documentation Description
+#        plugin: serial
+#        tasks:
+#          - name: Identify Documentation Files
+#            plugin: prompt
+#            parser: list
+#            output: document_files
+#            content: |
+#              From the provided files, list only those that define how to document the project (e.g., files like README.md, mkdocs.yml). Return full paths exactly as provided.
+#              Available files: {{ prompt2.paths(project_files) }}
+#          - name: Output Documentation Process
+#            plugin: prompt
+#            output: document_description
+#            content: |
+#              Describe the documentation process, referencing only the full paths of the provided files. Include only:
+#              - Tools used.
+#              - Commands to build documentation.
+#              - Documentation locations.
+#              - Writing standards (e.g., Markdown).
+#              Use direct statements (e.g., "File /path/to/mkdocs.yml specifies MkDocs"). Reference only files in the input. Do not invent files or use analysis context, phrases like "based on," or speculative language.
+#              Files: {{ prompt2.paths(document_files) }}
+#              Contents: {{ prompt2.contents(document_files) }}
+#
+#      - name: Security Description
+#        plugin: serial
+#        tasks:
+#          - name: Identify Security Files
+#            plugin: prompt
+#            parser: list
+#            output: security_files
+#            content: |
+#              From the provided files, list only those that define security practices (e.g., files like .github/workflows/security.yml, Dockerfile). Return full paths exactly as provided.
+#              Available files: {{ prompt2.paths(project_files) }}
+#          - name: Output Security Practices
+#            plugin: prompt
+#            output: security_description
+#            content: |
+#              Describe security practices, referencing only the full paths of the provided files. Include only:
+#              - Secrets management (e.g., environment variables).
+#              - Dependency security tools.
+#              - Build/deployment configurations.
+#              - Code security practices (e.g., input validation).
+#              - Security tools used.
+#              Use direct statements (e.g., "File /path/to/.github/workflows/dependabot.yml specifies Dependabot"). Reference only files in the input. Do not invent files or use analysis context, phrases like "based on," or speculative language.
+#              Files: {{ prompt2.paths(security_files) }}
+#              Contents: {{ prompt2.contents(security_files) }}
+#
+#      - name: Dependency Description
+#        plugin: serial
+#        tasks:
+#          - name: Identify Dependency Files
+#            plugin: prompt
+#            parser: list
+#            output: dependency_files
+#            content: |
+#              From the provided files, list only those that define dependency management (e.g., files like package.json, requirements.txt). Return full paths exactly as provided.
+#              Available files: {{ prompt2.paths(project_files) }}
+#          - name: Output Dependency Management
+#            plugin: prompt
+#            output: dependency_description
+#            content: |
+#              Describe dependency management, referencing only the full paths of the provided files. Include only:
+#              - Tools used (e.g., npm, pip).
+#              - Key dependencies and versions.
+#              - Lock files or update tools.
+#              Use direct statements (e.g., "File /path/to/pyproject.toml specifies Poetry"). Reference only files in the input. Do not invent files or use analysis context, phrases like "based on," or speculative language.
+#              Files: {{ prompt2.paths(dependency_files) }}
+#              Contents: {{ prompt2.contents(dependency_files) }}
+#
+#  - name: Generate README
+#    plugin: prompt
+#    output: readme_content
+#    parser: wholefile
+#    description: Generate a clean project README in Markdown.
+#    content: |
+#      Generate a Markdown README for the project using the provided information. Use a clear, user-friendly tone suitable for a public repository. Include only the following sections with their exact content, formatted as a bulleted list where applicable. Omit sections with empty content without comment. Do not add analysis, context, introductions, or phrases like "based on" or "the following describes."
+#
+#      # Project Overview
+#      [Placeholder description for the project.]
+#
+#      ## Installation
+#      {{ install_description }}
+#
+#      ## Building the Project
+#      {{ build_description }}
+#
+#      ## Running Tests
+#      {{ test_description }}
+#
+#      ## Deployment
+#      {{ deploy_description }}
+#
+#      ## Code Style
+#      {{ code_style_description }}
+#
+#      ## Documentation
+#      {{ document_description }}
+#
+#      ## Dependency Management
+#      {{ dependency_description }}
+#
+#      ## Security Practices
+#      {{ security_description }}
