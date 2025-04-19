@@ -81,6 +81,16 @@ class YAMLFormatter:
         return '\n' + value
 
 
+from cli2.traceback import TracebackFormatter
+from typing import Tuple, Optional
+
+def cli2_traceback(sio, exc_info):
+    exc_type, exc_value, exc_traceback = exc_info
+    formatter = TracebackFormatter()
+    formatter.parse(exc_type, exc_value, exc_traceback)
+    sio.write('\n' + '\n'.join(formatter.output))
+
+
 def configure(log_file=None):
     """
     Configure logging.
@@ -137,6 +147,7 @@ def configure(log_file=None):
                 'processors': [
                     structlog.stdlib.ProcessorFormatter.remove_processors_meta,
                     structlog.dev.ConsoleRenderer(
+                        exception_formatter=cli2_traceback,
                         columns=[
                             structlog.dev.Column(
                                 'json',
@@ -161,6 +172,7 @@ def configure(log_file=None):
                 'processors': [
                     structlog.stdlib.ProcessorFormatter.remove_processors_meta,
                     structlog.dev.ConsoleRenderer(
+                        exception_formatter=cli2_traceback,
                         columns=[
                             structlog.dev.Column(
                                 '',
@@ -223,7 +235,6 @@ def configure(log_file=None):
         processors.append(timestamper)
     processors += [
         structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
         structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
     ]
 

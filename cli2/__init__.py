@@ -34,6 +34,12 @@ from .find import Find
 from .table import Table
 
 
+import os
+if not bool(os.getenv('CLI2_TRACEBACK_DISABLE')):
+    from .traceback import enable
+    enable()
+
+
 def which(cmd):
     """ Wrapper around shutil.which, and also check for ~/.local/bin. """
     import shutil

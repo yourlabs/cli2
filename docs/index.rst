@@ -20,6 +20,7 @@
    table
    asyncio
    queue
+   traceback
    cli
    client
    ansible
