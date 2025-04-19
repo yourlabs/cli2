@@ -11,5 +11,5 @@ async def test_files_read(tmp_path):
         with file.open('w') as f:
             f.write(content)
         expected[file] = content
-    result = await cli2.files_read(*files)
+    result = await cli2.files_read(files)
     assert result == expected
