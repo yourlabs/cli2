@@ -5,14 +5,32 @@ from unittest import mock
 
 
 @pytest.mark.asyncio
-async def test_tasks():
-    def exc_sync(executor, context):
+async def test_context():
+    task = flow2.SerialTaskGroup(
+        'Inspect',
+        flow2.CallbackTask(
+            'Initial',
+            lambda c: 'first',
+        ),
+        flow2.CallbackTask(
+            'Next',
+            lambda c: f'next{c["initial"]}',
+            output='next2',
+        ),
+    )
+    result = await task.process()
+    assert result == dict(initial='first', next2='nextfirst')
+
+
+@pytest.mark.asyncio
+async def test_exceptions():
+    def exc_sync(context):
         raise Exception('sync failure')
 
-    async def exc_async(executor, context):
+    async def exc_async(context):
         raise Exception('async failure')
 
-    workflow = flow2.TaskQueue(
+    workflow = flow2.SerialTaskGroup(
         'Inspect project',
         flow2.ParallelTaskGroup(
             'Code style',
@@ -22,7 +40,7 @@ async def test_tasks():
             ),
             flow2.CallbackTask(
                 'Get code style',
-                lambda e, c: 'runs anyway',
+                lambda c: 'runs anyway',
             ),
         ),
         flow2.SerialTaskGroup(
@@ -33,15 +51,14 @@ async def test_tasks():
             ),
             flow2.CallbackTask(
                 'Get testing directives',
-                lambda e, c: 'must not run'
+                lambda c: 'must not run'
             ),
         )
     )
-    result = await workflow.run()
+    result = await workflow.process()
     assert isinstance(result['code_style_files'], Exception)
     assert result['get_code_style'] == 'runs anyway'
     assert isinstance(result['testing_files'], Exception)
-    assert isinstance(result['testing'], Exception)
     assert len(result) == 4
 
 

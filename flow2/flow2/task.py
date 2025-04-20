@@ -1,5 +1,5 @@
 """
-Asynchronous task task_queue to create efficient automated workflows.
+Asynchronous task executor.
 
 **Features**:
 
@@ -7,8 +7,6 @@ Asynchronous task task_queue to create efficient automated workflows.
 - or use CallbackTask to create a task from a bare callback, sync or async
 - parallel or serial task groups to nest tasks
 - logging and colored output
-- uses :py:class:`cli2.queue.Queue` so you can control the number or workers,
-  which is cpucount*2 by default, and spawn new tasks on the fly
 
 Example:
 
@@ -16,24 +14,24 @@ Example:
 
     import flow2
 
-    async def your_callback1(task_queue, context):
+    async def your_callback1(context):
         return 'something'
 
-    queue = flow2.TaskQueue(
+    task = flow2.SerialTaskGroup(
         'Your workflow',
         flow2.ParallelTaskGroup(
             'Parallel task',
             flow2.CallbackTask('Task 1', your_callback1),
             flow2.CallbackTask('Task 2', your_callback2),
         ),
-        flow2.SerialTaskGroup(
+        flow2.ParallelTaskGroup(
             'Parallel task',
             YourTask('Task 3', your, args),
             flow2.CallbackTask('Task 4', your_callback4),
         ),
     )
 
-    result = await queue.run()
+    result = await task.run()
 
 Result is a dict of the return value of each task, where the keys are
 snake_cased conversion of the names, ie. 'Task 4' becomes 'task_4' in the
@@ -45,10 +43,8 @@ your_callback4 will have the 'task_3' key in the context when called.
 """
 
 
-from cli2.queue import Queue
-from cli2.asyncio import async_resolve
-from cli2.theme import t
-from cli2.log import log
+import asyncio
+import cli2
 
 
 class Task:
@@ -63,7 +59,6 @@ class Task:
 
         lower_snake_cased conversion of the name
     """
-
     def __init__(self, name, description=None, output=None):
         """
         Instanciate a task.
@@ -78,7 +73,7 @@ class Task:
     def key(self):
         return self.output or self.name.lower().replace(' ', '_')
 
-    async def run(self, task_queue, context):
+    async def run(self, context):
         """
         You should override this in your own Task subclasses.
 
@@ -89,68 +84,62 @@ class Task:
             ' or use CallbackTask'
         )
 
-    async def start(self, task_queue, context):
+    async def start(self, context):
         """
         Called when the task begins,  does printing and logging.
 
-        :param task_queue: :py:class:`TaskQueue` object
-        :param context: Context dict
+        :param context: context dict
         """
-        log.debug('task begin', name=self.name)
-        if task_queue.printer:
-            task_queue.printer(t.yellow.bold('STARTING') + ' ' + self.name)
+        cli2.log.debug('task begin', name=self.name)
+        print(cli2.t.yellow.bold('STARTING') + ' ' + self.name)
 
-    async def exception(self, exception, task_queue, context, reraise=True):
+    async def exception(self, exception, context):
         """
         Called when the task raises an exception.
 
         :param execption: Raised exception
-        :param reraise: Wether to re-raise the exception or to swallow it
-        :param task_queue: :py:class:`TaskQueue` object
-        :param context: Context dict
+        :param context: context dict
         """
-        if task_queue.printer:
-            task_queue.printer(t.red.bold('FAILED') + ' ' + self.name)
         context[self.key] = exception
-        if reraise:
-            raise
+        print(cli2.t.red.bold('FAILED') + ' ' + self.name)
 
-    async def success(self, result, task_queue, context):
+    async def success(self, result, context):
         """
         Called when the task ends successfully,  does printing and logging.
 
         :param result: Result of the task run method
-        :param task_queue: :py:class:`TaskQueue` object
-        :param context: Context dict
+        :param context: context dict
         """
-        log.info('task success', name=self.name)
-        if task_queue.printer:
-            task_queue.printer(t.green.bold('SUCCESS') + ' ' + self.name)
+        cli2.log.info(
+            'task success',
+            name=self.name,
+            result=result,
+            context=context,
+        )
+        print(cli2.t.green.bold('SUCCESS') + ' ' + self.name)
+        if result:
+            context[self.key] = result
+            cli2.print(result)
 
-    async def process(self, task_queue, context):
+    async def process(self, context=None):
         """
-        Actual function to add to the :py:class:`cli2.queue.Queue`.
-
         Orchestrate the call to the :py:meth:`run` method.
 
-        :param task_queue: :py:class:`TaskQueue` object
-        :param context: Context dict
+        :param context: context dict
         """
-        await self.start(task_queue, context)
+        context = context if context is not None else dict()
+
+        await self.start(context)
 
         try:
-            result = await self.run(task_queue, context)
+            result = await self.run(context)
         except Exception as exc:
-            await self.exception(exc, task_queue, context)
-            return
+            await self.exception(exc, context)
+            raise
+        else:
+            await self.success(result, context)
 
-        if result:
-            log.info(self.name, result=result)
-            context[self.key] = result
-
-        await self.success(result, task_queue, context)
-
-        return result
+        return context
 
 
 class CallbackTask(Task):
@@ -168,8 +157,8 @@ class CallbackTask(Task):
         self.callback = callback
         super().__init__(name, **kwargs)
 
-    async def run(self, task_queue, context):
-        return await async_resolve(self.callback(task_queue, context))
+    async def run(self, context):
+        return await cli2.async_resolve(self.callback(context))
 
 
 class TaskGroup(Task):
@@ -191,57 +180,17 @@ class ParallelTaskGroup(TaskGroup):
     """
     Run tasks in parallel without caring about success or failures.
     """
-    async def run(self, task_queue, context):
-        for task in self.tasks:
-            await task_queue.queue.put(task.process(task_queue, context))
+    async def run(self, context):
+        await asyncio.gather(*[
+            task.process(context)
+            for task in self.tasks
+        ])
 
 
 class SerialTaskGroup(TaskGroup):
     """
     Run tasks one after another, stop and fail if one fails.
     """
-    async def run(self, task_queue, context):
+    async def run(self, context):
         for task in self.tasks:
-            await task.process(task_queue, context)
-
-
-class TaskQueue:
-    """
-    Actual task executor.
-
-    .. py:attribute:: name
-
-        Name of the task executor
-
-    .. py:attribute:: tasks
-
-        Task objects
-
-    .. py:attribute:: queue
-
-        :py:class:`cli2.queue.Queue` object.
-
-    .. py:attribute:: printer
-
-        print() builtin function by default, if None, will not be called. Set
-        printer=None for silent mode (logging will still be enabled).
-    """
-    def __init__(self, name, *tasks, queue=None, printer=print):
-        self.name = name
-        self.tasks = tasks
-        self.queue = queue or Queue()
-        self.printer = printer
-
-    async def run(self, context=None):
-        """
-        Run the task queue with a given context dict if any.
-
-        :param context: Context dict that will be passed to every task.
-        :return: Context dict
-        """
-        context = context or dict()
-        await self.queue.run(*[
-            task.process(self, context)
-            for task in self.tasks
-        ])
-        return context
+            await task.process(context)
