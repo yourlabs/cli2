@@ -49,8 +49,5 @@ class Flow(File):
 
     async def run(self, **context):
         data = yaml.safe_load(self.content)
-        queue = task.TaskQueue(
-            'Task Queue',
-            await self.data_to_task(data)
-        )
-        return await queue.run(context)
+        task = await self.data_to_task(data)
+        return await task.process(context)
