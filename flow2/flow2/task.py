@@ -59,7 +59,7 @@ class Task:
 
         lower_snake_cased conversion of the name
     """
-    def __init__(self, name, description=None, output=None):
+    def __init__(self, name, description=None, register=None, output=True):
         """
         Instanciate a task.
 
@@ -67,11 +67,12 @@ class Task:
         """
         self.name = name
         self.description = description
+        self.register = register
         self.output = output
 
     @property
     def key(self):
-        return self.output or self.name.lower().replace(' ', '_')
+        return self.register or self.name.lower().replace(' ', '_')
 
     async def run(self, context):
         """
@@ -93,15 +94,20 @@ class Task:
         cli2.log.debug('task begin', name=self.name)
         print(cli2.t.yellow.bold('STARTING') + ' ' + self.name)
 
-    async def exception(self, exception, context):
+    async def exception(self, exception, context, raises=True):
         """
         Called when the task raises an exception.
 
         :param execption: Raised exception
         :param context: context dict
+        :param raises: wether to raise exception or not
         """
         context[self.key] = exception
         print(cli2.t.red.bold('FAILED') + ' ' + self.name)
+        if raises:
+            raise exception
+        else:
+            cli2.log.exception(exception)
 
     async def success(self, result, context):
         """
@@ -119,13 +125,18 @@ class Task:
         print(cli2.t.green.bold('SUCCESS') + ' ' + self.name)
         if result:
             context[self.key] = result
-            cli2.print(result)
+            if self.output:
+                self.output_result(result)
 
-    async def process(self, context=None):
+    def output_result(self, result):
+        cli2.print(result)
+
+    async def process(self, context=None, raises=True):
         """
         Orchestrate the call to the :py:meth:`run` method.
 
         :param context: context dict
+        :param raises: Wether to raise exceptions or not
         """
         context = context if context is not None else dict()
 
@@ -134,8 +145,7 @@ class Task:
         try:
             result = await self.run(context)
         except Exception as exc:
-            await self.exception(exc, context)
-            raise
+            await self.exception(exc, context, raises)
         else:
             await self.success(result, context)
 
@@ -182,7 +192,7 @@ class ParallelTaskGroup(TaskGroup):
     """
     async def run(self, context):
         await asyncio.gather(*[
-            task.process(context)
+            task.process(context, raises=False)
             for task in self.tasks
         ])
 
@@ -193,4 +203,7 @@ class SerialTaskGroup(TaskGroup):
     """
     async def run(self, context):
         for task in self.tasks:
-            await task.process(context)
+            try:
+                await task.process(context)
+            except:
+                break

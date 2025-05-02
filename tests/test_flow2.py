@@ -15,7 +15,7 @@ async def test_context():
         flow2.CallbackTask(
             'Next',
             lambda c: f'next{c["initial"]}',
-            output='next2',
+            register='next2',
         ),
     )
     result = await task.process()
@@ -59,7 +59,11 @@ async def test_exceptions():
     assert isinstance(result['code_style_files'], Exception)
     assert result['get_code_style'] == 'runs anyway'
     assert isinstance(result['testing_files'], Exception)
-    assert len(result) == 4
+    assert list(result.keys()) == [
+        'code_style_files',
+        'get_code_style',
+        'testing_files',
+    ]
 
 
 @pytest.mark.asyncio
