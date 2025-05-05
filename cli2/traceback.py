@@ -1,10 +1,10 @@
 """
-Traceback hook with more context lines, locals and colors.
+Traceback hook with more context lines, locals, colors, and line numbers.
 
 Having more context lines and locals is useful to set context for LLMs, colors
-are just cool.
+are just cool. Line numbers help pinpoint errors precisely.
 
-Basied on :py:mod:`cli2.theme`, you can override the color palette with
+Based on :py:mod:`cli2.theme`, you can override the color palette with
 environment variables.
 """
 from cli2.display import highlight
@@ -15,13 +15,77 @@ import sys
 import textwrap
 import tokenize
 import os # Import os for path operations
+import math # For calculating line number width
 from pathlib import Path # Import Path
 
 class TracebackFormatter:
-    """Custom traceback formatter with context lines, locals, and colors."""
+    """Custom traceback formatter with context lines, locals, colors, and line numbers."""
+
+    DEFAULT_LINE_NUMBER_WIDTH = 4 # Default width if file lines can't be determined
+    LINE_NUMBER_SEPARATOR = t.G(" | ") # Separator between line number and code
 
     def __init__(self):
         self.output = []
+        self._source_cache = {} # Cache for file lines (filename -> (lines, total_lines))
+
+    def _get_source_lines(self, filename):
+        """Read source lines from a file, using a cache. Returns (lines, total_lines)."""
+        if not filename or '<' in filename or '>' in filename:
+            return None, 0 # Not a real file, or special name like <string>
+
+        cached = self._source_cache.get(filename)
+        if cached:
+            return cached
+
+        try:
+            path = Path(filename)
+            # Ensure it exists and is a file before trying to open
+            if path.is_file(): # Implicitly checks existence
+                 with open(filename, 'r', encoding='utf-8', errors='replace') as f:
+                     lines = f.readlines()
+                 total_lines = len(lines)
+                 self._source_cache[filename] = (lines, total_lines)
+                 return lines, total_lines
+            else:
+                # File doesn't exist or is not a regular file (e.g., directory)
+                self._source_cache[filename] = (None, 0)
+                return None, 0
+        except (OSError, UnicodeDecodeError) as e: # Catch specific expected errors
+            # print(f"Debug: Failed reading {filename}: {e}") # Optional debug print
+            self._source_cache[filename] = (None, 0) # Cache failure
+            return None, 0
+
+    @staticmethod
+    def _calculate_lineno_width(total_lines):
+        """Calculate the width needed for line numbers."""
+        if total_lines <= 0:
+            # Handle 0 or negative (shouldn't happen but safe)
+            return TracebackFormatter.DEFAULT_LINE_NUMBER_WIDTH
+        try:
+            # Calculate width based on the number of digits in the highest line number
+            width = math.ceil(math.log10(total_lines + 1)) # +1 handles boundary like 10, 100
+            # Ensure minimum width for alignment
+            return max(TracebackFormatter.DEFAULT_LINE_NUMBER_WIDTH, width)
+        except ValueError: # Should not happen if total_lines > 0
+             return TracebackFormatter.DEFAULT_LINE_NUMBER_WIDTH
+
+    def _format_source_line(self, line_content, line_no, total_lines, is_error_line):
+        """Formats a single line of source code with line number."""
+        width = self._calculate_lineno_width(total_lines)
+        line_no_str = str(line_no).rjust(width)
+
+        # Choose colors based on whether it's the error line
+        num_color = t.y.b if is_error_line else t.G # Yellow/bold for error line num, Green otherwise
+
+        colored_line_no_str = num_color(line_no_str)
+
+        # Keep existing code highlighting
+        # Note: highlight already removes trailing newline, but rstrip needed for internal newlines/tabs
+        highlighted_code = highlight(line_content.rstrip('\r\n'), 'Python')
+
+        # Combine line number, separator, and highlighted code
+        # Separator color is constant (Green)
+        return f"{colored_line_no_str}{self.LINE_NUMBER_SEPARATOR}{highlighted_code}"
 
     @staticmethod
     def display_value(value):
@@ -37,12 +101,12 @@ class TracebackFormatter:
             value = value[:72] + '...' # Adjusted length to fit ellipsis
         return value
 
+    # get_function_signature remains unchanged, keeping it for potential future use
     @staticmethod
     def get_function_signature(source):
         """Extract function signature from source code."""
         try:
             tree = ast.parse(source)
-            # Handle cases where the source might not start with a function
             if tree.body and isinstance(tree.body[0], ast.FunctionDef):
                 func_def = tree.body[0]
                 func_name = func_def.name
@@ -50,17 +114,16 @@ class TracebackFormatter:
                 return f"{t.y.b(func_name)}({', '.join(args)})"
         except Exception: # Catch broad exceptions during parsing
             return None
-        return None # Return None if no function definition found
+        return None
 
     def format_syntax_error(self, etype, value):
-        """Format SyntaxError exceptions."""
+        """Format SyntaxError exceptions with line numbers."""
         filename = getattr(value, 'filename', '<unknown>')
         lineno = getattr(value, 'lineno', 0)
         offset = getattr(value, 'offset', None) # Can be None
         text = getattr(value, 'text', None)     # The line text if available
         msg = getattr(value, 'msg', str(value)) # Error message
 
-        # Use similar path logic as format_frame for coloring/relativity
         relative = False
         colored_filename = t.G(filename) # Default color
         colored_lineno = t.G(lineno)     # Default color
@@ -69,77 +132,75 @@ class TracebackFormatter:
         if filename and '<' not in filename and '>' not in filename:
             try:
                 path = Path(filename)
-                if path.exists() and path.is_relative_to(os.getcwd()):
+                # Check existence and relativity together
+                cwd = Path(os.getcwd())
+                if path.exists() and path.is_file() and path.is_relative_to(cwd):
                     relative = True
-                    display_path = path.relative_to(os.getcwd())
+                    display_path = path.relative_to(cwd)
                     display_path_str = str(display_path)
-                    colored_filename = t.p.b(display_path)
+                    colored_filename = t.p.b(display_path_str) # Use display_path_str
                     colored_lineno = t.y.b(lineno)
             except (ValueError, OSError):
                  pass # Keep default non-relative coloring
 
-        # Header - using standard Python format: File "...", line ...
+        # Header - using standard Python format
         self.output.append(f'  File "{t.c(display_path_str)}", line {colored_lineno}')
 
-        lines = []
-        source_found = False
-        firstlineno = 0 # Track the starting line number of 'lines'
+        file_lines, total_lines = self._get_source_lines(filename)
+        source_line_content = None
 
         if text: # SyntaxError often provides the line directly
-            # Ensure text ends with a newline for consistent processing
-            lines = [text.rstrip('\r\n') + '\n']
-            source_found = True
-            firstlineno = lineno # The line number corresponds to this single line
+            source_line_content = text.rstrip('\r\n')
+            # If we couldn't read the file, estimate total lines based on lineno
+            if total_lines == 0:
+                total_lines = lineno
+        elif file_lines and lineno is not None and 1 <= lineno <= total_lines:
+            # Try reading from the fetched file lines
+            source_line_content = file_lines[lineno - 1].rstrip('\r\n')
+
+        if source_line_content is not None:
+             # Estimate total_lines if we couldn't read the file but have lineno
+             if total_lines == 0 and lineno > 0:
+                 total_lines = lineno # Best guess for width calculation
+
+             # Format the line with number and marker (always error line)
+             formatted_line = self._format_source_line(
+                 source_line_content, lineno, total_lines, True
+             )
+             # Indent like standard traceback source line
+             self.output.append(f"    {formatted_line}")
+
+             # Add pointer ('^') using offset if available
+             if offset is not None:
+                 # Offset is 1-based column number.
+                 # Calculate padding for pointer based on line number format.
+                 width = self._calculate_lineno_width(total_lines)
+                 # The pointer needs to align under the character indicated by `offset`.
+                 # The total prefix before the code starts is:
+                 # line_no(width chars) + separator(len chars)
+                 # Example: "  42 | code starts here" (Marker removed)
+                 # Total prefix length = width + len(self.LINE_NUMBER_SEPARATOR)
+                 pointer_prefix_len = width + len(self.LINE_NUMBER_SEPARATOR) # Removed marker width (1)
+
+                 # Pointer position relative to the start of the *code* itself.
+                 # Offset is 1-based, string index is 0-based.
+                 pointer_pos_in_code = max(0, offset - 1)
+
+                 # Total indentation: standard indent("    ") + pointer prefix + position in code
+                 pointer_indentation = " " * pointer_prefix_len + " " * pointer_pos_in_code
+                 pointer_line = f"    {pointer_indentation}{t.r.b('^')}"
+                 self.output.append(pointer_line)
         elif filename and '<' not in filename and '>' not in filename:
-            # Fallback: Try reading the file if text wasn't provided
-            try:
-                with open(filename, 'r', encoding='utf-8', errors='replace') as f:
-                    lines = f.readlines()
-                firstlineno = 1 # File reading starts at line 1
-                source_found = True
-            except Exception as e:
-                self.output.append(f"    {t.r.i('(Could not read source file)')} {type(e).__name__}")
-                lines = [] # Failed to read
+             # Indicate failure to get source only if we expected to read a file
+             self.output.append(f"      {t.r.i('(Could not read source or find line)')}")
 
-        if source_found and lines:
-            # Calculate the 0-based index of the error line within the 'lines' list.
-            error_index = lineno - firstlineno
-
-            # Bounds check
-            if 0 <= error_index < len(lines):
-                line = lines[error_index].rstrip('\r\n') # Use the specific line
-
-                # Print the line
-                output_line = f"    {highlight(line, 'Python')}" # No prefix needed here
-                self.output.append(output_line)
-
-                # Add pointer using offset if available
-                if offset is not None:
-                    # Offset is 1-based column number. Adjust for 0-based index.
-                    # Strip leading whitespace from the line to match offset calculation
-                    leading_whitespace = len(line) - len(line.lstrip(' '))
-                    effective_offset = offset - 1 # Make offset 0-based
-
-                    # Adjust offset if it includes leading whitespace that we stripped
-                    # This heuristic might not be perfect for all cases (e.g., tabs)
-                    pointer_pos = effective_offset
-
-                    # Ensure pointer position is non-negative
-                    pointer_pos = max(0, pointer_pos)
-
-                    pointer_line = " " * 4 + " " * pointer_pos + t.r.b("^")
-                    self.output.append(pointer_line)
-            else:
-                 self.output.append(f"    {t.r.i('(Could not locate line {lineno} in source)')}")
-
-
-        # Add the final exception line (standard format)
+        # Add the final exception line (standard format, not indented)
         exception_str = f"{t.r.b(etype.__name__)}: {t.c(msg)}"
-        self.output.append(exception_str) # No leading newline needed here
+        self.output.append(exception_str)
 
 
     def format_frame(self, frame, is_last=False, frame_number=1, total_frames=1):
-        """Format a single traceback frame."""
+        """Format a single traceback frame with line numbers."""
         code = frame.f_code
         filename = code.co_filename
         lineno = frame.f_lineno
@@ -154,118 +215,103 @@ class TracebackFormatter:
             # Check if path is relative only if it's likely a file path
             if filename and '<' not in filename and '>' not in filename:
                 path = Path(filename)
-                # Check if file exists and is relative to cwd
-                if path.exists() and path.is_relative_to(os.getcwd()):
+                # Check existence and relativity together
+                cwd = Path(os.getcwd())
+                if path.exists() and path.is_file() and path.is_relative_to(cwd):
                     relative = True
-                    # Use relative path for display
                     try:
-                        display_path = path.relative_to(os.getcwd())
+                        display_path = path.relative_to(cwd)
                         display_path_str = str(display_path)
                     except ValueError: # pragma: no cover
-                        # Should not happen if is_relative_to is True, but be safe
-                        display_path_str = str(path)
+                        display_path_str = str(path) # Should not happen
 
-                    colored_filename = t.p.b(display_path_str)
+                    colored_filename = t.p.b(display_path_str) # Use relative string
                     colored_lineno = t.y.b(lineno)
                     sig_color = t.p.b
-        except (ValueError, OSError): # Handle potential issues with path operations
+        except (ValueError, OSError): # Handle potential issues with path ops
             pass # Keep default non-relative coloring
 
         output = []
         # Standard Python format: File "...", line ..., in ...
         header = f'  File "{t.c(display_path_str)}", line {colored_lineno}, in {sig_color(name)}'
 
-        lines = []
-        firstlineno = 1 # Default values, assuming line 1 if source not found
-        source_found = False
-        try:
-            # Attempt to get source lines using inspect
-            source_lines, start_line = inspect.getsourcelines(frame)
-            if source_lines and start_line >= 1:
-                lines = source_lines
-                firstlineno = start_line
-                source_found = True
-                # Attempt to extract a more informative signature (optional refinement)
-                # try:
-                #     signature = self.get_function_signature(textwrap.dedent(''.join(lines)))
-                #     header = f'  File "{t.c(display_path_str)}", line {colored_lineno}, in {sig_color(signature or name)}'
-                # except Exception: pass # Fallback to original name is fine
-            else:
-                raise OSError("Could not get valid source lines from inspect.")
-        except (OSError, TypeError, tokenize.TokenError, IndentationError):
-            # Fallback: Try reading the file directly
-            try:
-                if filename and '<' not in filename and '>' not in filename and os.path.exists(filename):
-                    with open(filename, 'r', encoding='utf-8', errors='replace') as f:
-                        lines = f.readlines()
-                    firstlineno = 1 # File reading starts at line 1
-                    source_found = True
-            except Exception:
-                lines = [] # Ensure lines is empty
-                firstlineno = lineno # Point to the error line number
-
-        # Append header *after* potential signature update
+        # Append header first
         output.append(header)
 
-        # Process lines only if source was found
-        if source_found and lines:
-            try:
-                # Calculate the 0-based index of the error line within the 'lines' list.
-                error_index = lineno - firstlineno
+        # Get source lines using cache
+        file_lines, total_lines = self._get_source_lines(filename)
 
-                # Perform bounds checking and clamping for error_index:
-                if error_index < 0 or error_index >= len(lines):
-                     # If index is invalid, don't show source context
-                     raise IndexError("Calculated line index out of bounds.")
+        # Process lines only if source was found
+        if file_lines:
+            try:
+                # inspect.getblock might be slightly more robust for finding the block
+                # but finding the exact start line can be tricky. Let's use lineno.
+                # Assume lineno is 1-based index into file_lines.
+                error_index = lineno - 1 # 0-based index
+
+                # Bounds check error_index
+                if not (0 <= error_index < total_lines):
+                     raise IndexError(f"Line number {lineno} out of range (1-{total_lines})")
 
                 # Define context window sizes
-                context_lines = 1  # Show only 1 line of context normally
-                more_context = 3   # Show more context for the final frame in project code
+                context_lines = 1  # Context lines above/below
+                more_context = 3   # Extra context for the final frame in project
 
                 # Determine context window based on frame type/position
                 if not relative: # Non-project code (library etc.)
-                    start = error_index
-                    end = error_index + 1 # Just the error line
+                    start_index = error_index
+                    end_index = error_index + 1 # Just the error line
                 elif is_last and frame_number == total_frames: # Last frame (error origin in project)
-                    start = max(0, error_index - more_context)
-                    end = min(len(lines), error_index + more_context + 1)
+                    start_index = max(0, error_index - more_context)
+                    end_index = min(total_lines, error_index + more_context + 1)
                 else: # Intermediate frame in project code
-                    start = max(0, error_index - context_lines)
-                    end = min(len(lines), error_index + context_lines + 1)
+                    start_index = max(0, error_index - context_lines)
+                    end_index = min(total_lines, error_index + context_lines + 1)
 
-                # Ensure start index is not greater than end index
-                start = min(start, end)
+                # Ensure start index is not greater than end index (redundant with min/max)
+                # start_index = min(start_index, end_index)
 
                 # Format and append lines within the context window
-                for i in range(start, end):
-                    if 0 <= i < len(lines):
-                        line = lines[i].rstrip('\r\n') # Strip only newlines
-                        is_error_line = (i == error_index)
-                        # Standard traceback format shows just the line, indented
-                        # Use red bold marker for the exact error line *if* it's the last frame
-                        prefix = t.r.b(">>> ") if (is_error_line and is_last) else "    "
-                        output.append(f"{prefix}{highlight(line, 'Python')}")
+                for i in range(start_index, end_index):
+                    # i is 0-based index into file_lines
+                    line_content = file_lines[i].rstrip('\r\n') # Strip only newlines
+                    current_lineno = i + 1 # 1-based line number for display
+                    is_error_line_in_context = (i == error_index)
 
-            except Exception as e: # Catch errors during line processing
-                 # Append the header anyway, but indicate source processing error
-                 output.append(f"    {t.r.i('(Error processing source lines)')} {type(e).__name__}")
-        # If source couldn't be found/read, header is already added.
-
-        # Add locals display only for relative paths (project code) and last frame
-        if relative and is_last:
-            try:
-                filtered_locals = {
-                    k: v for k, v in frame.f_locals.items()
-                    if not k.startswith('__') and not inspect.ismodule(v)
-                }
-                if filtered_locals: # Only add locals section if there's something to show
-                    locals_str = " ".join(
-                        f"{t.c.b(k)}={t.g(self.display_value(v))}"
-                        for k, v in filtered_locals.items()
+                    formatted_line = self._format_source_line(
+                        line_content, current_lineno, total_lines, is_error_line_in_context
                     )
-                    output.append(f"    {t.g.b('Locals')}: {locals_str}")
-            except Exception as e:
-                 output.append(f"    {t.r.i('(Error displaying locals)')} {type(e).__name__}")
+                    # Add standard indentation ("    ") for source lines in traceback
+                    output.append(f"    {formatted_line}")
+
+            except IndexError as e: # Specific handling for line number issues
+                 # This can happen if lineno reported by frame is outside file bounds
+                 output.append(f"      {t.r.i('(Error processing source: line number invalid)')} {e}")
+            except Exception as e: # Catch other errors during line processing
+                 # Append indication of error processing source lines
+                 output.append(f"      {t.r.i('(Error processing source lines)')} {type(e).__name__}: {e}")
+        elif filename and '<' not in filename and '>' not in filename:
+             # Indicate failure if it was a real filename we expected to read
+             output.append(f"      {t.r.i('(Could not read source file)')}")
+        # Note: No 'else' needed for <string> etc., we just don't show source
+
+        # Add locals display for every frame
+        try:
+            filtered_locals = {
+                k: v for k, v in frame.f_locals.items()
+                if not k.startswith('__') and not inspect.ismodule(v) and not inspect.isclass(v) # Filter classes too
+            }
+            if filtered_locals: # Only add locals section if there's something to show
+                # Sort locals by key for consistent output
+                sorted_locals = sorted(filtered_locals.items())
+                locals_str = " ".join(
+                    f"{k}={t.g(self.display_value(v))}"
+                    for k, v in sorted_locals
+                )
+                # Add standard indentation for locals line
+                output.append(f"    {t.g.b('Locals')}: {locals_str}")
+        except Exception as e:
+             output.append(f"    {t.r.i('(Error displaying locals)')} {type(e).__name__}")
 
         return output
 
@@ -306,13 +352,16 @@ class TracebackFormatter:
                     location = f' File "{fname}", line {lineno}'
                 except Exception:
                     location = ""
-                self.output.append(f'  {t.r.i(f"(Failed to format frame #{number}{location})")} {type(e).__name__}')
+                # Add standard indentation for error message within frame
+                self.output.append(f'  {t.r.i(f"(Failed to format frame #{number}{location})")} {type(e).__name__}: {e}')
 
         # Add the final exception line
         try:
              # Get exception type name and value representation
              exc_name = t.r.b(etype.__name__)
-             exc_value = t.c(value)
+             # Ensure value is represented safely
+             exc_value_str = self.display_value(value)
+             exc_value = t.c(exc_value_str)
              exception_str = f"{exc_name}: {exc_value}"
         except Exception:
              exception_str = f"{t.r.b(etype.__name__)}: {t.c.i('(Error displaying exception value)')}"
@@ -324,8 +373,9 @@ class TracebackFormatter:
         try:
             self.parse(etype, value, tb)
             print('\n'.join(self.output), file=sys.stderr) # Print to stderr
-        except Exception:
+        except Exception as e_hook:
             # Ultimate fallback: use standard traceback printer if our formatter fails
+            print(f"FATAL: cli2.traceback hook failed: {type(e_hook).__name__}: {e_hook}", file=sys.stderr)
             sys.__excepthook__(etype, value, tb)
 
 
@@ -338,7 +388,9 @@ _formatter = TracebackFormatter()
 
 def enable():
     """Enable the custom traceback formatter."""
-    _formatter.enable()
+    from cli2.configuration import cfg # Defer import to avoid circularity
+    if not bool(cfg.get('CLI2_TRACEBACK_DISABLE')): # Check config if tracebacks should be enabled
+        _formatter.enable()
 
 # Optional: Function to disable and restore original hook
 def disable():

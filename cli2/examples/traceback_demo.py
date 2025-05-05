@@ -153,27 +153,26 @@ def main():
     try:
         function_a(5) # This likely causes TypeError in function_g line 9
     except Exception as e:
-        # The custom excepthook will print the traceback
-        print(f"Caught expected exception: {type(e).__name__}: {e}\n", file=sys.stderr)
+        cli2.log.exception()
 
     print("--- Running function_g(0) --- (Expected: ZeroDivisionError in function_g line 12)")
     try:
         function_g(0) # Trigger ZeroDivisionError line 12
     except Exception as e:
-        print(f"Caught expected exception: {type(e).__name__}: {e}\n", file=sys.stderr)
+        cli2.log.exception()
 
     print("--- Running function_g(15) --- (Expected: IndexError in function_g line 15)")
     try:
         # Note: Needs z > threshold (10) and z >= 2. So 15 works.
         function_g(15) # Trigger IndexError line 15
     except Exception as e:
-        print(f"Caught expected exception: {type(e).__name__}: {e}\n", file=sys.stderr)
+        cli2.log.exception()
 
     print("--- Running error_on_first_line(0) --- (Expected: ZeroDivisionError in error_on_first_line line 141)")
     try:
         error_on_first_line(0) # Trigger ZeroDivisionError on line 141
     except Exception as e:
-        print(f"Caught expected exception: {type(e).__name__}: {e}\n", file=sys.stderr)
+        cli2.log.exception()
 
     print("--- Triggering SyntaxError ---")
     try:
@@ -183,16 +182,9 @@ def main():
         syntax_error_code = "invalid syntax here = 1"
         # print(f"Executing code with intentional SyntaxError:\n{syntax_error_code}")
         exec(syntax_error_code)
-    except SyntaxError as e:
-        # The hook should have already printed the formatted error to stderr.
-        # We print a confirmation message here to stderr as well.
-        print(f"Caught expected exception: {type(e).__name__}: {e}\n", file=sys.stderr)
     except Exception as e:
-        # Catch other potential errors during the test
-        print(f"Caught unexpected exception during SyntaxError test: {type(e).__name__}: {e}\n", file=sys.stderr)
+        cli2.log.exception()
 
 
 if __name__ == "__main__":
-    # Enable the custom traceback hook *before* running main
-    cli2.enable_tracebacks()
     main()
