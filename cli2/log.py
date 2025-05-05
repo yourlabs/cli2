@@ -139,7 +139,7 @@ def configure(log_file=None):
         handlers.append('file')
 
     kwargs = dict()
-    if bool(cfg['CLI2_TRACEBACK_DISABLE']):
+    if not bool(cfg['CLI2_TRACEBACK_DISABLE']):
         kwargs['exception_formatter'] = cli2_traceback
 
     LOGGING = {
