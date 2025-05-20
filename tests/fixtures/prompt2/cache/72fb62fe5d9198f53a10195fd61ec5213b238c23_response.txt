@@ -1,0 +1,14 @@
+Here's a simple "Hello, World!" program in Python:
+
+```python
+print("Hello, World!")
+```
+
+To run this:
+1. Save it in a file with a `.py` extension (e.g., `hello.py`)
+2. Execute it using Python with the command: `python hello.py` (or `python3 hello.py` depending on your system)
+
+This will output:
+```
+Hello, World!
+```

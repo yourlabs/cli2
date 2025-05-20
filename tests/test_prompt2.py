@@ -59,6 +59,7 @@ def local(prompt2_env):
 @pytest.fixture
 def kwargs(prompt2_env, user, local):
     prompt2_env['DEBUG'] = '1'
+    prompt2_env['PROMPT2_PATHS_EP'] = ''
     return dict(
         ignore=[
             str(user.parent.parent),
@@ -75,9 +76,9 @@ async def test_python(prompt2_env):
     model = Model()
     prompt = Prompt(content='make a hello world in python')
     result = await model(prompt)
-    assert 'To run this:' in result
+    assert 'a simple' in result
     result = await model(prompt, 'wholefile')
-    assert result == 'print("Hello, World!")'
+    assert result.strip() == 'print("Hello, World!")'
 
 
 def test_parsers(kwargs):

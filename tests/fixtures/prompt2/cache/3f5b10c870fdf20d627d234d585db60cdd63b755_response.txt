@@ -1,0 +1,9 @@
+Here's how to print "Hello, World!" in Python:
+
+```python
+print("Hello, World!")
+```
+
+**Explanation:**
+- The `print()` function outputs text to the console.
+- The text (string) is enclosed in quotation marks (`" "` or `' '`).
