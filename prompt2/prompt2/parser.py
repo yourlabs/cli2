@@ -67,12 +67,13 @@ Provide your response as a list in the following format, with each item on a new
     def parse(self, response):
         if response.startswith('```'):
             # strip markup the IA absolutely wants to add
-            return '\n'.join([l for l in response.split('\n')[1:-1]])
+            response = '\n'.join([l for l in response.split('\n')[1:-1]])
         if response.strip().startswith('-'):
             result = []
             for line in response.splitlines():
                 if match := re.match('^- (.*)', line):
                     for item in match.group(1).split('- '):
                         result.append(item.strip())
+            result = list(set(result))
             return result
         return response
