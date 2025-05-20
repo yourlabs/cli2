@@ -107,11 +107,12 @@ class Find:
 
         return True
 
-    def run(self, directory=None):
+    def run(self, directory=None, relative=True):
         """
         Actually run the find command.
 
         :param directory: str or Path, or None to use self.root
+        :param relative: Wether to return relative paths
         """
         base_path = Path(directory).resolve() if directory else self.root
 
@@ -136,6 +137,8 @@ class Find:
             if (
                 not self.glob_include and not self.glob_exclude
             ) or self._matches_filters(filepath):
+                if relative:
+                    filepath = filepath.relative_to(base_path)
                 results.append(filepath)
                 if self.callback:
                     self.callback(filepath)
