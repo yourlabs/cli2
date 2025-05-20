@@ -294,6 +294,11 @@ class Group(EntryPoint, dict):
     help.cli2 = dict(color='green')
 
     def load(self, obj):
+        if loader := getattr(obj, 'cli2_load', None):
+            loading = getattr(obj, '_cli2_loading', False)
+            if not loading:
+                obj._cli2_loading = True
+                return loader(self)
         if isinstance(obj, type):
             return self.load_cls(obj)
         return self.load_obj(obj)

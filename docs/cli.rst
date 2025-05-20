@@ -92,6 +92,20 @@ decorated with ``@cmd``:
     cli.overrides['self']['factory'] = lambda: YourStuff()
     cli.overrides['cls']['factory'] = lambda: YourStuff
 
+For more control, an object may also define a ``cli2_load`` method which will
+be called with the group loading that object:
+
+.. code-block:: python
+
+    class HasLoader:
+        def cli2_load(self, group):
+            @group.cmd
+            def foo():
+                pass
+
+    cli = cli2.Group()
+    cli.load(HasLoader())
+
 Example
 -------
 
