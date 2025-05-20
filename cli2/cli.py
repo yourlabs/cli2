@@ -497,8 +497,8 @@ class Command(EntryPoint, dict):
     def cmd(cls, *args, **kwargs):
         def override(target):
             overrides = getattr(target, 'cli2', {})
-            overrides.update(kwargs)
             overrides['cls'] = cls
+            overrides.update(kwargs)
             target.cli2 = overrides
 
         if len(args) == 1 and not kwargs:
