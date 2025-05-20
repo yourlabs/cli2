@@ -9,7 +9,7 @@ class LiteLLMPlugin(prompt2.Plugin):
         self.model_kwargs = model_kwargs
 
     async def completion(self, messages):
-        if os.getenv('DEBUG'):
+        if os.getenv('LITELLM_DEBUG'):
             litellm._turn_on_debug()
         stream = await litellm.acompletion(
             messages=messages,
