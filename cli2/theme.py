@@ -5,7 +5,7 @@ The theme is available in the `cli2.t` namespace.
 
 .. envar:: CLI2_THEME
 
-    The default is "standard" but "monokai" and "flashy" are also available.
+    The default is "monokai", but "standard" and "flashy" are also available.
     Standard theme uses basic colors, and lets you override them with
     environment variables: CLI2_RED, CLI2_GREEN, and so on.
 
@@ -136,7 +136,7 @@ class Color(Renderer):
 
 class Theme:
     def __init__(self, colors=None):
-        self.colors = colors or themes[os.getenv('CLI2_THEME', 'standard')]
+        self.colors = colors or themes[os.getenv('CLI2_THEME', 'monokai')]
 
         for name, mode in modes.items():
             setattr(self, mode.name, mode)
