@@ -7,7 +7,6 @@ setup(
     setup_requires='setupmeta',
     install_requires=[
         'cli2',
-        'markdown-it-py',
         'template2',
     ],
     author='James Pic',
