@@ -31,8 +31,6 @@ import shlex
 import textwrap
 from pathlib import Path
 
-from .log import log
-
 
 class Configuration(dict):
     """
@@ -168,7 +166,12 @@ class Configuration(dict):
 
         if key in self.defaults:
             value = self.defaults[key]
-            log.debug(f'Defaulting {key} to {value}')
+            try:
+                from .log import log
+            except ImportError:
+                pass
+            else:
+                log.debug(f'Defaulting {key} to {value}')
             return value
 
         prompt = self.questions.get(key, key)

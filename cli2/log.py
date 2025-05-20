@@ -97,6 +97,7 @@ def configure(log_file=None):
 
     :param log_file: override for :envvar:`LOG_FILE`.
     """
+    from cli2.configuration import cfg
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'WARNING').upper()
     if log_file is None:
         log_file = os.getenv('LOG_FILE', 'auto')
@@ -137,6 +138,10 @@ def configure(log_file=None):
     if log_file:
         handlers.append('file')
 
+    kwargs = dict()
+    if bool(cfg['CLI2_TRACEBACK_DISABLE']):
+        kwargs['exception_formatter'] = cli2_traceback
+
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': True,
@@ -147,7 +152,6 @@ def configure(log_file=None):
                 'processors': [
                     structlog.stdlib.ProcessorFormatter.remove_processors_meta,
                     structlog.dev.ConsoleRenderer(
-                        exception_formatter=cli2_traceback,
                         columns=[
                             structlog.dev.Column(
                                 'json',
@@ -163,6 +167,7 @@ def configure(log_file=None):
                                 ),
                             )
                         ],
+                        **kwargs,
                     )
                 ],
             },
@@ -172,7 +177,6 @@ def configure(log_file=None):
                 'processors': [
                     structlog.stdlib.ProcessorFormatter.remove_processors_meta,
                     structlog.dev.ConsoleRenderer(
-                        exception_formatter=cli2_traceback,
                         columns=[
                             structlog.dev.Column(
                                 '',
@@ -188,6 +192,7 @@ def configure(log_file=None):
                                 YAMLFormatter(colors=True),
                             ),
                         ],
+                        **kwargs,
                     )
                 ]
             },
