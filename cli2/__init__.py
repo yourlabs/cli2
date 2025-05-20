@@ -20,7 +20,7 @@ from .queue import Queue
 from .colors import colors as c
 from .theme import theme, t
 from .display import diff, diff_data, render, print, highlight, yaml_highlight
-from .interactive import choice, editor
+from .interactive import confirm, choice, editor
 try:
     import fcntl
 except ImportError:
