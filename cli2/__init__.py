@@ -1,4 +1,8 @@
 # flake8: noqa
+
+from .configuration import Configuration, cfg
+cfg.defaults['CLI2_TRACEBACK_DISABLE'] = ''
+
 from .cli import (
     cmd,
     arg,
@@ -15,8 +19,6 @@ from .asyncio import async_resolve, files_read
 from .queue import Queue
 from .colors import colors as c
 from .theme import theme, t
-
-from .configuration import Configuration, cfg
 from .display import diff, diff_data, render, print, highlight, yaml_highlight
 from .interactive import choice, editor
 try:
@@ -35,7 +37,8 @@ from .table import Table
 
 
 import os
-if not bool(os.getenv('CLI2_TRACEBACK_DISABLE')):
+
+if not bool(cfg['CLI2_TRACEBACK_DISABLE']):
     from .traceback import enable
     enable()
 
