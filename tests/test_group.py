@@ -253,3 +253,14 @@ def test_load():
     group.load(Child())
     assert list(group.keys()) == ['help', 'classmeth', 'test']
     assert group['classmeth'](1) == (Child, 1)
+
+
+    class HasLoader:
+        def cli2_load(self, group):
+            @group.cmd
+            def foo():
+                pass
+
+    group = cli2.Group()
+    group.load(HasLoader())
+    assert 'foo' in group
