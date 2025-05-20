@@ -17,6 +17,7 @@ class Prompt(File):
     PATH = '.cli2/prompts'
     USER_PATH_ENV = 'PROMPT2_USER_PATH'
     LOCAL_PATH_ENV = 'PROMPT2_LOCAL_PATH'
+    paths_ep = 'prompt2_paths'
     package_path = Path(__file__).parent / 'templates'
 
     def __init__(self, path=None, content=None, **context):
