@@ -359,9 +359,7 @@ class TracebackFormatter:
         try:
              # Get exception type name and value representation
              exc_name = t.r.b(etype.__name__)
-             # Ensure value is represented safely
-             exc_value_str = self.display_value(value)
-             exc_value = t.c(exc_value_str)
+             exc_value = t.c(value)
              exception_str = f"{exc_name}: {exc_value}"
         except Exception:
              exception_str = f"{t.r.b(etype.__name__)}: {t.c.i('(Error displaying exception value)')}"
