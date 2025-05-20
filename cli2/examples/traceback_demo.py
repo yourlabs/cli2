@@ -1,5 +1,6 @@
 import cli2
 import math # Import math module
+import sys # To check Python version for SyntaxError test
 
 # Deepest function that may raise an exception
 def function_g(z):
@@ -153,31 +154,45 @@ def main():
         function_a(5) # This likely causes TypeError in function_g line 9
     except Exception as e:
         # The custom excepthook will print the traceback
-        print(f"Caught expected exception: {type(e).__name__}: {e}\n")
+        print(f"Caught expected exception: {type(e).__name__}: {e}\n", file=sys.stderr)
 
     print("--- Running function_g(0) --- (Expected: ZeroDivisionError in function_g line 12)")
     try:
         function_g(0) # Trigger ZeroDivisionError line 12
     except Exception as e:
-        print(f"Caught expected exception: {type(e).__name__}: {e}\n")
+        print(f"Caught expected exception: {type(e).__name__}: {e}\n", file=sys.stderr)
 
     print("--- Running function_g(15) --- (Expected: IndexError in function_g line 15)")
     try:
         # Note: Needs z > threshold (10) and z >= 2. So 15 works.
         function_g(15) # Trigger IndexError line 15
     except Exception as e:
-        print(f"Caught expected exception: {type(e).__name__}: {e}\n")
+        print(f"Caught expected exception: {type(e).__name__}: {e}\n", file=sys.stderr)
 
     print("--- Running error_on_first_line(0) --- (Expected: ZeroDivisionError in error_on_first_line line 141)")
     try:
         error_on_first_line(0) # Trigger ZeroDivisionError on line 141
     except Exception as e:
-        print(f"Caught expected exception: {type(e).__name__}: {e}\n")
+        print(f"Caught expected exception: {type(e).__name__}: {e}\n", file=sys.stderr)
+
+    print("--- Triggering SyntaxError ---")
+    try:
+        # Using exec() to dynamically trigger a SyntaxError
+        # This ensures the error happens after the hook is enabled.
+        # Note: The filename in the traceback might be '<string>'
+        syntax_error_code = "invalid syntax here = 1"
+        # print(f"Executing code with intentional SyntaxError:\n{syntax_error_code}")
+        exec(syntax_error_code)
+    except SyntaxError as e:
+        # The hook should have already printed the formatted error to stderr.
+        # We print a confirmation message here to stderr as well.
+        print(f"Caught expected exception: {type(e).__name__}: {e}\n", file=sys.stderr)
+    except Exception as e:
+        # Catch other potential errors during the test
+        print(f"Caught unexpected exception during SyntaxError test: {type(e).__name__}: {e}\n", file=sys.stderr)
 
 
 if __name__ == "__main__":
     # Enable the custom traceback hook *before* running main
-    # Assuming cli2/__init__.py maps cli2.enable_tracebacks to cli2.traceback.enable
-    # If not, this call needs adjustment (e.g., from cli2.traceback import enable; enable())
     cli2.enable_tracebacks()
     main()
