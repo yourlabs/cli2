@@ -10,4 +10,4 @@ class Cli2Template2Plugin(template2.Plugin):
         return await cli2.files_read(paths, silent=silent)
 
     async def shell(self, *args, quiet=True):
-        return await Proc(*args, quiet=quiet).wait()
+        return (await cli2.Proc(*args, quiet=quiet).wait()).out
