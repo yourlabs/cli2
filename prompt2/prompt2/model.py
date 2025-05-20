@@ -46,6 +46,7 @@ import hashlib
 import os
 
 from cli2.exceptions import NotFoundError
+from .plugins.litellm import LiteLLMPlugin
 from .parser import Parser
 from .plugin import Plugin
 
@@ -87,15 +88,27 @@ class Model:
 
     @classmethod
     def configuration_get(cls, name, strict=False):
-        key = f'MODEL_{name.upper()}'
+        if not isinstance(name, (tuple, list, set)):
+            name = [name]
 
-        if key not in os.environ:
+        keys = [
+            f'MODEL_{name.upper()}'
+            for name in name
+        ]
+
+        key = None
+        for _ in keys:
+            if _ in os.environ:
+                key = _
+                break
+
+        if not key:
             if strict:
-                raise cls.NotFoundError(name)
-            else:
+                raise cls.NotFoundError(', '.join(name))
+            if 'MODEL' in os.environ:
                 key = 'MODEL'
 
-        if key in os.environ:
+        if key and key in os.environ:
             configuration = os.environ[key]
         else:
             # default value
@@ -141,21 +154,25 @@ class Model:
             tokens = tokens[1:]
             plugin = [*plugins][0].load()
         else:
-            from .plugins.litellm import LiteLLMPlugin
             plugin = LiteLLMPlugin
 
         args, kwargs = cls.configuration_parse(tokens)
 
         return plugin(*args, **kwargs)
 
-    async def completion(self, messages, cache_key=None):
-        cache_key = cache_key or self.hash(messages)
+    async def completion(self, messages, cache_key=None, stream=False):
+        cache_key = cache_key or self.hash(
+            messages + [str(self.backend)]
+        )
         cache_path = self.cache_path / f'{cache_key}_response.txt'
 
         if cache_path.exists():
-            cli2.log.debug('cache hit!', cache_key=cache_key, json=messages)
+            cli2.log.debug('cache hit!', cache_path=cache_path, json=messages)
             with cache_path.open('r') as f:
-                return f.read()
+                content = f.read()
+            if stream:
+                print(cli2.highlight(content, 'Markdown'))
+            return content
 
         response = await self.backend.completion(messages)
 
@@ -175,13 +192,14 @@ class Model:
     def parser(self, name):
         return Parser.get(name)(self)
 
-    async def process(self, messages, parser=None, cache_key=None):
+    async def process(self, messages, parser=None, cache_key=None,
+                      stream=False):
         if parser:
             messages = parser.messages(messages)
 
         tokens = sum([len(msg['content']) for msg in messages])
         cli2.log.debug('messages', tokens=tokens, json=messages)
-        result = await self.completion(messages)
+        result = await self.completion(messages, stream=stream)
         cli2.log.debug('response', response=result)
 
         if parser:
@@ -191,12 +209,15 @@ class Model:
             class ParserResult(type(result)):
                 pass
 
-            result = ParserResult(result)
-            # attach parser
-            result.parser = parser
+            _result = ParserResult(result)
+            # attach parser and actual result
+            _result.parser = parser
+            _result.result = result
+            result = _result
         return result
 
-    async def __call__(self, messages, parser=None, cache_key=None):
+    async def __call__(self, messages, parser=None, cache_key=None,
+                       stream=True):
         if isinstance(parser, str):
             # load parser object from string
             parser = self.parser(parser)
@@ -205,4 +226,8 @@ class Model:
             # quacks like a Prompt object
             messages = await messages.messages()
 
-        return await self.process(messages, parser, cache_key=cache_key)
+        return await self.process(messages, parser, cache_key=cache_key,
+                                  stream=stream)
+
+    def __str__(self):
+        return str(self.backend)

@@ -1,6 +1,13 @@
 command: prompt2 send user wholefile
 retcode: 0
 stdout:
+[1;38;5;208mREASONING[0m
+[38;5;7mOkay[0m[38;5;7m, the[0m[38;5;7m user wants[0m[38;5;7m me to write "[0m[38;5;7mhello[0m[38;5;7m world" in Python[0m[38;5;7m. Let[0m[38;5;7m me think[0m[38;5;7m.[0m[38;5;7m The[0m[38;5;7m simplest[0m[38;5;7m way is[0m[38;5;7m to use[0m[38;5;7m the print function[0m[38;5;7m. So[0m[38;5;7m the[0m[38;5;7m code would be print[0m[38;5;7m("Hello[0m[38;5;7m,[0m[38;5;7m World![0m[38;5;7m"). I need[0m[38;5;7m to make sure the[0m[38;5;7m syntax is correct.[0m[38;5;7m In[0m[38;5;7m Python [0m[38;5;7m3,[0m[38;5;7m print is a function[0m[38;5;7m, so parentheses[0m[38;5;7m are necessary[0m[38;5;7m. The[0m[38;5;7m string should[0m[38;5;7m be in[0m[38;5;7m quotes,[0m[38;5;7m either single or double[0m[38;5;7m. Let[0m[38;5;7m me check[0m[38;5;7m if there[0m[38;5;7m are any ty[0m[38;5;7mpos.[0m[38;5;7m No[0m[38;5;7m, that[0m[38;5;7m looks right. Just[0m[38;5;7m one[0m[38;5;7m line of code.[0m[38;5;7m Al[0m[38;5;7mright, that[0m[38;5;7m's it[0m[38;5;7m.
+[0m
+
+[38;5;186m```[39m[38;5;186mpython[39m
+[38;5;15mprint[39m[38;5;15m([39m[38;5;186m"[39m[38;5;186mHello, World![39m[38;5;186m"[39m[38;5;15m)[39m
+[38;5;186m```[39m
 [38;5;141mprint("Hello,[39m[38;5;141m [39m[38;5;141mWorld!")[39m
 stderr:
 [36mcontent[0m=[35mWrite hello world in python[0m [36mevent[0m=[35mfile loaded[0m [36mlevel[0m=[35mdebug[0m [36mpath[0m=[35mredacted/prompts_user/user.txt[0m
@@ -10,11 +17,9 @@ stderr:
 [38;5;15m    [39m[38;5;204mrole[39m[38;5;15m:[39m[38;5;15m [39m[38;5;141muser[39m
 [38;5;15m-[39m[38;5;15m   [39m[38;5;204mcontent[39m[38;5;15m:[39m[38;5;15m [39m[38;5;186m"[39m[38;5;186mRespond[39m[38;5;15m [39m[38;5;186monly[39m[38;5;15m [39m[38;5;186mwith[39m[38;5;15m [39m[38;5;186mthe[39m[38;5;15m [39m[38;5;186mcomplete[39m[38;5;15m [39m[38;5;186mnew[39m[38;5;15m [39m[38;5;186mfile[39m[38;5;15m [39m[38;5;186mcontent,[39m[38;5;15m [39m[38;5;186mas[39m[38;5;15m [39m[38;5;186mthis[39m[38;5;15m [39m[38;5;186mwill[39m[38;5;15m [39m[38;5;186mbe[39m[38;5;15m [39m[38;5;186mdirectly[39m[38;5;15m [39m[38;5;186mwritten[39m[38;5;15m [39m[38;5;186mto[39m[38;5;15m [39m[38;5;186mthe[39m[38;5;15m [39m[38;5;186mfile[39m[38;5;15m [39m[38;5;186mby[39m[38;5;15m [39m[38;5;186man[39m[38;5;15m [39m[38;5;186mautomated[39m[38;5;15m [39m[38;5;186mAI[39m[38;5;15m [39m[38;5;186massistant[39m[38;5;15m [39m[38;5;186mtool[39m[38;5;141m\u2014[39m[38;5;186mno[39m[38;5;15m [39m[38;5;186madditional[39m[38;5;15m [39m[38;5;186mtext,[39m[38;5;15m [39m[38;5;186mcomments,[39m[38;5;15m [39m[38;5;186mor[39m[38;5;15m [39m[38;5;186mexplanations[39m[38;5;15m [39m[38;5;186mare[39m[38;5;15m [39m[38;5;186mallowed.[39m[38;5;186m"[39m
 [38;5;15m    [39m[38;5;204mrole[39m[38;5;15m:[39m[38;5;15m [39m[38;5;141msystem[39m [36mevent[0m=[35mmessages[0m [36mlevel[0m=[35mdebug[0m [36mtokens[0m=[35m213[0m
-
-[38;5;15m-[39m[38;5;15m   [39m[38;5;204mcontent[39m[38;5;15m:[39m[38;5;15m [39m[38;5;141mWrite[39m[38;5;141m [39m[38;5;141mhello[39m[38;5;141m [39m[38;5;141mworld[39m[38;5;141m [39m[38;5;141min[39m[38;5;141m [39m[38;5;141mpython[39m
-[38;5;15m    [39m[38;5;204mrole[39m[38;5;15m:[39m[38;5;15m [39m[38;5;141muser[39m
-[38;5;15m-[39m[38;5;15m   [39m[38;5;204mcontent[39m[38;5;15m:[39m[38;5;15m [39m[38;5;186m"[39m[38;5;186mRespond[39m[38;5;15m [39m[38;5;186monly[39m[38;5;15m [39m[38;5;186mwith[39m[38;5;15m [39m[38;5;186mthe[39m[38;5;15m [39m[38;5;186mcomplete[39m[38;5;15m [39m[38;5;186mnew[39m[38;5;15m [39m[38;5;186mfile[39m[38;5;15m [39m[38;5;186mcontent,[39m[38;5;15m [39m[38;5;186mas[39m[38;5;15m [39m[38;5;186mthis[39m[38;5;15m [39m[38;5;186mwill[39m[38;5;15m [39m[38;5;186mbe[39m[38;5;15m [39m[38;5;186mdirectly[39m[38;5;15m [39m[38;5;186mwritten[39m[38;5;15m [39m[38;5;186mto[39m[38;5;15m [39m[38;5;186mthe[39m[38;5;15m [39m[38;5;186mfile[39m[38;5;15m [39m[38;5;186mby[39m[38;5;15m [39m[38;5;186man[39m[38;5;15m [39m[38;5;186mautomated[39m[38;5;15m [39m[38;5;186mAI[39m[38;5;15m [39m[38;5;186massistant[39m[38;5;15m [39m[38;5;186mtool[39m[38;5;141m\u2014[39m[38;5;186mno[39m[38;5;15m [39m[38;5;186madditional[39m[38;5;15m [39m[38;5;186mtext,[39m[38;5;15m [39m[38;5;186mcomments,[39m[38;5;15m [39m[38;5;186mor[39m[38;5;15m [39m[38;5;186mexplanations[39m[38;5;15m [39m[38;5;186mare[39m[38;5;15m [39m[38;5;186mallowed.[39m[38;5;186m"[39m
-[38;5;15m    [39m[38;5;204mrole[39m[38;5;15m:[39m[38;5;15m [39m[38;5;141msystem[39m [36mcache_key[0m=[35md4fdb265a5afb148a9f0bf8fd96bce40941f36fa[0m [36mevent[0m=[35mcache hit![0m [36mlevel[0m=[35mdebug[0m
+[36mcache_key[0m=[35md0374927a874853e6f23cd40e88b7c48c3409ce3[0m [36mevent[0m=[35mcached[0m [36mlevel[0m=[35mdebug[0m [36mresponse[0m=[35m```python
+print("Hello, World!")
+```[0m
 [36mevent[0m=[35mresponse[0m [36mlevel[0m=[35mdebug[0m [36mresponse[0m=[35m```python
 print("Hello, World!")
 ```[0m

@@ -64,7 +64,12 @@ async def ask(*args, parser=None, model=None, _cli2=None):
     """
     if not args:
         return _cli2.help(error='Ask a question please I am begging you!')
-    return await model(prompt2.Prompt(content=' '.join(args)), parser)
+    await model(
+        prompt2.Prompt(
+            content=' '.join(args)
+        ),
+        parser,
+    )
 
 
 class PromptCommand(FileCommand, ModelParserCommand):
