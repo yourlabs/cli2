@@ -9,6 +9,6 @@ class PromptPlugin(flow2.Task):
         self.parser = parser
         super().__init__(name, **kwargs)
 
-    async def run(self, queue, context=None):
+    async def run(self, context=None):
         self.prompt.context.update(context or dict())
         return await self.model(self.prompt, parser=self.parser)
