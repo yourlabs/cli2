@@ -187,6 +187,13 @@ class Model:
         if parser:
             result = parser.parse(result)
             cli2.log.debug('parsed', result=result)
+
+            class ParserResult(type(result)):
+                pass
+
+            result = ParserResult(result)
+            # attach parser
+            result.parser = parser
         return result
 
     async def __call__(self, messages, parser=None, cache_key=None):
