@@ -9,6 +9,10 @@ from pathlib import Path
 from .log import log
 
 
+def confirm(question, default=None):
+    return choice(question, default=default) == 'y'
+
+
 def choice(question, choices=None, default=None):
     """
     Ask user to make a choice.
