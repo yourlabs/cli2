@@ -85,6 +85,12 @@ setup(
             'cli2-example-nesting = cli2.examples.nesting:cli.entry_point',
             'cli2-example-client = cli2.examples.client:cli.entry_point',
         ],
+        'flow2': [
+            'find = cli2.flow2:FindPlugin',
+        ],
+        'template2': [
+            'cli2 = cli2.template2:Cli2Template2Plugin',
+        ],
     },
     # cmdclass={
     #     'install': Install,
