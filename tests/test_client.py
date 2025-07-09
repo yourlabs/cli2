@@ -305,7 +305,8 @@ async def test_handler(client_class):
     response.request = httpx.Request('POST', '/', json=[1])
     result = await handler(client, response, 0, log)
     log.warn.assert_called_once_with(
-        'retry', status_code=200, tries=0, sleep=.0
+        'retry', status_code=200, accepted_codes=[201], refused_codes=[218],
+        tries=0, sleep=.0
     )
     assert not result
 
@@ -314,7 +315,8 @@ async def test_handler(client_class):
     with pytest.raises(chttpx.RetriesExceededError) as exc:
         await handler(client, response, handler.tries + 1, log)
     log.warn.assert_called_once_with(
-        'retry', status_code=200, tries=0, sleep=.0
+        'retry', status_code=200, accepted_codes=[201], refused_codes=[218],
+        tries=0, sleep=.0
     )
 
     msg = 'Unacceptable response <Response [200 OK]> after 4 tries\n\x1b[0m\x1b[1mPOST /\x1b[0m\n\x1b[38;5;15m-\x1b[39m\x1b[38;5;15m \x1b[39m\x1b[38;5;141m1\x1b[39m\n\x1b[1mHTTP 200\x1b[0m\n\x1b[38;5;15m-\x1b[39m\x1b[38;5;15m \x1b[39m\x1b[38;5;141m2\x1b[39m'  # noqa

@@ -1278,6 +1278,8 @@ class Handler:
         log.warn(
             'retry',
             status_code=response.status_code,
+            accepted_codes=self.accepts,
+            refused_codes=self.refuses,
             tries=tries,
             sleep=seconds,
         )
