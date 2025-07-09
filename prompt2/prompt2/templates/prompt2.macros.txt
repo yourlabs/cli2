@@ -9,7 +9,7 @@ Path list:
 
 {% macro contents(paths) %}
 # File contents
-{% for path, content in cli2.files_read(paths, silent=True).items() %}
+{% for path, content in cli2.files_read(paths, silent=False).items() %}
 Source of {{ path }}:
 ```
 {{ content }}

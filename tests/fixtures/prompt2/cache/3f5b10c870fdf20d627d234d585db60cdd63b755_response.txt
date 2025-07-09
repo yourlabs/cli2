@@ -1,9 +1,13 @@
-Here's how to print "Hello, World!" in Python:
+To write a "Hello, World!" program in Python, you can use the following simple script:
 
 ```python
 print("Hello, World!")
 ```
 
-**Explanation:**
-- The `print()` function outputs text to the console.
-- The text (string) is enclosed in quotation marks (`" "` or `' '`).
+**Steps**:
+1. Use the `print()` function.
+2. Pass the string `"Hello, World!"` as the argument inside the parentheses.
+3. Run the script (e.g., save it as `hello.py` and execute via `python hello.py` in the terminal).
+
+This will output:  
+`Hello, World!`
