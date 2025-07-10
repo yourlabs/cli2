@@ -26,7 +26,6 @@
    ansible
    prompt2
    flow2
-   code2
    lock
    notlevenshtein
    cli2

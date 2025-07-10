@@ -28,6 +28,6 @@ packages:
       - CI_JOB_NAME:
         - cansible
         - chttpx
-        - code2
+        - template2
         - prompt2
         - flow2

@@ -26,6 +26,5 @@ Batteries included, all of which are useful on their own:
 - a good old fcntl based locking
 - a command line to run any python function over a beautiful CLI
 - **AI CLI with prompt2**
-- **AI coding with code2** (TBA)
 
 `Documentation available on RTFD <https://cli2.rtfd.io>`_.
