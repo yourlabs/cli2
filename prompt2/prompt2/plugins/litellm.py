@@ -2,6 +2,7 @@ import litellm
 from prompt2.plugin import Plugin
 import os
 import cli2
+import sys
 
 
 class LiteLLMPlugin(Plugin):
@@ -30,15 +31,20 @@ class LiteLLMPlugin(Plugin):
                 if reasoning := getattr(delta, 'reasoning_content', None):
                     if stream:
                         if not reasoning_printed:
-                            print(cli2.t.o.b('REASONING'))
+                            print(cli2.t.o.b('REASONING'), file=sys.stderr)
                             reasoning_printed = True
-                        print(cli2.t.G(delta.reasoning_content), end='', flush=True)
+                        print(
+                            cli2.t.G(delta.reasoning_content),
+                            end='',
+                            flush=True,
+                            file=sys.stderr,
+                        )
                     full_reasoning += reasoning
 
                 if content := getattr(delta, 'content', ''):
                     if reasoning_printed:
                         # separate reasoning output visually
-                        print('\n')
+                        print('\n', file=sys.stderr)
                         reasoning_printed = False
 
                     full_content += content
@@ -66,7 +72,11 @@ class LiteLLMPlugin(Plugin):
                     if code_open:
                         highlighted_lines = highlighted_lines[:-1]
 
-                    print('\n'.join(highlighted_lines[printed_lines:]), flush=True)
+                    print(
+                        '\n'.join(highlighted_lines[printed_lines:]),
+                        flush=True,
+                        file=sys.stderr,
+                    )
                     printed_lines = len(highlighted_lines)
 
 
@@ -88,7 +98,11 @@ class LiteLLMPlugin(Plugin):
         if code_open:
             highlighted_lines = highlighted_lines[:-1]
 
-        print('\n'.join(highlighted_lines[printed_lines:]), flush=True)
+        print(
+            '\n'.join(highlighted_lines[printed_lines:]),
+            flush=True,
+            file=sys.stderr,
+        )
         printed_lines = len(highlighted_lines)
 
         return full_content or full_reasoning

@@ -1,13 +1,7 @@
-It seems you're asking about a **"context bar"**, but the context isn't clear. Could you provide more details? Here's how I can help depending on the scenario:
+It seems like you're asking about a "context bar," but could you clarify a bit more? Are you referring to:
 
-1. **Software/App Context Bar** (e.g., design tools, IDEs, browsers):  
-   - A toolbar that changes dynamically based on the active task (e.g., Photoshop's context-sensitive options when selecting a tool).  
-   - Example: Right-click menus, browser address bars with search suggestions, etc.
+1. **A UI/design element** (e.g., a toolbar or menu that changes based on user context)?  
+2. **A software feature** in a specific app (e.g., browser, editor, or IDE)?  
+3. **A programming concept** (e.g., handling context in code)?  
 
-2. **Programming/UI Framework Context Bar**:  
-   - If you're building a UI, frameworks like React, Flutter, or Android might have components for dynamic context-aware toolbars.  
-
-3. **Troubleshooting**:  
-   - If you're encountering an issue with a context bar (e.g., it’s missing or malfunctioning), share details about the platform/app.  
-
-Let me know more specifics, and I’ll tailor the answer! 🛠️
+Let me know your specific use case or goal, and I’ll help! 🤖✨

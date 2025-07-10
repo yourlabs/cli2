@@ -1,19 +1,20 @@
 command: prompt2 ask Write hello world in python
 retcode: 0
 stdout:
-[38;5;15mTo[39m[38;5;15m [39m[38;5;15mwrite[39m[38;5;15m [39m[38;5;15ma[39m[38;5;15m [39m[38;5;15m"Hello,[39m[38;5;15m [39m[38;5;15mWorld!"[39m[38;5;15m [39m[38;5;15mprogram[39m[38;5;15m [39m[38;5;15min[39m[38;5;15m [39m[38;5;15mPython,[39m[38;5;15m [39m[38;5;15myou[39m[38;5;15m [39m[38;5;15mcan[39m[38;5;15m [39m[38;5;15muse[39m[38;5;15m [39m[38;5;15mthe[39m[38;5;15m [39m[38;5;15mfollowing[39m[38;5;15m [39m[38;5;15msimple[39m[38;5;15m [39m[38;5;15mscript:[39m
+[38;5;15mTo[39m[38;5;15m [39m[38;5;15mwrite[39m[38;5;15m [39m[38;5;15ma[39m[38;5;15m [39m[38;5;15m"Hello,[39m[38;5;15m [39m[38;5;15mWorld!"[39m[38;5;15m [39m[38;5;15mprogram[39m[38;5;15m [39m[38;5;15min[39m[38;5;15m [39m[38;5;15mPython,[39m[38;5;15m [39m[38;5;15myou[39m[38;5;15m [39m[38;5;15mcan[39m[38;5;15m [39m[38;5;15muse[39m[38;5;15m [39m[38;5;15mthe[39m[38;5;15m [39m[38;5;15;01m**`print()`**[39;00m[38;5;15m [39m[38;5;15mfunction:[39m
 
 [38;5;186m```[39m[38;5;186mpython[39m
 [38;5;15mprint[39m[38;5;15m([39m[38;5;186m"[39m[38;5;186mHello, World![39m[38;5;186m"[39m[38;5;15m)[39m
 [38;5;186m```[39m
 
-[38;5;15;01m**Steps**[39;00m[38;5;15m:[39m
-[38;5;81m1.[39m[38;5;15m [39m[38;5;15mUse[39m[38;5;15m [39m[38;5;15mthe[39m[38;5;15m [39m[38;5;186m`print()`[39m[38;5;15m [39m[38;5;15mfunction.[39m
-[38;5;81m2.[39m[38;5;15m [39m[38;5;15mPass[39m[38;5;15m [39m[38;5;15mthe[39m[38;5;15m [39m[38;5;15mstring[39m[38;5;15m [39m[38;5;186m`"Hello, World!"`[39m[38;5;15m [39m[38;5;15mas[39m[38;5;15m [39m[38;5;15mthe[39m[38;5;15m [39m[38;5;15margument[39m[38;5;15m [39m[38;5;15minside[39m[38;5;15m [39m[38;5;15mthe[39m[38;5;15m [39m[38;5;15mparentheses.[39m
-[38;5;81m3.[39m[38;5;15m [39m[38;5;15mRun[39m[38;5;15m [39m[38;5;15mthe[39m[38;5;15m [39m[38;5;15mscript[39m[38;5;15m [39m[38;5;15m(e.g.,[39m[38;5;15m [39m[38;5;15msave[39m[38;5;15m [39m[38;5;15mit[39m[38;5;15m [39m[38;5;15mas[39m[38;5;15m [39m[38;5;186m`hello.py`[39m[38;5;15m [39m[38;5;15mand[39m[38;5;15m [39m[38;5;15mexecute[39m[38;5;15m [39m[38;5;15mvia[39m[38;5;15m [39m[38;5;186m`python hello.py`[39m[38;5;15m [39m[38;5;15min[39m[38;5;15m [39m[38;5;15mthe[39m[38;5;15m [39m[38;5;15mterminal).[39m
+[38;5;15mThis[39m[38;5;15m [39m[38;5;15mprogram[39m[38;5;15m [39m[38;5;15mwill[39m[38;5;15m [39m[38;5;15moutput:[39m
+[38;5;186m```[39m
+[38;5;186mHello, World![39m
+[38;5;186m```[39m
 
-[38;5;15mThis[39m[38;5;15m [39m[38;5;15mwill[39m[38;5;15m [39m[38;5;15moutput:[39m[38;5;15m [39m[38;5;15m [39m
-[38;5;186m`Hello, World!`[39m
+[38;5;15;01m**Notes**[39;00m[38;5;15m:[39m
+[38;5;81m-[39m[38;5;15m [39m[38;5;15mIn[39m[38;5;15m [39m[38;5;15mPython[39m[38;5;15m [39m[38;5;15m3,[39m[38;5;15m [39m[38;5;186m`print`[39m[38;5;15m [39m[38;5;15mis[39m[38;5;15m [39m[38;5;15ma[39m[38;5;15m [39m[38;5;15mfunction[39m[38;5;15m [39m[38;5;15mand[39m[38;5;15m [39m[38;5;15mrequires[39m[38;5;15m [39m[38;5;15mparentheses.[39m
+[38;5;81m-[39m[38;5;15m [39m[38;5;15mThe[39m[38;5;15m [39m[38;5;15mstring[39m[38;5;15m [39m[38;5;15mcan[39m[38;5;15m [39m[38;5;15malso[39m[38;5;15m [39m[38;5;15muse[39m[38;5;15m [39m[38;5;15msingle[39m[38;5;15m [39m[38;5;15mquotes:[39m[38;5;15m [39m[38;5;186m`print('Hello, World!')`[39m[38;5;15m.[39m
 stderr:
 [36mcontent[0m=[35mWrite hello world in python[0m [36mcontext[0m=[35m{}[0m [36mevent[0m=[35mtemplate[0m [36mlevel[0m=[35mdebug[0m
 
@@ -22,16 +23,17 @@ stderr:
 
 [38;5;15m-[39m[38;5;15m   [39m[38;5;204mcontent[39m[38;5;15m:[39m[38;5;15m [39m[38;5;141mWrite[39m[38;5;141m [39m[38;5;141mhello[39m[38;5;141m [39m[38;5;141mworld[39m[38;5;141m [39m[38;5;141min[39m[38;5;141m [39m[38;5;141mpython[39m
 [38;5;15m    [39m[38;5;204mrole[39m[38;5;15m:[39m[38;5;15m [39m[38;5;141muser[39m [36mcache_path[0m=[35mredacted/tests/fixtures/prompt2/cache/3f5b10c870fdf20d627d234d585db60cdd63b755_response.txt[0m [36mevent[0m=[35mcache hit![0m [36mlevel[0m=[35mdebug[0m
-[36mevent[0m=[35mresponse[0m [36mlevel[0m=[35mdebug[0m [36mresponse[0m=[35mTo write a "Hello, World!" program in Python, you can use the following simple script:
+[36mevent[0m=[35mresponse[0m [36mlevel[0m=[35mdebug[0m [36mresponse[0m=[35mTo write a "Hello, World!" program in Python, you can use the **`print()`** function:
 
 ```python
 print("Hello, World!")
 ```
 
-**Steps**:
-1. Use the `print()` function.
-2. Pass the string `"Hello, World!"` as the argument inside the parentheses.
-3. Run the script (e.g., save it as `hello.py` and execute via `python hello.py` in the terminal).
+This program will output:
+```
+Hello, World!
+```
 
-This will output:  
-`Hello, World!`[0m
+**Notes**:
+- In Python 3, `print` is a function and requires parentheses.
+- The string can also use single quotes: `print('Hello, World!')`.[0m

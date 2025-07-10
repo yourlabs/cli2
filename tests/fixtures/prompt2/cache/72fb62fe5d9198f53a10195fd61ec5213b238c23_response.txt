@@ -4,17 +4,5 @@ Here's a simple "Hello, World!" program in Python:
 print("Hello, World!")
 ```
 
-**Steps to run:**  
-1. Save the code in a file with a `.py` extension (e.g., `hello.py`).  
-2. Run it via the terminal/command line:  
-   ```bash
-   python hello.py
-   ```  
-   Or use an IDE/text editor with a Python runner.  
-
 **Explanation:**  
-- The `print()` function outputs the specified string to the console.  
-- Python 3.x is required (Python 2 uses `print "Hello, World!"` without parentheses).  
-
-**Quick Test:**  
-You can also run it directly in the Python interactive shell by typing the line and pressing Enter.
+The `print()` function outputs the text `"Hello, World!"` to the console. This is the standard way to display output in Python.
