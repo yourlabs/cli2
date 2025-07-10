@@ -27,7 +27,6 @@ import asyncio
 import os
 import shlex
 import re
-import subprocess
 
 from .log import log
 

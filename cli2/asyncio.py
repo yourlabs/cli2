@@ -55,7 +55,7 @@ async def files_read(paths, num_workers=None, mode='r', silent=False):
         try:
             async with aiofiles.open(str(path), mode) as f:
                 result[path] = await f.read()
-        except:
+        except:  # noqa
             if not silent:
                 raise
 

@@ -67,6 +67,7 @@ import structlog
 import yaml
 from pathlib import Path
 
+from cli2.traceback import TracebackFormatter
 import cli2.display
 
 
@@ -80,9 +81,6 @@ class YAMLFormatter:
             value = cli2.display.yaml_highlight(value)
         return '\n' + value
 
-
-from cli2.traceback import TracebackFormatter
-from typing import Tuple, Optional
 
 def cli2_traceback(sio, exc_info):
     exc_type, exc_value, exc_traceback = exc_info

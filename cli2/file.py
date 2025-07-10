@@ -58,7 +58,7 @@ class File(metaclass=FileType):
     def path(self, value):
         try:
             path = Path(value)
-        except:
+        except:  # noqa
             pass
         else:
             if not path.is_file():
@@ -182,7 +182,7 @@ class FileCommands:
         return paths
 
     @cmd(cls=FileCommand)
-    def edit(self, name, local: bool=False):
+    def edit(self, name, local: bool = False):
         """
         Edit a file.
 
@@ -203,7 +203,7 @@ class FileCommands:
             path = file.path
             kwargs = dict(path=file.path)
 
-        content = editor(**kwargs)
+        editor(**kwargs)
         print(t.bold('SAVED file: ') + t.green(f'{path}'))
 
     @cmd(color='green', cls=FileCommand)
