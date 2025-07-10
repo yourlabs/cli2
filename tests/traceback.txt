@@ -9,55 +9,114 @@ stdout:
 stderr:
 [36mlevel[0m=[35merror[0m
 [1mTraceback[0m (most recent call last):
-  File "[38;5;6mredacted/cli2/examples/traceback_demo.py[0m", line [38;5;7m164[0m, in [38;5;7mmain[0m
+
+  File "[38;5;6msrc/cli2/cli2/examples/traceback_demo.py[0m", line [1;38;5;3m164[0m, in [1;38;5;164mmain[0m
+    [38;5;7m 163[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;81mexcept[39m[38;5;15m [39m[38;5;148mException[39m[38;5;15m:[39m
     [1;38;5;3m 164[0m[38;5;7m | [0m[38;5;15m        [39m[38;5;15mcli2[39m[38;5;204m.[39m[38;5;15mlog[39m[38;5;204m.[39m[38;5;15mexception[39m[38;5;15m([39m[38;5;15m)[39m
-  File "[38;5;6mredacted/cli2/examples/traceback_demo.py[0m", line [38;5;7m143[0m, in [38;5;7mfunction_a[0m
+    [38;5;7m 165[0m[38;5;7m | [0m
+
+  File "[38;5;6msrc/cli2/cli2/examples/traceback_demo.py[0m", line [1;38;5;3m143[0m, in [1;38;5;164mfunction_a[0m
+    [38;5;7m 142[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;245m# Line 134: Call function_b[39m
     [1;38;5;3m 143[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;15mnext_result[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;15mfunction_b[39m[38;5;15m([39m[38;5;15mprefix_str[39m[38;5;15m,[39m[38;5;15m [39m[38;5;15mcount_val[39m[38;5;15m)[39m
+    [38;5;7m 144[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;15mfinal_result[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;15mnext_result[39m[38;5;15m [39m[38;5;204m+[39m[38;5;15m [39m[38;5;15mavg_accum[39m
     [1;38;5;2mLocals[0m: accumulator=[38;5;2m2010.0[0m avg_accum=[38;5;2m402.0[0m base_num=[38;5;2m5[0m combined=[38;5;2m399[0m count_val=[38;5;2m7[0m evens=[38;5;2m[2, 4, 6, 8][0m i=[38;5;2m4[0m initial_list=[38;5;2m[2, 3, 4, 5, 6, 7, 8][0m num=[38;5;2m8[0m odds=[38;5;2m[3, 5, 7][0m prefix_str=[38;5;2mtest[0m product_evens=[38;5;2m384[0m sum_odds=[38;5;2m15[0m temp=[38;5;2m405.0[0m
-  File "[38;5;6mredacted/cli2/examples/traceback_demo.py[0m", line [38;5;7m120[0m, in [38;5;7mfunction_b[0m
+
+  File "[38;5;6msrc/cli2/cli2/examples/traceback_demo.py[0m", line [1;38;5;3m120[0m, in [1;38;5;164mfunction_b[0m
+    [38;5;7m 119[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;245m# Line 111: Call function_c[39m
     [1;38;5;3m 120[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;15mresult[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;15mfunction_c[39m[38;5;15m([39m[38;5;15mint[39m[38;5;15m([39m[38;5;15mnext_value[39m[38;5;15m)[39m[38;5;15m)[39m
+    [38;5;7m 121[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;15mfinal[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;15mresult[39m[38;5;15m [39m[38;5;204m-[39m[38;5;15m [39m[38;5;15mdigit_sum[39m
     [1;38;5;2mLocals[0m: avg_length=[38;5;2m6.0[0m char=[38;5;2m6[0m chars=[38;5;2m[0, 1, 2, 3, 4, 5, 6][0m combined=[38;5;2m63[0m count=[38;5;2m7[0m digit_sum=[38;5;2m21[0m label=[38;5;2mtest_6[0m labels=[38;5;2m['test_0', 'test_1', 'test_2', 'test_3', 'test_4', 'test_5', 'test_6'][0m lengths=[38;5;2m[6, 6, 6, 6, 6, 6, 6][0m next_value=[38;5;2m31.2[0m prefix=[38;5;2mtest[0m scaled=[38;5;2m25.2[0m total_length=[38;5;2m42[0m
-  File "[38;5;6mredacted/cli2/examples/traceback_demo.py[0m", line [38;5;7m99[0m, in [38;5;7mfunction_c[0m
+
+  File "[38;5;6msrc/cli2/cli2/examples/traceback_demo.py[0m", line [1;38;5;3m99[0m, in [1;38;5;164mfunction_c[0m
+    [38;5;7m  98[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;245m# Line 92: Call function_d[39m
     [1;38;5;3m  99[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;15mresult[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;15mfunction_d[39m[38;5;15m([39m[38;5;15mflat_list[39m[38;5;15m)[39m
+    [38;5;7m 100[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;81mreturn[39m[38;5;15m [39m[38;5;15mresult[39m[38;5;15m [39m[38;5;204m+[39m[38;5;15m [39m[38;5;15mprocessed[39m
     [1;38;5;2mLocals[0m: avg=[38;5;2m256.0[0m flat_list=[38;5;2m[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, ...[0m i=[38;5;2m30[0m j=[38;5;2m30[0m matrix=[38;5;2m[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,...[0m max_val=[38;5;2m961[0m min_val=[38;5;2m1[0m n=[38;5;2m31[0m normalized=[38;5;2m0.265625[0m processed=[38;5;2m2.65625[0m range_val=[38;5;2m960[0m row=[38;5;2m[31, 62, 93, 124, 155, 186, 217, 248, 279, 310, 341, 372, 403, 434, 465,...[0m sum_total=[38;5;2m246016[0m value=[38;5;2m961[0m
-  File "[38;5;6mredacted/cli2/examples/traceback_demo.py[0m", line [38;5;7m76[0m, in [38;5;7mfunction_d[0m
+
+  File "[38;5;6msrc/cli2/cli2/examples/traceback_demo.py[0m", line [1;38;5;3m76[0m, in [1;38;5;164mfunction_d[0m
+    [38;5;7m  75[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;245m# Line 71: Call function_e[39m
     [1;38;5;3m  76[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;15mnext_call[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;15mfunction_e[39m[38;5;15m([39m[38;5;15mintermediate[39m[38;5;15m)[39m
+    [38;5;7m  77[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;15mfinal_value[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;15mnext_call[39m[38;5;15m [39m[38;5;204m+[39m[38;5;15m [39m[38;5;15mtotal_pos[39m
     [1;38;5;2mLocals[0m: adjusted_ratio=[38;5;2m216986112.0[0m intermediate=[38;5;2m108493536.0[0m lst=[38;5;2m[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, ...[0m negatives=[38;5;2m[][0m positives=[38;5;2m[1, 4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 225, 256, 289...[0m processed=[38;5;2m216987072.0[0m ratio=[38;5;2m108493056.0[0m scaled=[38;5;2m216986111.0[0m squares=[38;5;2m[1, 4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 225, 256, 289...[0m total_neg=[38;5;2m0[0m total_pos=[38;5;2m108493056[0m
-  File "[38;5;6mredacted/cli2/examples/traceback_demo.py[0m", line [38;5;7m59[0m, in [38;5;7mfunction_e[0m
+
+  File "[38;5;6msrc/cli2/cli2/examples/traceback_demo.py[0m", line [1;38;5;3m59[0m, in [1;38;5;164mfunction_e[0m
+    [38;5;7m  58[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;245m# Line 54: Call function_f[39m
     [1;38;5;3m  59[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;15mnext_result[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;15mfunction_f[39m[38;5;15m([39m[38;5;15mresult[39m[38;5;15m)[39m
+    [38;5;7m  60[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;81mreturn[39m[38;5;15m [39m[38;5;15mnext_result[39m
     [1;38;5;2mLocals[0m: base_value=[38;5;2m10[0m category=[38;5;2mhigh[0m config=[38;5;2m{'low': 1, 'mid': 5, 'high': 10}[0m multiplier=[38;5;2m723290238.3333334[0m offset=[38;5;2m1084935357.5[0m result=[38;5;2m723290241.3333334[0m scaled=[38;5;2m1084935360.0[0m v=[38;5;2m108493536.0[0m
-  File "[38;5;6mredacted/cli2/examples/traceback_demo.py[0m", line [38;5;7m40[0m, in [38;5;7mfunction_f[0m
+
+  File "[38;5;6msrc/cli2/cli2/examples/traceback_demo.py[0m", line [1;38;5;3m40[0m, in [1;38;5;164mfunction_f[0m
+    [38;5;7m  39[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;245m# Line 36: Call may raise due to float input to function_g[39m
     [1;38;5;3m  40[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;15moutcome[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;15mfunction_g[39m[38;5;15m([39m[38;5;15mnext_val[39m[38;5;15m)[39m
+    [38;5;7m  41[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;15mfinal[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;15moutcome[39m[38;5;15m [39m[38;5;204m+[39m[38;5;15m [39m[38;5;15maccumulator[39m
     [1;38;5;2mLocals[0m: accumulator=[38;5;2m2.6157438588072556e+18[0m adjusted=[38;5;2m1.046297542799612e+18[0m base=[38;5;2m723290239.3333334[0m i=[38;5;2m4[0m intermediate=[38;5;2m3.4876584759987066e+17[0m mean=[38;5;2m5.2314877176145114e+17[0m next_val=[38;5;2m6.975316951997413e+17[0m processed=[38;5;2m3.4876584759987066e+17[0m std_dev=[38;5;2m5.231487710381609e+17[0m temp=[38;5;2m723290241.3333334[0m temp_list=[38;5;2m[723290239.3333334, 723290239.8333334, 723290240.3333334, 723290240.8333...[0m variance=[38;5;2m2.736846366387381e+35[0m w=[38;5;2m723290241.3333334[0m
-  File "[38;5;6mredacted/cli2/examples/traceback_demo.py[0m", line [38;5;7m11[0m, in [38;5;7mfunction_g[0m
+
+  File "[38;5;6msrc/cli2/cli2/examples/traceback_demo.py[0m", line [1;38;5;3m11[0m, in [1;38;5;164mfunction_g[0m
+    [38;5;7m   8[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;15mfactor[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;15mmath[39m[38;5;204m.[39m[38;5;15msqrt[39m[38;5;15m([39m[38;5;15mabs[39m[38;5;15m([39m[38;5;15mprelim[39m[38;5;15m)[39m[38;5;15m)[39m
+    [38;5;7m   9[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;15mthreshold[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;141m10[39m
+    [38;5;7m  10[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;81mif[39m[38;5;15m [39m[38;5;204mnot[39m[38;5;15m [39m[38;5;15misinstance[39m[38;5;15m([39m[38;5;15mz[39m[38;5;15m,[39m[38;5;15m [39m[38;5;15mint[39m[38;5;15m)[39m[38;5;15m:[39m
     [1;38;5;3m  11[0m[38;5;7m | [0m[38;5;15m        [39m[38;5;81mraise[39m[38;5;15m [39m[38;5;148mTypeError[39m[38;5;15m([39m[38;5;186m"[39m[38;5;186mInput must be an integer for function_g[39m[38;5;186m"[39m[38;5;15m)[39m
+    [38;5;7m  12[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;81melif[39m[38;5;15m [39m[38;5;15mz[39m[38;5;15m [39m[38;5;204m==[39m[38;5;15m [39m[38;5;141m0[39m[38;5;15m:[39m
+    [38;5;7m  13[0m[38;5;7m | [0m[38;5;15m        [39m[38;5;15mresult[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;141m100[39m[38;5;15m [39m[38;5;204m/[39m[38;5;15m [39m[38;5;15mz[39m[38;5;15m  [39m[38;5;245m# Triggers ZeroDivisionError[39m
+    [38;5;7m  14[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;81melif[39m[38;5;15m [39m[38;5;15mz[39m[38;5;15m [39m[38;5;204m>[39m[38;5;15m [39m[38;5;15mthreshold[39m[38;5;15m:[39m
     [1;38;5;2mLocals[0m: factor=[38;5;2m835183629.6286831[0m prelim=[38;5;2m6.975316951997413e+17[0m threshold=[38;5;2m10[0m z=[38;5;2m6.975316951997413e+17[0m
 [1;38;5;1mTypeError[0m: [38;5;6mInput must be an integer for function_g[0m
 [36mlevel[0m=[35merror[0m
 [1mTraceback[0m (most recent call last):
-  File "[38;5;6mredacted/cli2/examples/traceback_demo.py[0m", line [38;5;7m173[0m, in [38;5;7mmain[0m
+
+  File "[38;5;6msrc/cli2/cli2/examples/traceback_demo.py[0m", line [1;38;5;3m173[0m, in [1;38;5;164mmain[0m
+    [38;5;7m 172[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;81mexcept[39m[38;5;15m [39m[38;5;148mException[39m[38;5;15m:[39m
     [1;38;5;3m 173[0m[38;5;7m | [0m[38;5;15m        [39m[38;5;15mcli2[39m[38;5;204m.[39m[38;5;15mlog[39m[38;5;204m.[39m[38;5;15mexception[39m[38;5;15m([39m[38;5;15m)[39m
-  File "[38;5;6mredacted/cli2/examples/traceback_demo.py[0m", line [38;5;7m13[0m, in [38;5;7mfunction_g[0m
+    [38;5;7m 174[0m[38;5;7m | [0m
+
+  File "[38;5;6msrc/cli2/cli2/examples/traceback_demo.py[0m", line [1;38;5;3m13[0m, in [1;38;5;164mfunction_g[0m
+    [38;5;7m  10[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;81mif[39m[38;5;15m [39m[38;5;204mnot[39m[38;5;15m [39m[38;5;15misinstance[39m[38;5;15m([39m[38;5;15mz[39m[38;5;15m,[39m[38;5;15m [39m[38;5;15mint[39m[38;5;15m)[39m[38;5;15m:[39m
+    [38;5;7m  11[0m[38;5;7m | [0m[38;5;15m        [39m[38;5;81mraise[39m[38;5;15m [39m[38;5;148mTypeError[39m[38;5;15m([39m[38;5;186m"[39m[38;5;186mInput must be an integer for function_g[39m[38;5;186m"[39m[38;5;15m)[39m
+    [38;5;7m  12[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;81melif[39m[38;5;15m [39m[38;5;15mz[39m[38;5;15m [39m[38;5;204m==[39m[38;5;15m [39m[38;5;141m0[39m[38;5;15m:[39m
     [1;38;5;3m  13[0m[38;5;7m | [0m[38;5;15m        [39m[38;5;15mresult[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;141m100[39m[38;5;15m [39m[38;5;204m/[39m[38;5;15m [39m[38;5;15mz[39m[38;5;15m  [39m[38;5;245m# Triggers ZeroDivisionError[39m
+    [38;5;7m  14[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;81melif[39m[38;5;15m [39m[38;5;15mz[39m[38;5;15m [39m[38;5;204m>[39m[38;5;15m [39m[38;5;15mthreshold[39m[38;5;15m:[39m
+    [38;5;7m  15[0m[38;5;7m | [0m[38;5;15m        [39m[38;5;15mdummy_list[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;15m[[39m[38;5;141m1[39m[38;5;15m,[39m[38;5;15m [39m[38;5;141m2[39m[38;5;15m][39m
+    [38;5;7m  16[0m[38;5;7m | [0m[38;5;15m        [39m[38;5;245m# Triggers IndexError if z >= 2 (and z > threshold)[39m
     [1;38;5;2mLocals[0m: factor=[38;5;2m1.8708286933869707[0m prelim=[38;5;2m3.5[0m threshold=[38;5;2m10[0m z=[38;5;2m0[0m
 [1;38;5;1mZeroDivisionError[0m: [38;5;6mdivision by zero[0m
 [36mlevel[0m=[35merror[0m
 [1mTraceback[0m (most recent call last):
-  File "[38;5;6mredacted/cli2/examples/traceback_demo.py[0m", line [38;5;7m182[0m, in [38;5;7mmain[0m
+
+  File "[38;5;6msrc/cli2/cli2/examples/traceback_demo.py[0m", line [1;38;5;3m182[0m, in [1;38;5;164mmain[0m
+    [38;5;7m 181[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;81mexcept[39m[38;5;15m [39m[38;5;148mException[39m[38;5;15m:[39m
     [1;38;5;3m 182[0m[38;5;7m | [0m[38;5;15m        [39m[38;5;15mcli2[39m[38;5;204m.[39m[38;5;15mlog[39m[38;5;204m.[39m[38;5;15mexception[39m[38;5;15m([39m[38;5;15m)[39m
-  File "[38;5;6mredacted/cli2/examples/traceback_demo.py[0m", line [38;5;7m17[0m, in [38;5;7mfunction_g[0m
+    [38;5;7m 183[0m[38;5;7m | [0m
+
+  File "[38;5;6msrc/cli2/cli2/examples/traceback_demo.py[0m", line [1;38;5;3m17[0m, in [1;38;5;164mfunction_g[0m
+    [38;5;7m  14[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;81melif[39m[38;5;15m [39m[38;5;15mz[39m[38;5;15m [39m[38;5;204m>[39m[38;5;15m [39m[38;5;15mthreshold[39m[38;5;15m:[39m
+    [38;5;7m  15[0m[38;5;7m | [0m[38;5;15m        [39m[38;5;15mdummy_list[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;15m[[39m[38;5;141m1[39m[38;5;15m,[39m[38;5;15m [39m[38;5;141m2[39m[38;5;15m][39m
+    [38;5;7m  16[0m[38;5;7m | [0m[38;5;15m        [39m[38;5;245m# Triggers IndexError if z >= 2 (and z > threshold)[39m
     [1;38;5;3m  17[0m[38;5;7m | [0m[38;5;15m        [39m[38;5;15mresult[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;15mdummy_list[39m[38;5;15m[[39m[38;5;15mz[39m[38;5;15m][39m
+    [38;5;7m  18[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;81melse[39m[38;5;15m:[39m
+    [38;5;7m  19[0m[38;5;7m | [0m[38;5;15m        [39m[38;5;15mresult[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;15mfactor[39m[38;5;15m [39m[38;5;204m*[39m[38;5;15m [39m[38;5;15mz[39m
+    [38;5;7m  20[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;81mreturn[39m[38;5;15m [39m[38;5;15mresult[39m
     [1;38;5;2mLocals[0m: dummy_list=[38;5;2m[1, 2][0m factor=[38;5;2m4.301162633521313[0m prelim=[38;5;2m18.5[0m threshold=[38;5;2m10[0m z=[38;5;2m15[0m
 [1;38;5;1mIndexError[0m: [38;5;6mlist index out of range[0m
 [36mlevel[0m=[35merror[0m
 [1mTraceback[0m (most recent call last):
-  File "[38;5;6mredacted/cli2/examples/traceback_demo.py[0m", line [38;5;7m191[0m, in [38;5;7mmain[0m
+
+  File "[38;5;6msrc/cli2/cli2/examples/traceback_demo.py[0m", line [1;38;5;3m191[0m, in [1;38;5;164mmain[0m
+    [38;5;7m 190[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;81mexcept[39m[38;5;15m [39m[38;5;148mException[39m[38;5;15m:[39m
     [1;38;5;3m 191[0m[38;5;7m | [0m[38;5;15m        [39m[38;5;15mcli2[39m[38;5;204m.[39m[38;5;15mlog[39m[38;5;204m.[39m[38;5;15mexception[39m[38;5;15m([39m[38;5;15m)[39m
-  File "[38;5;6mredacted/cli2/examples/traceback_demo.py[0m", line [38;5;7m151[0m, in [38;5;7merror_on_first_line[0m
+    [38;5;7m 192[0m[38;5;7m | [0m
+
+  File "[38;5;6msrc/cli2/cli2/examples/traceback_demo.py[0m", line [1;38;5;3m151[0m, in [1;38;5;164merror_on_first_line[0m
+    [38;5;7m 148[0m[38;5;7m | [0m[38;5;245m# Simple function for testing error on first line[39m
+    [38;5;7m 149[0m[38;5;7m | [0m[38;5;81mdef[39m[38;5;15m [39m[38;5;148merror_on_first_line[39m[38;5;15m([39m[38;5;15marg[39m[38;5;15m)[39m[38;5;15m:[39m
+    [38;5;7m 150[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;245m# Line 141[39m
     [1;38;5;3m 151[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;15mresult[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;141m1[39m[38;5;15m [39m[38;5;204m/[39m[38;5;15m [39m[38;5;15marg[39m[38;5;15m  [39m[38;5;245m# Error if arg is 0, on the first executable line[39m
+    [38;5;7m 152[0m[38;5;7m | [0m[38;5;15m    [39m[38;5;81mreturn[39m[38;5;15m [39m[38;5;15mresult[39m
+    [38;5;7m 153[0m[38;5;7m | [0m
+    [38;5;7m 154[0m[38;5;7m | [0m
     [1;38;5;2mLocals[0m: arg=[38;5;2m0[0m
 [1;38;5;1mZeroDivisionError[0m: [38;5;6mdivision by zero[0m
 [36mlevel[0m=[35merror[0m
+
   File "[38;5;6m<string>[0m", line [38;5;7m1[0m
     [1;38;5;3m   1[0m[38;5;7m | [0m[38;5;15minvalid[39m[38;5;15m [39m[38;5;15msyntax[39m[38;5;15m [39m[38;5;15mhere[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;141m1[39m
                                 [1;38;5;1m^[0m

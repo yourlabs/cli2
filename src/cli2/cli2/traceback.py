@@ -146,7 +146,7 @@ class TracebackFormatter:
 
         # Header - using standard Python format
         self.output.append(
-            f'  File "{t.c(display_path_str)}", line {colored_lineno}'
+            f'\n  File "{t.c(display_path_str)}", line {colored_lineno}'
         )
 
         file_lines, total_lines = self._get_source_lines(filename)
@@ -237,7 +237,7 @@ class TracebackFormatter:
         output = []
         # Standard Python format: File "...", line ..., in ...
         header = (
-            f'  File "{t.c(display_path_str)}", line {colored_lineno}, '
+            f'\n  File "{t.c(display_path_str)}", line {colored_lineno}, '
             f"in {sig_color(name)}"
         )
 
@@ -390,7 +390,7 @@ class TracebackFormatter:
                 try:
                     fname = frame.f_code.co_filename
                     lineno = frame.f_lineno
-                    location = f' File "{fname}", line {lineno}'
+                    location = f'\n File "{fname}", line {lineno}'
                 except Exception:
                     location = ""
                 # Add standard indentation for error message within frame
