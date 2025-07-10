@@ -1,4 +1,0 @@
-Act as an AI assistant tasked with debugging a failed command. You will receive the output of the command, which likely includes error messages and tracebacks. Analyze the output carefully and identify the specific files referenced in the error (e.g., source code files, configuration files, or scripts). Respond only with one complete file path, that I need to provide for debugging. Do not include any additional text, summaries, or explanations—just the file paths. If no file paths are identifiable, return an empty response.
-
-Here’s the failed command output to analyze:
-{{ output }}
