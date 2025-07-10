@@ -21,7 +21,6 @@ index 3a538ef..577a094 100644
 
 def test_diff(monkeypatch):
     stdout = io.StringIO()
-    monkeypatch.setenv('FORCE_COLOR', '1')
     cli2.diff(DIFF, file=stdout)
     stdout.seek(0)
     assert stdout.read() == '\x1b[38;5;15mdiff --git a/cli2/__init__.py b/cli2/__init__.py\x1b[39m\n\x1b[38;5;15mindex 3a538ef..577a094 100644\x1b[39m\n\x1b[38;5;204m--- a/cli2/__init__.py\x1b[39m\n\x1b[38;5;148m+++ b/cli2/__init__.py\x1b[39m\n\x1b[38;5;245m@@ -3,6 +3,7 @@ from .argument import Argument\x1b[39m\n\x1b[38;5;15m \x1b[39m\x1b[38;5;15mfrom .colors import colors as c\x1b[39m\n\x1b[38;5;15m \x1b[39m\x1b[38;5;15mfrom .command import Command\x1b[39m\n\x1b[38;5;15m \x1b[39m\x1b[38;5;15mfrom .decorators import arg, cmd\x1b[39m\n\x1b[38;5;148m+from .display import diff, print\x1b[39m\n\x1b[38;5;15m \x1b[39m\x1b[38;5;15mfrom .group import Group\x1b[39m\n\x1b[38;5;15m \x1b[39m\x1b[38;5;15mfrom .node import Node\x1b[39m\n\x1b[38;5;15m \x1b[39m\x1b[38;5;15mfrom .table import Table\x1b[39m\n'  # noqa
@@ -29,7 +28,6 @@ def test_diff(monkeypatch):
 
 def test_print(monkeypatch):
     expected = '\x1b[38;5;204ma\x1b[39m\x1b[38;5;15m:\x1b[39m\x1b[38;5;15m \x1b[39m\x1b[38;5;141m1\x1b[39m\n'  # noqa
-    monkeypatch.setenv('FORCE_COLOR', '1')
 
     def test(arg):
         stdout = io.StringIO()
@@ -60,8 +58,8 @@ def test_highlight(monkeypatch):
     colored = '\x1b[38;5;204ma\x1b[39m\x1b[38;5;15m:\x1b[39m\x1b[38;5;15m \x1b[39m\x1b[38;5;141m1\x1b[39m'  # noqa
     from cli2 import display
 
-    monkeypatch.setattr(display, 'COLOR', True)
     assert cli2.highlight('a: 1', 'Yaml') == colored
 
-    monkeypatch.setattr(display, 'COLOR', False)
+    os.environ['FORCE_COLOR'] = ''
     assert cli2.highlight('a: 1', 'Yaml') == 'a: 1'
+    os.environ['FORCE_COLOR'] = 1

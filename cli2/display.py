@@ -18,7 +18,8 @@ import yaml
 
 _print = print
 
-COLOR = sys.stdout.isatty() or bool(os.getenv('FORCE_COLOR', ''))
+def color_enabled():
+    return sys.stdout.isatty() or bool(os.getenv('FORCE_COLOR', ''))
 
 
 def highlight(string, lexer):
@@ -28,7 +29,7 @@ def highlight(string, lexer):
     :param string: String to render
     :param lexer: Lexer name, Yaml, Diff, etc
     """
-    if not COLOR:
+    if not color_enabled():
         return string
 
     try:

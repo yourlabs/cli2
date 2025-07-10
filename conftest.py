@@ -1,6 +1,7 @@
 import os
 import subprocess
 os.environ['FORCE_COLOR'] = '1'
+os.environ['ANSIBLE_FORCE_COLOR'] = '1'
 os.environ['CLI2_THEME'] = 'standard'
 for key in os.environ.keys():
     if key.startswith('MODEL'):

@@ -7,9 +7,6 @@ import os
 from unittest import mock
 
 
-os.environ['FORCE_COLOR'] = '1'
-
-
 def test_int():
     def foo(one: int): return one
     cmd = cli2.Command(foo)
