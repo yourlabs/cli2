@@ -1,7 +1,9 @@
+import cli2
 from cli2.test import autotest
 from pathlib import Path
 import pytest
 import os
+import subprocess
 
 from unittest import mock
 import prompt2
@@ -61,12 +63,14 @@ def local(prompt2_env):
 def kwargs(prompt2_env, user, local):
     prompt2_env['DEBUG'] = '1'
     prompt2_env['PROMPT2_PATHS_EP'] = ''
+    prompt2_env['PROMPT2_PARSER_EP'] = ''
     return dict(
         ignore=[
+            str(os.getcwd()),
             str(user.parent.parent),
             str(local.parent.parent),
-            str(Path(prompt2.__path__[0]).parent),
-            str(Path(__file__).parent.parent.parent),
+            str(Path(prompt2.__path__[0])),
+            str(Path(__file__).parent),
             r'/tmp/.*',
         ],
         env=prompt2_env,
@@ -84,11 +88,11 @@ async def test_python(prompt2_env):
 
 
 def test_parsers(kwargs):
-    autotest(
-        'tests/prompt2/parsers.txt',
-        'prompt2 parsers',
-        **kwargs,
+    out = subprocess.check_output(
+        f'{cli2.which("prompt2")} parsers',
+        shell=True,
     )
+    assert b'prompt2.parser:Wholefile' in out
     autotest(
         'tests/prompt2/parser_success.txt',
         'prompt2 parser wholefile',
@@ -217,11 +221,13 @@ def test_crud(user, local, kwargs):
         'prompt2 send user wholefile',
         **kwargs,
     )
-    autotest(
-        'tests/prompt2/send_code_failparser.txt',
-        'prompt2 send user foeuau',
-        **kwargs,
+    out = subprocess.check_output(
+        f'{cli2.which("prompt2")} send user foobar',
+        shell=True,
     )
+    assert b'wholefile' in out
+    assert b'PARSER NOT FOUND' in out
+    assert b'foobar' in out
     os.environ['MODEL_FOO'] = 'test a=b'
     autotest(
         'tests/prompt2/send_code_failmodel.txt',

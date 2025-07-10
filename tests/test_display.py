@@ -63,4 +63,4 @@ def test_highlight(monkeypatch):
 
     os.environ['FORCE_COLOR'] = ''
     assert cli2.highlight('a: 1', 'Yaml') == 'a: 1'
-    os.environ['FORCE_COLOR'] = 1
+    os.environ['FORCE_COLOR'] = '1'

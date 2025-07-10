@@ -2,12 +2,12 @@ image: yourlabs/ansible
 
 qa:
   stage: test
-  script: flake8 --ignore=N806,E704,W503 cli2 chttpx cansible
+  script: flake8 --ignore=N806,E704,W503 src  --exclude src/flow2/flow2/__init__.py
 
 pytest:
   stage: test
   script:
-  - pip install --user .[test] ./chttpx ./cansible ./prompt2 ./flow2 ./template2 litellm madbg
+  - pip install --user madbg src/cli2[test] src/template2 src/flow2 src/prompt2 src/chttpx src/cansible litellm
   - unset DEBUG && pytest -vvs --cov cli2 --cov-report=xml:coverage.xml --junitxml=report.xml --cov-report=term-missing --strict tests
   - CI_PROJECT_PATH=yourlabs/cli2 CI_BUILD_REPO=https://github.com/yourlabs/cli2 codecov-bash -f coverage.xml
   artifacts:

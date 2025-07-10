@@ -61,7 +61,7 @@ class LiteLLMPlugin(Plugin):
 
                     highlight_content = full_content
                     if code_open:
-                        # manuall close code block for pygments to highlight code
+                        # manuall close code block for pygments to highlight
                         if not highlight_content.endswith('\n'):
                             highlight_content += '\n'
                         highlight_content += '```'
@@ -78,7 +78,6 @@ class LiteLLMPlugin(Plugin):
                         file=sys.stderr,
                     )
                     printed_lines = len(highlighted_lines)
-
 
         new_lines = full_content.split('\n')[printed_lines:]
         for new_line in new_lines:

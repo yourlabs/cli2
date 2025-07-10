@@ -23,7 +23,7 @@ stderr:
 [38;5;15m    [39m[38;5;204mrole[39m[38;5;15m:[39m[38;5;15m [39m[38;5;141muser[39m [36mevent[0m=[35mmessages[0m [36mlevel[0m=[35mdebug[0m [36mtokens[0m=[35m16[0m
 
 [38;5;15m-[39m[38;5;15m   [39m[38;5;204mcontent[39m[38;5;15m:[39m[38;5;15m [39m[38;5;141mWith[39m[38;5;141m [39m[38;5;141mcontext[39m[38;5;141m [39m[38;5;141mbar[39m
-[38;5;15m    [39m[38;5;204mrole[39m[38;5;15m:[39m[38;5;15m [39m[38;5;141muser[39m [36mcache_path[0m=[35mredacted/cli2/tests/fixtures/prompt2/cache/7a25fcd623d18be8c6b0c1f711de33b9db59a58f_response.txt[0m [36mevent[0m=[35mcache hit![0m [36mlevel[0m=[35mdebug[0m
+[38;5;15m    [39m[38;5;204mrole[39m[38;5;15m:[39m[38;5;15m [39m[38;5;141muser[39m [36mcache_path[0m=[35mredacted/tests/fixtures/prompt2/cache/7a25fcd623d18be8c6b0c1f711de33b9db59a58f_response.txt[0m [36mevent[0m=[35mcache hit![0m [36mlevel[0m=[35mdebug[0m
 [36mevent[0m=[35mresponse[0m [36mlevel[0m=[35mdebug[0m [36mresponse[0m=[35mIt seems like you're asking about a "context bar," but could you clarify a bit more? Are you referring to:
 
 1. **A UI/design element** (e.g., a toolbar or menu that changes based on user context)?  

@@ -2,7 +2,6 @@
 Prompt management in text files.
 """
 
-import cli2
 import os
 
 from pathlib import Path
@@ -40,7 +39,7 @@ class Prompt(File):
             if token_type == 'comment':
                 try:
                     return yaml.safe_load(value)
-                except:
+                except:  # noqa
                     continue
         return dict()
 

@@ -18,8 +18,11 @@ import yaml
 
 _print = print
 
+
 def color_enabled():
-    return sys.stdout.isatty() or bool(os.getenv('FORCE_COLOR', ''))
+    if 'FORCE_COLOR' in os.environ:
+        return bool(os.getenv('FORCE_COLOR', ''))
+    return sys.stdout.isatty()
 
 
 def highlight(string, lexer):

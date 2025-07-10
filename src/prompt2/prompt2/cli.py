@@ -46,6 +46,7 @@ class ModelParserCommand(cli2.Command):
         except prompt2.NotFoundError as exc:
             return self.handle_not_found(exc)
 
+
 cli = cli2.Group('prompt2')
 
 
@@ -106,7 +107,7 @@ class PromptCommand(FileCommand, ModelParserCommand):
             print(cli2.t.bold('CONTENT:'))
             print(cli2.highlight(prompt.content, 'SqlJinja'))
             print()
-            print(cli2.t.red.bold(f'MISSING CONTEXT VARIABLE'))
+            print(cli2.t.red.bold('MISSING CONTEXT VARIABLE'))
             print(exc.message)
         else:
             super().handle_exception(exc)
@@ -117,7 +118,7 @@ class PromptCommands(FileCommands):
         super().__init__(prompt2.Prompt, lexer='SqlJinja')
 
     @cli2.cmd(cls=PromptCommand)
-    def edit(self, name, local: bool=False):
+    def edit(self, name, local: bool = False):
         """
         Edit a prompt.
 
@@ -176,7 +177,6 @@ class PromptCommands(FileCommands):
         print(cli2.t.y.bold('OUTPUT'))
         return messages
 
-
     @cli2.cmd(cls=PromptCommand, color='yellow')
     async def send(self, prompt, parser=None, model=None, **context):
         """
@@ -210,7 +210,6 @@ class ParserCommands:
 
         source = inspect.getsource(parser)
         print(cli2.highlight(source, 'Python'))
-
 
     @cli2.cmd(color='gray')
     def parsers(self):

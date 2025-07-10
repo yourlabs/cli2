@@ -2,5 +2,5 @@ command: prompt2 list
 retcode: 0
 stdout:
 [38;5;204mlocal[39m[38;5;15m:[39m[38;5;15m [39m[38;5;141mredacted/prompts_local/local.txt[39m
-[38;5;204mprompt2.macros[39m[38;5;15m:[39m[38;5;15m [39m[38;5;141mredacted/prompt2/templates/prompt2.macros.txt[39m
+[38;5;204mprompt2.macros[39m[38;5;15m:[39m[38;5;15m [39m[38;5;141mredacted/templates/prompt2.macros.txt[39m
 [38;5;204muser[39m[38;5;15m:[39m[38;5;15m [39m[38;5;141mredacted/prompts_user/user.txt[39m

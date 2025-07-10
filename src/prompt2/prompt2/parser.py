@@ -1,4 +1,3 @@
-import cli2
 import importlib.metadata
 import re
 
@@ -51,7 +50,9 @@ class Wholefile(Parser):
     def parse(self, response):
         if response.startswith('```'):
             # strip markup the IA absolutely wants to add
-            return '\n'.join([l for l in response.split('\n')[1:-1]])
+            return '\n'.join([
+                line for line in response.split('\n')[1:-1]
+            ])
         return response
 
 
@@ -63,11 +64,12 @@ Provide your response as a list in the following format, with each item on a new
 - item2
     """  # noqa
 
-
     def parse(self, response):
         if response.startswith('```'):
             # strip markup the IA absolutely wants to add
-            response = '\n'.join([l for l in response.split('\n')[1:-1]])
+            response = '\n'.join([
+                line for line in response.split('\n')[1:-1]
+            ])
         if response.strip().startswith('-'):
             result = []
             for line in response.splitlines():

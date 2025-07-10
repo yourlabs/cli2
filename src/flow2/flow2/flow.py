@@ -1,5 +1,4 @@
 from cli2.file import File
-from flow2 import task
 from pathlib import Path
 import importlib.metadata
 import yaml

@@ -19,7 +19,7 @@ class FlowCommands(FileCommands):
         super().__init__(Flow, lexer='YamlJinja')
 
     @cli2.cmd(cls=FlowCommand)
-    def edit(self, name, local: bool=False):
+    def edit(self, name, local: bool = False):
         """
         Edit a flow.
 
@@ -68,6 +68,7 @@ class FlowCommands(FileCommands):
             group=Flow.entry_point,
         )
         return {plugin.name: plugin.value for plugin in plugins}
+
 
 cli = cli2.Group(doc=__doc__)
 cli.load(FlowCommands())

@@ -1,6 +1,6 @@
 import cli2
 import flow2
-from prompt2 import Model, Parser, Prompt
+from prompt2 import Model, Prompt
 
 
 class PromptPlugin(flow2.Task):

@@ -205,5 +205,5 @@ class SerialTaskGroup(TaskGroup):
         for task in self.tasks:
             try:
                 await task.process(context)
-            except:
+            except:   # noqa
                 break

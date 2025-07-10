@@ -215,7 +215,7 @@ class TracebackFormatter:
             if filename and "<" not in filename and ">" not in filename:
                 path = Path(filename)
                 # Check existence and relativity together
-                cwd = Path(os.getcwd())
+                cwd = Path(os.getenv('PROJECT_PATH', os.getcwd()))
                 if (
                     path.exists()
                     and path.is_file()
@@ -291,6 +291,8 @@ class TracebackFormatter:
 
                     current_lineno = i + 1  # 1-based line number for display
                     is_error_line_in_context = i == error_index
+                    if not line_content:
+                        continue
 
                     formatted_line = self._format_source_line(
                         line_content,

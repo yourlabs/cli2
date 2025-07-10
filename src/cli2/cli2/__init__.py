@@ -50,6 +50,7 @@ def which(cmd):
     if path:
         return path
 
+    from pathlib import Path
     path = Path(os.getenv('HOME')) / '.local/bin' / cmd
     if path.exists():
         return str(path)
