@@ -2,7 +2,7 @@ command: prompt2 parser wholefile
 retcode: 0
 stdout:
 [1;38;5;3mPATH[0m
-[38;5;208mredacted/prompt2/prompt2/parser.py[0m
+[38;5;208mredacted/prompt2/parser.py[0m
 
 [38;5;81mclass[39m[38;5;15m [39m[38;5;148mWholefile[39m[38;5;15m([39m[38;5;15mParser[39m[38;5;15m)[39m[38;5;15m:[39m
 [38;5;15m    [39m[38;5;15msystem[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;186m"[39m[38;5;186mRespond only with the complete new file content, as this will be directly written to the file by an automated AI assistant tool—no additional text, comments, or explanations are allowed.[39m[38;5;186m"[39m[38;5;15m  [39m[38;5;245m# noqa[39m

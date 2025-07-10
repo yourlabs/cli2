@@ -4,6 +4,7 @@ import pytest
 import os
 
 from unittest import mock
+import prompt2
 from prompt2 import Model, Prompt
 from prompt2.cli import cli
 
@@ -64,7 +65,8 @@ def kwargs(prompt2_env, user, local):
         ignore=[
             str(user.parent.parent),
             str(local.parent.parent),
-            str(Path(__file__).parent.parent),
+            str(Path(prompt2.__path__[0]).parent),
+            str(Path(__file__).parent.parent.parent),
             r'/tmp/.*',
         ],
         env=prompt2_env,
