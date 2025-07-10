@@ -7,10 +7,17 @@ import os
 
 from pathlib import Path
 import jinja2
-from prompt2 import template2
+import template2
 import yaml
 
 from cli2.file import File
+
+
+class Template2(template2.Template2):
+    def __init__(self, plugins, paths=None, **options):
+        paths = paths or []
+        paths += Prompt.paths()
+        super().__init__(plugins, paths, **options)
 
 
 class Prompt(File):
@@ -38,7 +45,7 @@ class Prompt(File):
         return dict()
 
     async def render(self):
-        return await template2.Template2.factory().render(
+        return await Template2.factory().render(
             self.content,
             **self.context,
         )
