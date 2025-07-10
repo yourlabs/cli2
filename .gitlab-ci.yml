@@ -14,18 +14,14 @@ pytest:
     reports:
       junit: report.xml
 
-pypi:
-  stage: deploy
-  script: pypi-release
-  only: [tags]
-
 packages:
   stage: deploy
   only: [tags]
-  script: cd $CI_JOB_NAME && pypi-release TWINE_PASSWORD_${CI_JOB_NAME}
+  script: cd src/$CI_JOB_NAME && pypi-release TWINE_PASSWORD_${CI_JOB_NAME}
   parallel:
     matrix:
       - CI_JOB_NAME:
+        - cli2
         - cansible
         - chttpx
         - template2
