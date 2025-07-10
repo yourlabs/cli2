@@ -458,8 +458,16 @@ def test_print():
 
 
 @pytest.mark.parametrize('name,command,env', [
-    ('yourcmd_posix', 'python cli2/examples/example.py', {}),
-    ('yourcmd_help', 'python cli2/examples/example.py', {'POSIX': ''}),
+    (
+        'yourcmd_posix',
+        'python src/cli2/cli2/examples/example.py',
+        {},
+    ),
+    (
+        'yourcmd_help',
+        'python src/cli2/cli2/examples/example.py',
+        {'POSIX': ''}
+    ),
 ])
 def test_help(name, command, env):
     cli2.test.autotest(f'tests/{name}.txt', command, env)
