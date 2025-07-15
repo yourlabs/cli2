@@ -117,8 +117,8 @@ class Find:
         base_path = Path(directory).resolve() if directory else self.root
 
         cmd = ' '.join([
-            f'comm -23 <(find . {self.flags} | sort)',
-            f'<(find . {self.flags} | git check-ignore --stdin | sort)',
+            f'bash -c "comm -23 <(find . {self.flags} | sort)',
+            f'<(find . {self.flags} | git check-ignore --stdin | sort)"',
         ])
         stdout = subprocess.check_output(
             cmd,
