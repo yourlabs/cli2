@@ -86,6 +86,25 @@ client:
 Point ``console_scripts`` entry point to:
 ``your.module:YourClient.cli.entry_point``
 
+Testing
+-------
+
+While httpx-mock works, chttpx provides an automated fixture writer, just write
+the test and:
+
+- first run calls a real API, writes the responses in a file which you commit
+  in git
+- subsequent runs will use the responses file instead of hitting the API
+
+.. code-block:: python
+
+    @pytest.mark.chttpx_mock
+    def test_object_story(test_name):
+        client = YourClient.factory()
+        obj = YourClient.Obj(name='New object')
+        await obj.save()
+        assert obj.id, 'save() method must add the generated id'
+
 Complete Example
 ================
 
@@ -534,11 +553,6 @@ while generating defaults for data fields which belong to the remote API:
 
 Testing
 =======
-
-chttpx also registers as a pytest plugin, because as you know, I'm pretty lazy
-when it comes to repetitive test writting which is why I developed
-django-dbdiff and django-responsediff and also cli2.test.autotest. Let's have
-the same thing with chttpx!
 
 Let's write a test that calls the object create and delete command, say, in the
 **tests/test_client_test.py** file:
