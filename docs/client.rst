@@ -1,16 +1,6 @@
 HTTPX Framework
 ~~~~~~~~~~~~~~~
 
-Installation:
-
-    pip install chttpx  # or cli2[httpx]
-
-Then:
-
-.. code-block:: python
-
-   import chttpx
-
 The goal of chttpx module is to provide a generic framework to
 build HTTP client libs and CLIs onto, after carrying this pattern from a
 project to another, I've refactored this stuff here:
@@ -25,10 +15,81 @@ project to another, I've refactored this stuff here:
 - ``export HTTP_DEBUG=1`` for low-level HTTP Debugging output
 - **a ORM for REST resources**
 
-Example
-=======
+Setup
+=====
 
-And of course all this is designed to combine very well with CLIs, because once
+Installation:
+
+    pip install chttpx  # or cli2[httpx]
+
+Then:
+
+.. code-block:: python
+
+   import chttpx
+
+Crash Course
+============
+
+Improved httpx client
+---------------------
+
+Use the chttpx layer instead of httpx directly and benefit from logging,
+retries, reconnections, etc:
+
+.. code-block:: python
+
+    client = chttpx.Client(base_url='http://example.com')
+    obj = dict(name='New object')
+    response = await client.post('/objects', obj)
+    obj = response.json()  # refresh object data
+
+Model classes
+-------------
+
+You don't have to spagetti code business logic and object state by creating
+:py:class:`~chttpx.Model` classes:
+
+.. code-block:: python
+
+    class Obj(chttpx.Client.Model):
+        url_list = '/objects'
+
+        id = chttpx.Field()
+        name = chttpx.Field()
+
+        async def save(self):
+            response = await self.client.post(self.url_list, self.data)
+            self.data.update(response.json())
+            return response
+
+    obj = client.Obj(name='New object')
+    await obj.save()  # POST {'name': 'New object'} to /objects
+
+Ok but what if you need to debug this? All `python programming techniques
+are explained here
+<https://yourlabs.org/posts/2025-07-08-python-fu-metaprogramming-object-oriented-testing-debugging-crash-course/>`_
+
+Command Line
+------------
+
+And you can also have a CLI if you implement a factory class method into your
+client:
+
+.. code-block:: python
+
+    class YourClient(chttpx.Client):
+        @classmethod
+        def factory(cls):
+            return cls(base_url='http://example.com')
+
+Point ``console_scripts`` entry point to:
+``your.module:YourClient.cli.entry_point``
+
+Complete Example
+================
+
+Of course all this is designed to combine very well with CLIs, because once
 you have a library for an API, which you're going to embed in god knows what
 (your API server, an Ansible plugin ...), you'll want to work with a CLI to
 debug stuff: discover the API and implement features incrementally.
