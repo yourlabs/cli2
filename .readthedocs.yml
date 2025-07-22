@@ -11,12 +11,18 @@ build:
 python:
   install:
   - method: pip
-    path: .
+    path: src/cli2
     extra_requirements: [test,httpx,ansible]
   - method: pip
-    path: code2
+    path: src/prompt2
   - method: pip
-    path: prompt2
+    path: src/flow2
+  - method: pip
+    path: src/template2
+  - method: pip
+    path: src/chttpx
+  - method: pip
+    path: src/cansible
   - requirements: docs/requirements.txt
 
 formats:
