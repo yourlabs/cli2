@@ -23,6 +23,8 @@ python:
     path: src/chttpx
   - method: pip
     path: src/cansible
+  - method: pip
+    name: litellm
   - requirements: docs/requirements.txt
 
 formats:
