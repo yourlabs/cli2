@@ -81,7 +81,7 @@ class Fixture:
                 httpx_mock.add_response(**kwargs)
 
     def write(self):
-        if self.vars and self.requests:
+        if self.requests:
             data = [self.vars] + self.requests
             with self.path.open('w+') as f:
                 f.write(yaml.dump(data))
@@ -131,6 +131,9 @@ def chttpx_mock(chttpx_fixture, request, tmp_path):
             or not chttpx_fixture.path.exists()
         ):
             with log_path.open('r') as f:
-                chttpx_fixture.requests = cli2.parse(f.read())
+                chttpx_fixture.requests = cli2.parse(
+                    f.read(),
+                    events=['request', 'response'],
+                )
 
             chttpx_fixture.write()
