@@ -81,7 +81,7 @@ class Fixture:
                 httpx_mock.add_response(**kwargs)
 
     def write(self):
-        if self.vars and self.requests:
+        if self.requests:
             data = [self.vars] + self.requests
             with self.path.open('w+') as f:
                 f.write(yaml.dump(data))
