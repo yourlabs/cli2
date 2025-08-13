@@ -8,7 +8,7 @@ setup(
     packages=['chttpx'],
     install_requires=[
         'cli2',
-        'httpx',
+        'httpx<1',
         'truststore',
     ],
     author='James Pic',
