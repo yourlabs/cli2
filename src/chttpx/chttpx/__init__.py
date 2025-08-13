@@ -10,6 +10,7 @@ import json
 import math
 import os
 import ssl
+import uuid
 import yaml
 
 from datetime import datetime
@@ -1612,7 +1613,11 @@ class Client(metaclass=ClientMetaclass):
                     return await _send()
             return await _send()
 
-        _log = log.bind(method=request.method, url=str(request.url))
+        _log = log.bind(
+            method=request.method,
+            url=str(request.url),
+            chttpx_id=str(uuid.uuid4()),
+        )
         if not quiet or self.debug:
             # ensure we have content to log
             await request.aread()
@@ -1828,7 +1833,7 @@ class Client(metaclass=ClientMetaclass):
             data = response.json()
         except:  # noqa
             if response.content:
-                return 'content', self.mask(response.content)
+                return 'content', self.mask(response.content.decode())
         else:
             if data:
                 return 'json', self.mask(data)

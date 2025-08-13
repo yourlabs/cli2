@@ -66,11 +66,11 @@ def kwargs(prompt2_env, user, local):
     prompt2_env['PROMPT2_PARSER_EP'] = ''
     return dict(
         ignore=[
-            str(os.getcwd()),
-            str(user.parent.parent),
-            str(local.parent.parent),
             str(Path(prompt2.__path__[0])),
             str(Path(__file__).parent),
+            str(user.parent.parent),
+            str(local.parent.parent),
+            str(os.getcwd()),
             r'/tmp/.*',
         ],
         env=prompt2_env,

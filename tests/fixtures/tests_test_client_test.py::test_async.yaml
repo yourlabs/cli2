@@ -1,0 +1,29 @@
+- {}
+- request:
+    chttpx_id: 14a31ceb-db92-4ff7-90e1-7035e223229b
+    event: request
+    level: debug
+    method: GET
+    url: http://localhost:8000/sleep/2/
+  response:
+    chttpx_id: 14a31ceb-db92-4ff7-90e1-7035e223229b
+    content: Slept 2 secs
+    event: response
+    level: info
+    method: GET
+    status_code: '200'
+    url: http://localhost:8000/sleep/2/
+- request:
+    chttpx_id: e6b2c052-68b8-4f1d-8d5d-0a777dfc8770
+    event: request
+    level: debug
+    method: GET
+    url: http://localhost:8000/sleep/1/
+  response:
+    chttpx_id: e6b2c052-68b8-4f1d-8d5d-0a777dfc8770
+    content: Slept 1 secs
+    event: response
+    level: info
+    method: GET
+    status_code: '200'
+    url: http://localhost:8000/sleep/1/

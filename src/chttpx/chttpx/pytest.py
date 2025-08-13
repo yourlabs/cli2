@@ -78,13 +78,28 @@ class Fixture:
                     kwargs['match_json'] = entry['request']['json']
                 if 'json' in entry['response']:
                     kwargs['json'] = entry['response']['json']
+                if 'content' in entry['response']:
+                    kwargs['content'] = entry['response']['content']
                 httpx_mock.add_response(**kwargs)
 
     def write(self):
-        if self.vars and self.requests:
+        if self.requests:
             data = [self.vars] + self.requests
             with self.path.open('w+') as f:
                 f.write(yaml.dump(data))
+
+    def parse(self, data):
+        transactions = dict()
+        for entry in cli2.parse(data):
+            if entry['event'] == 'request':
+                transactions[entry['chttpx_id']] = dict(request=entry)
+            elif entry['event'] == 'response':
+                transactions[entry['chttpx_id']]['response'] = entry
+        return [*transactions.values()]
+
+    def load(self, log):
+        with log.open('r') as f:
+            self.requests = self.parse(f.read())
 
 
 @pytest.fixture
@@ -106,7 +121,13 @@ def chttpx_requests(request, chttpx_fixture):
 
 
 @pytest.fixture
-def chttpx_mock(chttpx_fixture, request, tmp_path):
+def chttpx_log(tmp_path, request):
+    test_name = request.node.nodeid.replace('/', '_')
+    return tmp_path / test_name
+
+
+@pytest.fixture
+def chttpx_mock(chttpx_fixture, request, chttpx_log):
     if (
         'httpx_mock' in request.fixturenames
         or request.config.getoption('--chttpx-live')
@@ -120,9 +141,7 @@ def chttpx_mock(chttpx_fixture, request, tmp_path):
             httpx_mock = request.getfixturevalue('httpx_mock')
             chttpx_fixture.mock(httpx_mock)
 
-        test_name = request.node.nodeid.replace('/', '_')
-        log_path = tmp_path / test_name
-        cli2.configure(str(log_path))
+        cli2.configure(str(chttpx_log))
 
         yield  # Test runs here
 
@@ -130,7 +149,5 @@ def chttpx_mock(chttpx_fixture, request, tmp_path):
             request.config.getoption('--chttpx-rewrite')
             or not chttpx_fixture.path.exists()
         ):
-            with log_path.open('r') as f:
-                chttpx_fixture.requests = cli2.parse(f.read())
-
+            chttpx_fixture.load(chttpx_log)
             chttpx_fixture.write()

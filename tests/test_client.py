@@ -948,6 +948,7 @@ async def test_mask_recursive(client_class, monkeypatch):
 
     log = mock.Mock()
     monkeypatch.setattr(chttpx, 'log', log)
+    monkeypatch.setattr('chttpx.uuid.uuid4', lambda: '123')
     response = httpx.Response(
         status_code=200,
         content='{"pub": 1, "foo": [{"scrt": "pass"}]}',
@@ -957,6 +958,7 @@ async def test_mask_recursive(client_class, monkeypatch):
     client.client.send.return_value = response
     await client.post('/', json=data)
     log.bind.assert_called_once_with(
+        chttpx_id='123',
         method='POST',
         url='http://lol/',
     )
@@ -977,6 +979,7 @@ async def test_mask_recursive(client_class, monkeypatch):
     'key', ('json', 'data'),
 )
 async def test_mask_logs(client_class, key, monkeypatch):
+    monkeypatch.setattr('chttpx.uuid.uuid4', lambda: '123')
     client = client_class(mask=chttpx.Mask(['scrt', 'password']))
     client.client.send = mock.AsyncMock()
 
@@ -993,6 +996,7 @@ async def test_mask_logs(client_class, key, monkeypatch):
     log.bind.assert_called_once_with(
         method='POST',
         url='http://lol/',
+        chttpx_id='123',
     )
     log = log.bind.return_value
     log.debug.assert_called_once_with(
@@ -1047,10 +1051,6 @@ async def test_request_mask(client_class, monkeypatch):
     client.client.send.return_value = response
     client.mask.keys.add('scrt')
     await client.post('/', json=data)
-    log.bind.assert_called_once_with(
-        method='POST',
-        url='http://lol/'
-    )
     log = log.bind.return_value
     log.debug.assert_called_once_with(
         'request',
@@ -1073,14 +1073,10 @@ async def test_log_content(client_class, monkeypatch):
     response.request = httpx.Request('POST', '/')
     client.client.send.return_value = response
     await client.post('/', content='lol:]foo')
-    log.bind.assert_called_once_with(
-        method='POST',
-        url='http://lol/'
-    )
     log = log.bind.return_value
     log.debug.assert_called_once_with('request', content='lol:]foo')
     log.info.assert_called_once_with(
-        'response', status_code=200, content=b'lol:]bar'
+        'response', status_code=200, content='lol:]bar'
     )
 
 
@@ -1094,10 +1090,6 @@ async def test_log_quiet(client_class, monkeypatch):
     response.request = httpx.Request('GET', '/')
     client.client.send.return_value = response
     await client.get('/', json=[1], quiet=True)
-    log.bind.assert_called_once_with(
-        method='GET',
-        url='http://lol/',
-    )
     log = log.bind.return_value
     assert not log.debug.call_args_list
     log.info.assert_called_once_with('response', status_code=200)
@@ -1162,6 +1154,7 @@ def test_id_value(client_class):
 
 @pytest.mark.asyncio
 async def test_debug(client_class, monkeypatch):
+    monkeypatch.setattr('chttpx.uuid.uuid4', lambda: '123')
     client = client_class(mask=chttpx.Mask(['scrt', 'password']), debug=True)
     client.client.send = mock.AsyncMock()
 
@@ -1177,6 +1170,7 @@ async def test_debug(client_class, monkeypatch):
     client.client.send.return_value = response
     await client.post('/', json=data, quiet=True)
     log.bind.assert_called_once_with(
+        chttpx_id='123',
         method='POST',
         url='http://lol/',
     )

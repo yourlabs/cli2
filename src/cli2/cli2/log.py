@@ -270,13 +270,7 @@ def parse(data):
             if yaml_lines:
                 data['json'] = yaml.safe_load('\n'.join(yaml_lines))
 
-            if data['event'] == 'request':
-                entries.append(dict(request=data))
-            elif data['event'] == 'response':
-                entries[-1]['response'] = data
-            else:
-                entries.append(data)
-
+            entries.append(data)
             yaml_lines = []
         else:
             yaml_lines.append(line)
