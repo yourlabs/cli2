@@ -249,7 +249,7 @@ def configure(log_file=None):
     )
 
 
-def parse(data, events=None):
+def parse(data):
     """
     Parse log file data into a list of entries.
 
@@ -270,13 +270,7 @@ def parse(data, events=None):
             if yaml_lines:
                 data['json'] = yaml.safe_load('\n'.join(yaml_lines))
 
-            if data['event'] == 'request':
-                entries.append(dict(request=data))
-            elif data['event'] == 'response':
-                entries[-1]['response'] = data
-            elif not events or data['event'] in events:
-                entries.append(data)
-
+            entries.append(data)
             yaml_lines = []
         else:
             yaml_lines.append(line)

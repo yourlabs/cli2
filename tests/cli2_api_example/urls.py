@@ -24,8 +24,17 @@ from object.views import ObjectViewSet
 router = routers.DefaultRouter()
 router.register(r'objects', ObjectViewSet)
 
+
+def sleep(request, seconds):
+    import time
+    from django import http
+    time.sleep(seconds)
+    return http.HttpResponse(f'Slept {seconds} secs')
+
+
 urlpatterns = [
     path('', include(router.urls)),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path("admin/", admin.site.urls),
+    path('sleep/<int:seconds>/', sleep),
 ]
