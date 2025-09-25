@@ -142,7 +142,7 @@ def configure(log_file=None):
 
     LOGGING = {
         'version': 1,
-        'disable_existing_loggers': True,
+        'disable_existing_loggers': False,
         'formatters': {
             'plain': {
                 'foreign_pre_chain': pre_chain,
