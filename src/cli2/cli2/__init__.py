@@ -19,7 +19,15 @@ from .asyncio import async_resolve, files_read
 from .queue import Queue
 from .colors import colors as c
 from .theme import theme, t
-from .display import diff, diff_data, render, print, highlight, yaml_highlight
+from .display import (
+    diff,
+    diff_data,
+    render,
+    print,
+    highlight,
+    yaml_dump,
+    yaml_highlight,
+)
 from .interactive import confirm, choice, editor
 try:
     import fcntl
