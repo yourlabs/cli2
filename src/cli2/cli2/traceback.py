@@ -104,6 +104,14 @@ class TracebackFormatter:
     @staticmethod
     def display_value(value):
         """Truncate long values for display."""
+        if isinstance(value, bool):
+            if value:
+                return t.g(value)
+            else:
+                return t.r(value)
+        elif value is None:
+            return t.G(value)
+
         try:
             value = str(value)
         except Exception:
@@ -113,6 +121,8 @@ class TracebackFormatter:
                 value = f"{type(value)} instance (unrepresentable)"
         if len(value) > 75:
             value = value[:72] + "..."  # Adjusted length to fit ellipsis
+        for symb in ('{', '(', ')', '}', '<', '>', '='):
+            value = value.replace(symb, t.G(symb))
         return value
 
     def format_syntax_error(self, etype, value):
@@ -138,15 +148,15 @@ class TracebackFormatter:
                     and path.is_relative_to(cwd)
                 ):
                     display_path = path.relative_to(cwd)
-                    display_path_str = str(display_path)
-                    t.p.b(display_path_str)  # Use display_path_str
+                    display_path_str = t.o.b(display_path)
                     colored_lineno = t.y.b(lineno)
             except (ValueError, OSError):
+                display_path_str = t.b(display_path)
                 pass  # Keep default non-relative coloring
 
         # Header - using standard Python format
         self.output.append(
-            f'\n  File "{t.c(display_path_str)}", line {colored_lineno}'
+            f'\nFile "{display_path_str}", line {colored_lineno}'
         )
 
         file_lines, total_lines = self._get_source_lines(filename)
@@ -209,7 +219,7 @@ class TracebackFormatter:
         colored_lineno = t.G(lineno)
         sig_color = t.G  # Default color
 
-        display_path_str = filename
+        display_path_str = t.G(filename)
         try:
             # Check if path is relative only if it's likely a file path
             if filename and "<" not in filename and ">" not in filename:
@@ -224,9 +234,9 @@ class TracebackFormatter:
                     relative = True
                     try:
                         display_path = path.relative_to(cwd)
-                        display_path_str = str(display_path)
+                        display_path_str = t.o(display_path)
                     except ValueError:  # pragma: no cover
-                        display_path_str = str(path)  # Should not happen
+                        display_path_str = t.b(path)  # Should not happen
 
                     t.p.b(display_path_str)  # Use relative string
                     colored_lineno = t.y.b(lineno)
@@ -237,7 +247,7 @@ class TracebackFormatter:
         output = []
         # Standard Python format: File "...", line ..., in ...
         header = (
-            f'\n  File "{t.c(display_path_str)}", line {colored_lineno}, '
+            f'\nFile "{display_path_str}", line {colored_lineno}, '
             f"in {sig_color(name)}"
         )
 
@@ -264,8 +274,8 @@ class TracebackFormatter:
 
                 # Define context window sizes
 
-                context_lines = 1  # Context lines above/below
-                more_context = 3  # Extra context for final frame in project
+                context_lines = 3  # Context lines above/below
+                more_context = 5  # Extra context for final frame in project
 
                 # Determine context window based on frame type/position
                 if not relative:  # Non-project code (library etc.)
@@ -302,7 +312,7 @@ class TracebackFormatter:
                     )
                     # Add standard indentation ("    ") for source lines in
                     # traceback
-                    output.append(f"    {formatted_line}")
+                    output.append(f"{formatted_line}")
 
             # Specific handling for line number issues
             except IndexError as e:
@@ -342,13 +352,16 @@ class TracebackFormatter:
             if filtered_locals:
                 # Sort locals by key for consistent output
                 sorted_locals = sorted(filtered_locals.items())
-                locals_str = " ".join(
-                    f"{k}={t.g(self.display_value(v))}"
+                locals_str = "\n ".join(
+                    f"{t.b(k)}: {self.display_value(v)}"
                     for k, v in sorted_locals
                 )
 
-                # Add standard indentation for locals line
-                output.append(f"    {t.g.b('Locals')}: {locals_str}")
+                if not os.getenv('NO_LOCALS'):
+                    # Add standard indentation for locals line
+                    output.append(
+                        f" {locals_str}",
+                    )
 
         except Exception as e:
             output.append(
@@ -405,7 +418,7 @@ class TracebackFormatter:
         try:
             # Get exception type name and value representation
             exc_name = t.r.b(etype.__name__)
-            exc_value = t.c(value)
+            exc_value = value
             exception_str = f"{exc_name}: {exc_value}"
         except Exception:
             exception_str = (
