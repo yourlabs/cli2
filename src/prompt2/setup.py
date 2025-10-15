@@ -6,7 +6,7 @@ setup(
     versioning='dev',
     setup_requires='setupmeta',
     install_requires=[
-        'cli2',
+        'cli2>=6.0.0rc13',
         'template2',
     ],
     author='James Pic',
