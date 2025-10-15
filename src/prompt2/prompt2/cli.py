@@ -10,6 +10,14 @@ import inspect
 import jinja2
 import prompt2
 
+# support system CA registry
+try:
+    import truststore
+except ImportError:
+    pass
+else:
+    truststore.inject_into_ssl()
+
 
 class ModelParserCommand(cli2.Command):
     def __init__(self, *args, **kwargs):
