@@ -228,7 +228,7 @@ class Group(EntryPoint, dict):
     def group(self, name, grpclass=None, **kwargs):
         """Return a new sub-group."""
         kwargs.setdefault('cmdclass', self.cmdclass)
-        grpclass = grpclass or Group
+        grpclass = grpclass or type(self)
         self[name] = grpclass(name, **kwargs)
         return self[name]
 
