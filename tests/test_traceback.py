@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 import cli2
 from cli2.test import autotest

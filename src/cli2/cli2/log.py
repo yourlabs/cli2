@@ -20,6 +20,7 @@ In general, you'll want to use want to use:
   can recover from that (ie. retrying a connection)
 - ``log.error()``: your program couldn't perform some function
 - ``log.critical()``: your program may not be able to continue running
+- ``log.exception()``: log the traceback
 
 Anyway, it's structlog so you can also create bound loggers that will carry on
 the given parameters:
@@ -63,12 +64,18 @@ import logging.config
 import os
 import re
 import sys
+import io
 import structlog
+import warnings
 import yaml
 from pathlib import Path
 
 from cli2.traceback import TracebackFormatter
+from cli2.theme import theme
 import cli2.display
+
+
+COLOR_ENABLED = cli2.display.color_enabled()
 
 
 class YAMLFormatter:
@@ -79,7 +86,86 @@ class YAMLFormatter:
         value = cli2.display.yaml_dump(value)
         if self.colors:
             value = cli2.display.yaml_highlight(value)
-        return '\n' + value
+        return '\n' + value.strip() + '\n'
+
+
+_NOTHING = structlog.dev._NOTHING
+
+
+class ConsoleRenderer(structlog.dev.ConsoleRenderer):
+    def __init__(self, *args, **kwargs):
+        if kwargs.get('colors', False):
+            kwargs['level_styles'] = dict(
+                debug=str(theme.gray),
+                info=str(theme.green),
+                warning=str(theme.orange),
+                error=str(theme.red),
+                critical=str(theme.pink),
+                exception=str(theme.mauve),
+            )
+
+        super().__init__(*args, **kwargs)
+        self._columns.append(
+            structlog.dev.Column(
+                'json',
+                YAMLFormatter(colors=self.colors),
+            ),
+        )
+
+    def _configure_columns(self) -> None:
+        super()._configure_columns()
+        if self.colors:
+            self._default_column_formatter.key_style = str(theme.orange)
+            self._default_column_formatter.value_style = str(theme.green)
+
+    def __call__(self, logger, name, event_dict):
+        """ Override to display JSON column last """
+        stack = event_dict.pop("stack", None)
+        exc = event_dict.pop("exception", None)
+        exc_info = event_dict.pop("exc_info", None)
+
+        self.columns[3].formatter.width = 0
+        kvs = [
+            col.formatter(col.key, val)
+            for col in self.columns
+            if col.key != 'json'
+            and (val := event_dict.pop(col.key, _NOTHING)) is not _NOTHING
+            # added the following line:
+        ] + [
+            self._default_column_formatter(key, event_dict[key])
+            for key in (sorted(event_dict) if self._sort_keys else event_dict)
+            if key != 'json'
+        ] + [
+            # added all this list
+            col.formatter(col.key, val)
+            for col in self.columns
+            if col.key == 'json'
+            and (val := event_dict.pop(col.key, _NOTHING)) is not _NOTHING
+        ]
+
+        sio = io.StringIO()
+        sio.write((" ".join(kv for kv in kvs if kv)).rstrip(" "))
+
+        if stack is not None:
+            sio.write("\n" + stack)
+            if exc_info or exc is not None:
+                sio.write("\n\n" + "=" * 79 + "\n")
+
+        exc_info = structlog.processors._figure_out_exc_info(exc_info)
+        if exc_info:
+            self._exception_formatter(sio, exc_info)
+        elif exc is not None:
+            from structlog.dev import plain_traceback
+            if self._exception_formatter is not plain_traceback:
+                warnings.warn(
+                    "Remove `format_exc_info` from your processor chain "
+                    "if you want pretty exceptions.",
+                    stacklevel=2,
+                )
+
+            sio.write("\n" + exc)
+
+        return sio.getvalue()
 
 
 def cli2_traceback(sio, exc_info):
@@ -95,7 +181,6 @@ def configure(log_file=None):
 
     :param log_file: override for :envvar:`LOG_FILE`.
     """
-    from cli2.configuration import cfg
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'WARNING').upper()
     if log_file is None:
         log_file = os.getenv('LOG_FILE', 'auto')
@@ -136,9 +221,56 @@ def configure(log_file=None):
     if log_file:
         handlers.append('file')
 
-    kwargs = dict()
-    if not bool(cfg['CLI2_TRACEBACK_DISABLE']):
-        kwargs['exception_formatter'] = cli2_traceback
+    from structlog.processors import (
+        StackInfoRenderer,
+        TimeStamper,
+        add_log_level,
+    )
+    from structlog.contextvars import merge_contextvars
+    from structlog.dev import _has_colors, set_exc_info
+    colors = (
+        os.environ.get("NO_COLOR", "") == ""
+        and (
+            os.environ.get("FORCE_COLOR", "") != ""
+            or (
+                _has_colors
+                and sys.stdout is not None
+                and hasattr(sys.stdout, "isatty")
+                and sys.stdout.isatty()
+            )
+        )
+    )
+
+    def move_json_to_end(_, __, event_dict):
+        # Pull json out if present, then put it back at the very end
+        json_value = event_dict.pop("json", None)
+        if json_value is not None:
+            event_dict["json"] = json_value
+        return event_dict
+
+    def processors(disable_color=False):
+        kwargs = dict()
+        if not bool(os.getenv('CLI2_TRACEBACK_DISABLE')):
+            kwargs['exception_formatter'] = cli2_traceback
+
+        processors = [
+            structlog.stdlib.ProcessorFormatter.remove_processors_meta,
+            merge_contextvars,
+            add_log_level,
+            StackInfoRenderer(),
+            set_exc_info,
+        ]
+        if not os.getenv('NO_TIMESTAMPER'):
+            processors.append(
+                TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False),
+            )
+        processors.append(
+            ConsoleRenderer(
+                colors=colors and not disable_color,
+                **kwargs,
+            )
+        )
+        return processors
 
     LOGGING = {
         'version': 1,
@@ -147,52 +279,12 @@ def configure(log_file=None):
             'plain': {
                 'foreign_pre_chain': pre_chain,
                 '()': structlog.stdlib.ProcessorFormatter,
-                'processors': [
-                    structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-                    structlog.dev.ConsoleRenderer(
-                        columns=[
-                            structlog.dev.Column(
-                                'json',
-                                YAMLFormatter(colors=False),
-                            ),
-                            structlog.dev.Column(
-                                '',
-                                structlog.dev.KeyValueColumnFormatter(
-                                    key_style="",
-                                    value_style="",
-                                    reset_style="",
-                                    value_repr=str,
-                                ),
-                            )
-                        ],
-                        **kwargs,
-                    )
-                ],
+                'processors': processors(True),
             },
             'colored': {
                 'foreign_pre_chain': pre_chain,
                 '()': structlog.stdlib.ProcessorFormatter,
-                'processors': [
-                    structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-                    structlog.dev.ConsoleRenderer(
-                        columns=[
-                            structlog.dev.Column(
-                                '',
-                                structlog.dev.KeyValueColumnFormatter(
-                                    key_style=structlog.dev.CYAN,
-                                    value_style=structlog.dev.MAGENTA,
-                                    reset_style=structlog.dev.RESET_ALL,
-                                    value_repr=str,
-                                ),
-                            ),
-                            structlog.dev.Column(
-                                'json',
-                                YAMLFormatter(colors=True),
-                            ),
-                        ],
-                        **kwargs,
-                    )
-                ]
+                'processors': processors(),
             },
         },
         'handlers': {
@@ -234,8 +326,10 @@ def configure(log_file=None):
         structlog.stdlib.add_log_level,
         structlog.stdlib.PositionalArgumentsFormatter(),
     ]
+
     if 'NO_TIMESTAMPER' not in os.environ:
         processors.append(timestamper)
+
     processors += [
         structlog.processors.StackInfoRenderer(),
         structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
@@ -277,5 +371,20 @@ def parse(data):
     return entries
 
 
-configure()
-log = structlog.get_logger('cli2')
+class LazyProxy:
+    def __init__(self):
+        self.obj = None
+
+    def __getattr__(self, key):
+        try:
+            return getattr(self.obj, key)
+        except AttributeError:
+            self.obj = self.obj_factory()
+            return getattr(self.obj, key)
+
+    def obj_factory(self):
+        configure()
+        return structlog.get_logger('cli2')
+
+
+log = LazyProxy()

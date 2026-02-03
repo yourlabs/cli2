@@ -7,7 +7,7 @@ qa:
 pytest:
   stage: test
   script:
-  - pip install --user madbg src/cli2[test] src/template2 src/flow2 src/prompt2 src/chttpx src/cansible litellm
+  - pip install --user madbg src/cli2[test] src/chttpx src/cansible litellm
   - unset DEBUG && pytest -vvs --cov cli2 --cov-report=xml:coverage.xml --junitxml=report.xml --cov-report=term-missing --strict tests
   - CI_PROJECT_PATH=yourlabs/cli2 CI_BUILD_REPO=https://github.com/yourlabs/cli2 codecov-bash -f coverage.xml
   artifacts:
@@ -24,6 +24,3 @@ packages:
         - cli2
         - cansible
         - chttpx
-        - template2
-        - prompt2
-        - flow2

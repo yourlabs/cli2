@@ -204,7 +204,7 @@ class Playbook:
                           default, set this to True to allow an exception to
                           pop in the playbook.
         """
-        os.environ['ANSIBLE_STDOUT_CALLBACK'] = 'yaml'
+        os.environ['ANSIBLE_RESULT_FORMAT'] = 'yaml'
         os.environ['ANSIBLE_FORCE_COLOR'] = '1'
         if not self.file_path.exists():
             self.write()

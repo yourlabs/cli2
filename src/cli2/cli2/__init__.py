@@ -1,7 +1,6 @@
 # flake8: noqa
 
 from .configuration import Configuration, cfg
-cfg.defaults['CLI2_TRACEBACK_DISABLE'] = ''
 
 from .cli import (
     cmd,
@@ -46,7 +45,7 @@ from .table import Table
 
 import os
 
-if not bool(cfg['CLI2_TRACEBACK_DISABLE']):
+if not bool(os.getenv('CLI2_TRACEBACK_DISABLE')):
     from .traceback import enable
     enable()
 

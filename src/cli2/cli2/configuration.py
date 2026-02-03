@@ -65,7 +65,7 @@ class Configuration(dict):
 
         cli = cli2.Group()
 
-        cli2.cfg['API_URL'] = 'What is your API URL?'
+        cli2.cfg.questions['API_URL'] = 'What is your API URL?'
 
         @cli.cmd
         def foo():

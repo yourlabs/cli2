@@ -7,7 +7,7 @@ stdout:
 --- Running error_on_first_line(0) --- (Expected: ZeroDivisionError in error_on_first_line line 141)
 --- Triggering SyntaxError ---
 stderr:
-[36mlevel[0m=[35merror[0m
+[[38;5;1m[1merror    [0m]
 [1mTraceback[0m (most recent call last):
 
 File "[38;5;208mexamples/traceback_demo.py[0m", line [1;38;5;3m164[0m, in [1;38;5;164mmain[0m
@@ -154,7 +154,7 @@ File "[38;5;208mexamples/traceback_demo.py[0m", line [1;38;5;3m11[0m, in [1
  [38;5;4mthreshold[0m: 10
  [38;5;4mz[0m: 6.975316951997413e+17
 [1;38;5;1mTypeError[0m: Input must be an integer for function_g
-[36mlevel[0m=[35merror[0m
+[[38;5;1m[1merror    [0m]
 [1mTraceback[0m (most recent call last):
 
 File "[38;5;208mexamples/traceback_demo.py[0m", line [1;38;5;3m173[0m, in [1;38;5;164mmain[0m
@@ -182,7 +182,7 @@ File "[38;5;208mexamples/traceback_demo.py[0m", line [1;38;5;3m13[0m, in [1
  [38;5;4mthreshold[0m: 10
  [38;5;4mz[0m: 0
 [1;38;5;1mZeroDivisionError[0m: division by zero
-[36mlevel[0m=[35merror[0m
+[[38;5;1m[1merror    [0m]
 [1mTraceback[0m (most recent call last):
 
 File "[38;5;208mexamples/traceback_demo.py[0m", line [1;38;5;3m182[0m, in [1;38;5;164mmain[0m
@@ -209,7 +209,7 @@ File "[38;5;208mexamples/traceback_demo.py[0m", line [1;38;5;3m17[0m, in [1
  [38;5;4mthreshold[0m: 10
  [38;5;4mz[0m: 15
 [1;38;5;1mIndexError[0m: list index out of range
-[36mlevel[0m=[35merror[0m
+[[38;5;1m[1merror    [0m]
 [1mTraceback[0m (most recent call last):
 
 File "[38;5;208mexamples/traceback_demo.py[0m", line [1;38;5;3m191[0m, in [1;38;5;164mmain[0m
@@ -230,7 +230,7 @@ File "[38;5;208mexamples/traceback_demo.py[0m", line [1;38;5;3m151[0m, in [
 [38;5;7m 156[0m[38;5;7m | [0m[38;5;81mdef[39m[38;5;15m [39m[38;5;148mmain[39m[38;5;15m([39m[38;5;15m)[39m[38;5;15m:[39m
  [38;5;4marg[0m: 0
 [1;38;5;1mZeroDivisionError[0m: division by zero
-[36mlevel[0m=[35merror[0m
+[[38;5;1m[1merror    [0m]
 
 File "<string>", line [38;5;7m1[0m
     [1;38;5;3m   1[0m[38;5;7m | [0m[38;5;15minvalid[39m[38;5;15m [39m[38;5;15msyntax[39m[38;5;15m [39m[38;5;15mhere[39m[38;5;15m [39m[38;5;204m=[39m[38;5;15m [39m[38;5;141m1[39m
