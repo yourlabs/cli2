@@ -24,8 +24,6 @@
    cli
    client
    ansible
-   prompt2
-   flow2
    lock
    notlevenshtein
    cli2
