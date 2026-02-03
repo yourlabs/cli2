@@ -22,6 +22,8 @@ _print = print
 def color_enabled():
     if 'FORCE_COLOR' in os.environ:
         return bool(os.getenv('FORCE_COLOR', ''))
+    elif 'NO_COLOR' in os.environ:
+        return not bool(os.getenv('NO_COLOR', ''))
     return sys.stdout.isatty()
 
 
