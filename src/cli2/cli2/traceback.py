@@ -454,10 +454,8 @@ _formatter = TracebackFormatter()
 def enable():
     """Enable the custom traceback formatter."""
     # Defer import to avoid circularity
-    from cli2.configuration import cfg
-
     # Check config if tracebacks should be enabled
-    if not bool(cfg.get("CLI2_TRACEBACK_DISABLE")):
+    if not bool(os.getenv("CLI2_TRACEBACK_DISABLE")):
         _formatter.enable()
 
 

@@ -20,6 +20,7 @@ In general, you'll want to use want to use:
   can recover from that (ie. retrying a connection)
 - ``log.error()``: your program couldn't perform some function
 - ``log.critical()``: your program may not be able to continue running
+- ``log.exception()``: log the traceback
 
 Anyway, it's structlog so you can also create bound loggers that will carry on
 the given parameters:
@@ -65,6 +66,7 @@ import re
 import sys
 import io
 import structlog
+import warnings
 import yaml
 from pathlib import Path
 
@@ -109,6 +111,7 @@ class ConsoleRenderer(structlog.dev.ConsoleRenderer):
                 YAMLFormatter(colors=self.colors),
             ),
         )
+
     def _configure_columns(self) -> None:
         super()._configure_columns()
         if self.colors:
@@ -152,6 +155,7 @@ class ConsoleRenderer(structlog.dev.ConsoleRenderer):
         if exc_info:
             self._exception_formatter(sio, exc_info)
         elif exc is not None:
+            from structlog.dev import plain_traceback
             if self._exception_formatter is not plain_traceback:
                 warnings.warn(
                     "Remove `format_exc_info` from your processor chain "
@@ -177,7 +181,6 @@ def configure(log_file=None):
 
     :param log_file: override for :envvar:`LOG_FILE`.
     """
-    from cli2.configuration import cfg
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'WARNING').upper()
     if log_file is None:
         log_file = os.getenv('LOG_FILE', 'auto')
@@ -218,11 +221,11 @@ def configure(log_file=None):
     if log_file:
         handlers.append('file')
 
-    kwargs = dict()
-    if not bool(cfg['CLI2_TRACEBACK_DISABLE']):
-        kwargs['exception_formatter'] = cli2_traceback
-
-    from structlog.processors import StackInfoRenderer, TimeStamper, add_log_level
+    from structlog.processors import (
+        StackInfoRenderer,
+        TimeStamper,
+        add_log_level,
+    )
     from structlog.contextvars import merge_contextvars
     from structlog.dev import _has_colors, set_exc_info
     colors = (
@@ -237,6 +240,7 @@ def configure(log_file=None):
             )
         )
     )
+
     def move_json_to_end(_, __, event_dict):
         # Pull json out if present, then put it back at the very end
         json_value = event_dict.pop("json", None)
@@ -245,17 +249,28 @@ def configure(log_file=None):
         return event_dict
 
     def processors(disable_color=False):
-        return [
+        kwargs = dict()
+        if not bool(os.getenv('CLI2_TRACEBACK_DISABLE')):
+            kwargs['exception_formatter'] = cli2_traceback
+
+        processors = [
             structlog.stdlib.ProcessorFormatter.remove_processors_meta,
             merge_contextvars,
             add_log_level,
             StackInfoRenderer(),
             set_exc_info,
-            TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False),
+        ]
+        if not os.getenv('NO_TIMESTAMPER'):
+            processors.append(
+                TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False),
+            )
+        processors.append(
             ConsoleRenderer(
                 colors=colors and not disable_color,
-            ),
-        ]
+                **kwargs,
+            )
+        )
+        return processors
 
     LOGGING = {
         'version': 1,
@@ -370,5 +385,6 @@ class LazyProxy:
     def obj_factory(self):
         configure()
         return structlog.get_logger('cli2')
+
 
 log = LazyProxy()
