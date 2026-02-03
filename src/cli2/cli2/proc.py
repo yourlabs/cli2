@@ -15,7 +15,7 @@ Example usage:
     proc = cli2.Proc('foo bar')
 
     # or as list, better when building commands
-    proc = await cli2.Proc('foo', 'bar')
+    proc = cli2.Proc('foo', 'bar')
 
     # wait in async loop
     await proc.wait()
